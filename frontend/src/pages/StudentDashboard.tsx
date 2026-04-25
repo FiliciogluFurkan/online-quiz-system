@@ -6,7 +6,10 @@ export default function StudentDashboard() {
   const [exams, setExams] = useState<Exam[]>([]);
 
   useEffect(() => {
-    api.get('/exams').then(res => setExams(res.data));
+    api.get('/exams').then(res => {
+      const publishedExams = res.data.filter((exam: Exam) => exam.published);
+      setExams(publishedExams);
+    });
   }, []);
 
   return (

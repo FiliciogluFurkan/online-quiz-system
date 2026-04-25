@@ -26,4 +26,10 @@ public class ExamController {
     public Exam createExam(@RequestBody Exam exam) {
         return examRepository.save(exam);
     }
+
+    @PutMapping("/{id}")
+    public Exam updateExam(@PathVariable Long id, @RequestBody Exam exam) {
+        exam.setId(id);
+        return examRepository.save(exam);
+    }
 }
