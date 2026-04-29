@@ -414,6 +414,18 @@ export default function ExamDetail() {
               <Plus size={18} />
               Soru Ekle
             </button>
+            <button 
+              onClick={() => navigate(`/instructor/exam/${id}/results`)} 
+              style={{
+                ...styles.primaryButton,
+                background: 'linear-gradient(135deg, #f0f9ff, #ffffff)',
+                color: '#0284c7',
+                borderColor: '#bae6fd'
+              }}
+            >
+              <FileText size={18} />
+              Sonuçları Gör
+            </button>
           </div>
         </div>
 

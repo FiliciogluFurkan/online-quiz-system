@@ -13,8 +13,11 @@ public class StudentExam {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "student_id")
+    @JoinColumn(name = "student_id", nullable = true)
     private User student;
+
+    @Column(name = "keycloak_user_id")
+    private String keycloakUserId; // Keycloak'tan gelen user ID
 
     @ManyToOne
     @JoinColumn(name = "exam_id")

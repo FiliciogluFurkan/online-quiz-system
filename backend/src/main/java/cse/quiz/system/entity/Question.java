@@ -16,6 +16,9 @@ public class Question {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @Column(name = "keycloak_creator_id")
+    private String keycloakCreatorId; // Soruyu oluşturan eğitmen
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private QuestionType type;

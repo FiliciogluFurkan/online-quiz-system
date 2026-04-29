@@ -10,6 +10,27 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    networks:
+      - quiz-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: quiz-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: quizuser
+      KC_DB_PASSWORD: quizpass
+      KC_HOSTNAME: localhost
+      KC_HTTP_ENABLED: "true"
+    command: start-dev
+    ports:
+      - "8180:8080"
+    depends_on:
+      - postgres
     networks:
       - quiz-network
 

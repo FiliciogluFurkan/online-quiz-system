@@ -22,6 +22,9 @@ public class Exam {
     @JoinColumn(name = "instructor_id")
     private User instructor;
 
+    @Column(name = "keycloak_instructor_id")
+    private String keycloakInstructorId; // Keycloak'tan gelen instructor ID
+
     private Integer duration; // in minutes
 
     private LocalDateTime startTime;

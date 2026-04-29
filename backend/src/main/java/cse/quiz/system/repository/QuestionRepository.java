@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface QuestionRepository extends JpaRepository<Question, Long> {
     List<Question> findByCategoryId(Long categoryId);
+    List<Question> findByKeycloakCreatorId(String keycloakCreatorId);
 }
