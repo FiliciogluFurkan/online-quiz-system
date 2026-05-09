@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import type { Exam, Question } from '../types';
+import Toast from '../components/Toast';
 
 interface ExamQuestion {
   id: number;
@@ -23,6 +24,10 @@ export default function TakeExam() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [studentExamId, setStudentExamId] = useState<number | null>(null);
+  const [showWarning5Min, setShowWarning5Min] = useState(false);
+  const [showWarning1Min, setShowWarning1Min] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'warning' | 'critical'>('warning');
 
   useEffect(() => {
     loadExam();
@@ -32,16 +37,34 @@ export default function TakeExam() {
     if (timeRemaining > 0) {
       const timer = setInterval(() => {
         setTimeRemaining(prev => {
-          if (prev <= 1) {
+          const newTime = prev - 1;
+          
+          // 5 dakika uyarısı
+          if (newTime === 5 * 60 && !showWarning5Min) {
+            setToastMessage('⚠️ 5 dakika kaldı! Cevaplarınızı kontrol edin.');
+            setToastType('warning');
+            setShowWarning5Min(true);
+          }
+          
+          // 1 dakika uyarısı
+          if (newTime === 60 && !showWarning1Min) {
+            setToastMessage('🚨 1 dakika kaldı! Sınav otomatik olarak teslim edilecek.');
+            setToastType('critical');
+            setShowWarning1Min(true);
+          }
+          
+          // Süre bitti
+          if (newTime <= 0) {
             handleSubmit();
             return 0;
           }
-          return prev - 1;
+          
+          return newTime;
         });
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [timeRemaining]);
+  }, [timeRemaining, showWarning5Min, showWarning1Min]);
 
   const loadExam = async () => {
     try {
@@ -139,6 +162,12 @@ export default function TakeExam() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getTimerColor = () => {
+    if (timeRemaining <= 60) return '#dc2626'; // Kırmızı - 1 dakika
+    if (timeRemaining <= 5 * 60) return '#ea580c'; // Turuncu - 5 dakika
+    return '#16a34a'; // Yeşil - Normal
+  };
+
   if (!exam || questions.length === 0) {
     return <div style={{ padding: '20px', textAlign: 'center' }}>Yükleniyor...</div>;
   }
@@ -160,8 +189,9 @@ export default function TakeExam() {
               <div style={{ 
                 fontSize: '32px', 
                 fontWeight: 'bold', 
-                color: timeRemaining < 300 ? '#dc3545' : '#28a745',
-                fontFamily: 'monospace'
+                color: getTimerColor(),
+                fontFamily: 'monospace',
+                transition: 'color 0.3s ease'
               }}>
                 {formatTime(timeRemaining)}
               </div>
@@ -369,6 +399,15 @@ export default function TakeExam() {
           </p>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setToastMessage(null)}
+        />
+      )}
     </div>
   );
 }

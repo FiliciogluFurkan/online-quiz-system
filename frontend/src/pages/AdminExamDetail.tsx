@@ -2,20 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  BarChart3,
   BookOpen,
   CalendarClock,
   CheckCircle2,
   CircleHelp,
   Clock3,
-  Eye,
   FileQuestion,
   FileText,
   Layers,
-  Plus,
-  Send,
+  Shield,
   Sparkles,
-  ToggleLeft,
 } from 'lucide-react';
 import api from '../api/axios';
 import type { Exam, Question } from '../types';
@@ -29,12 +25,13 @@ interface ExamQuestion {
 const styles = {
   page: {
     minHeight: '100vh',
-    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    fontFamily:
+      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     background:
       'radial-gradient(circle at 10% 8%, rgba(99,102,241,0.10), transparent 26%), radial-gradient(circle at 88% 12%, rgba(14,165,233,0.10), transparent 24%), #f8fafc',
     color: '#0f172a',
     padding: '32px',
-    boxSizing: 'border-box',
+    boxSizing: 'border-box' as const,
   },
   container: {
     maxWidth: '1120px',
@@ -60,7 +57,7 @@ const styles = {
     fontWeight: 850,
     boxShadow: '0 10px 24px rgba(15,23,42,0.05)',
   },
-  badge: {
+  topBadge: {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '7px',
@@ -75,7 +72,7 @@ const styles = {
   heroCard: {
     overflow: 'hidden',
     borderRadius: '30px',
-    background: 'rgba(255,255,255,0.9)',
+    background: 'rgba(255,255,255,0.92)',
     border: '1px solid #e2e8f0',
     boxShadow: '0 24px 70px rgba(15,23,42,0.075)',
     marginBottom: '24px',
@@ -103,6 +100,7 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: '24px',
+    flexWrap: 'wrap' as const,
   },
   title: {
     margin: 0,
@@ -127,11 +125,11 @@ const styles = {
     borderRadius: '999px',
     fontSize: '13px',
     fontWeight: 950,
-    whiteSpace: 'nowrap',
+    whiteSpace: 'nowrap' as const,
   },
   metaGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
     gap: '16px',
     padding: '22px 28px 26px',
   },
@@ -143,6 +141,7 @@ const styles = {
     borderRadius: '20px',
     background: '#ffffff',
     border: '1px solid #eef2f7',
+    boxShadow: '0 12px 30px rgba(15,23,42,0.035)',
   },
   metaIcon: {
     width: '42px',
@@ -163,52 +162,6 @@ const styles = {
     color: '#0f172a',
     fontWeight: 900,
     fontSize: '15px',
-  },
-  actions: {
-    display: 'flex',
-    gap: '12px',
-    flexWrap: 'wrap',
-  },
-  primaryButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '9px',
-    border: '1px solid #bfdbfe',
-    borderRadius: '16px',
-    padding: '13px 18px',
-    cursor: 'pointer',
-    color: '#1d4ed8',
-    fontWeight: 950,
-    background: 'linear-gradient(135deg, #eff6ff, #ffffff)',
-    boxShadow: '0 16px 34px rgba(37,99,235,0.10)',
-  },
-  publishButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '9px',
-    border: '1px solid #bbf7d0',
-    borderRadius: '16px',
-    padding: '13px 18px',
-    cursor: 'pointer',
-    color: '#15803d',
-    fontWeight: 950,
-    background: 'linear-gradient(135deg, #ecfdf5, #ffffff)',
-    boxShadow: '0 16px 34px rgba(22,163,74,0.10)',
-  },
-  softButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '9px',
-    border: '1px solid #fed7aa',
-    borderRadius: '16px',
-    padding: '13px 18px',
-    cursor: 'pointer',
-    color: '#c2410c',
-    fontWeight: 950,
-    background: 'linear-gradient(135deg, #fff7ed, #ffffff)',
   },
   questionsPanel: {
     background: 'rgba(255,255,255,0.92)',
@@ -252,12 +205,13 @@ const styles = {
     justifyContent: 'space-between',
     gap: '12px',
     marginBottom: '13px',
+    flexWrap: 'wrap' as const,
   },
   tags: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    flexWrap: 'wrap',
+    flexWrap: 'wrap' as const,
   },
   tag: {
     display: 'inline-flex',
@@ -284,12 +238,22 @@ const styles = {
     color: '#475569',
     fontSize: '13px',
     lineHeight: 1.55,
-    whiteSpace: 'pre-wrap',
+    whiteSpace: 'pre-wrap' as const,
     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+  },
+  answerBox: {
+    marginTop: '12px',
+    padding: '12px 14px',
+    borderRadius: '16px',
+    background: '#ecfdf5',
+    border: '1px solid #bbf7d0',
+    color: '#15803d',
+    fontSize: '14px',
+    fontWeight: 900,
   },
   emptyState: {
     padding: '54px 24px',
-    textAlign: 'center',
+    textAlign: 'center' as const,
   },
   emptyIcon: {
     width: '76px',
@@ -323,136 +287,48 @@ function formatDate(value?: string) {
   return new Date(value).toLocaleString('tr-TR');
 }
 
-export default function ExamDetail() {
+export default function AdminExamDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [exam, setExam] = useState<Exam | null>(null);
-  const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
-
-  console.log('ExamDetail rendered, id:', id);
+  const [questions, setQuestions] = useState<ExamQuestion[]>([]);
 
   useEffect(() => {
-    console.log('useEffect triggered, fetching exam:', id);
-    api.get(`/exams/${id}`)
-      .then((res) => {
-        console.log('Exam data received:', res.data);
-        setExam(res.data);
-      })
-      .catch((err) => {
-        console.error('Error fetching exam:', err);
-      });
-    loadQuestions();
+    loadExamDetail();
   }, [id]);
 
-  const loadQuestions = () => {
-    console.log('Loading questions for exam:', id);
-    api.get(`/exam-questions/exam/${id}`)
-      .then((res) => {
-        console.log('Questions received:', res.data);
-        setExamQuestions(res.data);
-      })
-      .catch((err) => {
-        console.error('Error fetching questions:', err);
-      });
+  const loadExamDetail = async () => {
+    try {
+      const examRes = await api.get(`/admin/exams/${id}`);
+      setExam(examRes.data);
+
+      const questionsRes = await api.get(`/exam-questions/exam/${id}`);
+      setQuestions(questionsRes.data);
+    } catch (error) {
+      console.error('Error loading exam detail:', error);
+      alert('Sınav detayları yüklenirken hata oluştu!');
+    }
   };
 
   const totalPoints = useMemo(() => {
-    return examQuestions.reduce((sum, item) => sum + (item.question.points || 0), 0);
-  }, [examQuestions]);
+    return questions.reduce((sum, item) => sum + (item.question.points || 0), 0);
+  }, [questions]);
 
-  const handlePublish = async () => {
-    if (!exam) return;
-    try {
-      await api.put(`/exams/${id}`, { ...exam, published: true });
-      alert('Sınav yayınlandı!');
-      navigate('/instructor');
-    } catch (error) {
-      alert('Hata oluştu!');
-      console.error(error);
-    }
-  };
-
-  const handleUnpublish = async () => {
-    if (!exam) return;
-    try {
-      await api.put(`/exams/${id}`, { ...exam, published: false });
-      alert('Sınav yayından kaldırıldı!');
-      setExam({ ...exam, published: false });
-    } catch (error) {
-      alert('Hata oluştu!');
-      console.error(error);
-    }
-  };
-
-  if (!exam) {
-    console.log('Exam is null, showing loading...');
-    return <div style={styles.loading}>Yükleniyor...</div>;
-  }
-
-  console.log('Rendering exam detail for:', exam.title);
+  if (!exam) return <div style={styles.loading}>Sınav detayları yükleniyor...</div>;
 
   return (
     <main style={styles.page}>
       <div style={styles.container}>
         <div style={styles.topbar}>
-          <button onClick={() => navigate('/instructor')} style={styles.backButton}>
+          <button onClick={() => navigate('/admin')} style={styles.backButton}>
             <ArrowLeft size={18} />
-            Eğitmen Paneli
+            Admin Paneline Dön
           </button>
 
-          <div style={styles.actions}>
-            {!exam.published ? (
-              <button onClick={handlePublish} style={styles.publishButton}>
-                <Send size={18} />
-                Yayınla
-              </button>
-            ) : (
-              <button onClick={handleUnpublish} style={styles.softButton}>
-                <ToggleLeft size={18} />
-                Yayından Kaldır
-              </button>
-            )}
-            <button onClick={() => navigate(`/instructor/exam/${id}/add-questions`)} style={styles.primaryButton}>
-              <Plus size={18} />
-              Soru Ekle
-            </button>
-            <button 
-              onClick={() => navigate(`/instructor/exam/${id}/preview`)} 
-              style={{
-                ...styles.primaryButton,
-                background: 'linear-gradient(135deg, #f5f3ff, #ffffff)',
-                color: '#7c3aed',
-                borderColor: '#ddd6fe'
-              }}
-            >
-              <Eye size={18} />
-              Önizle
-            </button>
-            <button 
-              onClick={() => navigate(`/instructor/exam/${id}/results`)} 
-              style={{
-                ...styles.primaryButton,
-                background: 'linear-gradient(135deg, #f0f9ff, #ffffff)',
-                color: '#0284c7',
-                borderColor: '#bae6fd'
-              }}
-            >
-              <FileText size={18} />
-              Sonuçları Gör
-            </button>
-            <button 
-              onClick={() => navigate(`/instructor/exam/${id}/statistics`)} 
-              style={{
-                ...styles.primaryButton,
-                background: 'linear-gradient(135deg, #fef3c7, #ffffff)',
-                color: '#d97706',
-                borderColor: '#fde68a'
-              }}
-            >
-              <BarChart3 size={18} />
-              İstatistikler
-            </button>
-          </div>
+          <span style={styles.topBadge}>
+            <Shield size={15} />
+            Admin görünümü
+          </span>
         </div>
 
         <section style={styles.heroCard}>
@@ -465,9 +341,7 @@ export default function ExamDetail() {
             <div style={styles.titleRow}>
               <div>
                 <h1 style={styles.title}>{exam.title}</h1>
-                <p style={styles.description}>
-                  {exam.description || 'Bu sınav için henüz açıklama eklenmemiş.'}
-                </p>
+                <p style={styles.description}>{exam.description || 'Bu sınav için henüz açıklama eklenmemiş.'}</p>
               </div>
 
               <span
@@ -506,12 +380,24 @@ export default function ExamDetail() {
             </div>
 
             <div style={styles.metaCard}>
+              <div style={{ ...styles.metaIcon, background: '#fff7ed', color: '#c2410c' }}>
+                <CalendarClock size={21} />
+              </div>
+              <div>
+                <p style={styles.metaLabel}>Bitiş</p>
+                <p style={styles.metaValue}>{formatDate(exam.endTime)}</p>
+              </div>
+            </div>
+
+            <div style={styles.metaCard}>
               <div style={{ ...styles.metaIcon, background: '#ecfdf5', color: '#16a34a' }}>
                 <Layers size={21} />
               </div>
               <div>
                 <p style={styles.metaLabel}>Soru / Puan</p>
-                <p style={styles.metaValue}>{examQuestions.length} soru · {totalPoints} puan</p>
+                <p style={styles.metaValue}>
+                  {questions.length} soru · {totalPoints} puan
+                </p>
               </div>
             </div>
           </div>
@@ -521,49 +407,60 @@ export default function ExamDetail() {
           <div style={styles.panelHeader}>
             <h2 style={styles.panelTitle}>
               <FileQuestion size={24} color="#2563eb" />
-              Sorular ({examQuestions.length})
+              Sınav Soruları
             </h2>
-            <span style={styles.badge}>
+            <span style={styles.topBadge}>
               <FileText size={15} />
               Toplam {totalPoints} puan
             </span>
           </div>
 
-          {examQuestions.length === 0 ? (
+          {questions.length === 0 ? (
             <div style={styles.emptyState}>
               <div style={styles.emptyIcon}>
                 <CircleHelp size={36} />
               </div>
               <h3 style={{ margin: '0 0 8px', fontSize: '22px' }}>Henüz soru eklenmemiş</h3>
-              <p style={{ margin: '0 auto 22px', maxWidth: '460px', color: '#64748b', lineHeight: 1.6 }}>
-                Bu sınavı yayınlamadan önce soru ekleyerek sınav içeriğini tamamlayabilirsin.
+              <p style={{ margin: '0 auto', maxWidth: '460px', color: '#64748b', lineHeight: 1.6 }}>
+                Bu sınava ait soru bulunmuyor. Soru eklendiğinde burada detaylı şekilde görüntülenir.
               </p>
-              <button onClick={() => navigate(`/instructor/exam/${id}/add-questions`)} style={styles.primaryButton}>
-                <Plus size={18} />
-                İlk Soruyu Ekle
-              </button>
             </div>
           ) : (
             <div style={styles.questionList}>
-              {examQuestions.map((eq, index) => (
+              {questions.map((eq, index) => (
                 <article key={eq.id} style={styles.questionCard}>
                   <div style={styles.questionTop}>
                     <div style={styles.tags}>
-                      <span style={{ ...styles.tag, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                      <span
+                        style={{
+                          ...styles.tag,
+                          background: '#eff6ff',
+                          color: '#1d4ed8',
+                          border: '1px solid #bfdbfe',
+                        }}
+                      >
                         {getQuestionTypeLabel(eq.question.type)}
                       </span>
-                      <span style={{ ...styles.tag, background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe' }}>
+                      <span
+                        style={{
+                          ...styles.tag,
+                          background: '#f5f3ff',
+                          color: '#6d28d9',
+                          border: '1px solid #ddd6fe',
+                        }}
+                      >
                         {eq.question.points} Puan
                       </span>
                     </div>
-                    <span style={{ ...styles.badge, padding: '7px 10px' }}>#{index + 1}</span>
+
+                    <span style={{ ...styles.topBadge, padding: '7px 10px' }}>#{index + 1}</span>
                   </div>
 
                   <p style={styles.questionText}>{eq.question.questionText}</p>
 
-                  {eq.question.options && (
-                    <pre style={styles.optionsBox}>{eq.question.options}</pre>
-                  )}
+                  {eq.question.options && <pre style={styles.optionsBox}>{eq.question.options}</pre>}
+
+                  <div style={styles.answerBox}>Doğru Cevap: {eq.question.correctAnswer || '-'}</div>
                 </article>
               ))}
             </div>

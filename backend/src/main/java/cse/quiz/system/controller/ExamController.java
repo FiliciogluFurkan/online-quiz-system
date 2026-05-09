@@ -2,6 +2,7 @@ package cse.quiz.system.controller;
 
 import cse.quiz.system.entity.Exam;
 import cse.quiz.system.repository.ExamRepository;
+import cse.quiz.system.service.NotificationService;
 import cse.quiz.system.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,6 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ExamController {
     private final ExamRepository examRepository;
+    private final NotificationService notificationService;
 
     @GetMapping
     public List<Exam> getAllExams() {
@@ -51,7 +53,17 @@ public class ExamController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('INSTRUCTOR')")
     public Exam updateExam(@PathVariable Long id, @RequestBody Exam exam) {
+        Exam existingExam = examRepository.findById(id).orElseThrow();
+        boolean wasUnpublished = !existingExam.getPublished();
+        
         exam.setId(id);
-        return examRepository.save(exam);
+        Exam savedExam = examRepository.save(exam);
+        
+        // Eğer sınav yeni yayınlandıysa bildirim gönder
+        if (wasUnpublished && savedExam.getPublished()) {
+            notificationService.notifyNewExamPublished(savedExam.getId());
+        }
+        
+        return savedExam;
     }
 }

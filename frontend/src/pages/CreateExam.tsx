@@ -285,6 +285,9 @@ export default function CreateExam() {
     description: '',
     duration: 60,
     startTime: '',
+    questionPoolEnabled: false,
+    poolSize: 0,
+    questionsPerStudent: 0,
   });
 
   // Bitiş zamanını otomatik hesapla
@@ -479,6 +482,72 @@ export default function CreateExam() {
                 )}
               </div>
             </div>
+
+            <div style={styles.divider} />
+
+            <h2 style={styles.sectionTitle}>
+              <Layers size={22} color="#7c3aed" />
+              Soru Havuzu (Opsiyonel)
+            </h2>
+
+            <div style={styles.field}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.questionPoolEnabled}
+                  onChange={(e) => setFormData({ ...formData, questionPoolEnabled: e.target.checked })}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#334155' }}>
+                  Soru Havuzu Modunu Aktifleştir
+                </span>
+              </label>
+              <div style={styles.hint}>
+                <Info size={14} />
+                Her öğrenciye havuzdan rastgele farklı sorular gösterilir.
+              </div>
+            </div>
+
+            {formData.questionPoolEnabled && (
+              <div style={styles.gridTwo}>
+                <div style={styles.field}>
+                  <label style={styles.label}>Havuz Boyutu</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.poolSize}
+                    onChange={(e) =>
+                      setFormData({ ...formData, poolSize: parseInt(e.target.value || '0') })
+                    }
+                    placeholder="Örn: 50"
+                    style={styles.input}
+                  />
+                  <div style={styles.hint}>
+                    <Info size={14} />
+                    Havuza eklenecek toplam soru sayısı
+                  </div>
+                </div>
+
+                <div style={styles.field}>
+                  <label style={styles.label}>Öğrenci Başına Soru</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={formData.poolSize}
+                    value={formData.questionsPerStudent}
+                    onChange={(e) =>
+                      setFormData({ ...formData, questionsPerStudent: parseInt(e.target.value || '0') })
+                    }
+                    placeholder="Örn: 20"
+                    style={styles.input}
+                  />
+                  <div style={styles.hint}>
+                    <Info size={14} />
+                    Her öğrenciye gösterilecek soru sayısı
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div style={styles.actions}>
               <button type="button" onClick={() => navigate('/instructor')} style={styles.secondaryButton}>

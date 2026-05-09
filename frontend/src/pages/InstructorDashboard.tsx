@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock3,
   FileText,
+  FolderOpen,
   Layers,
   Plus,
   Search,
@@ -297,6 +298,18 @@ export default function InstructorDashboard() {
           >
             <FileText size={18} />
             Soru Bankası
+          </button>
+          <button 
+            onClick={() => navigate('/instructor/categories')} 
+            style={{ 
+              ...styles.createButton, 
+              background: 'linear-gradient(135deg, #fef3c7, #ffffff)',
+              color: '#d97706',
+              borderColor: '#fde68a'
+            }}
+          >
+            <FolderOpen size={18} />
+            Kategoriler
           </button>
         </header>
 

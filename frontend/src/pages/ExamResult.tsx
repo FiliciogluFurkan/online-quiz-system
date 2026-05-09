@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import type { Question } from '../types';
 
@@ -28,7 +29,13 @@ interface ResultData {
 export default function ExamResult() {
   const { studentExamId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { hasRole } = useAuth();
   const [result, setResult] = useState<ResultData | null>(null);
+
+  // URL'den role belirle
+  const isInstructor = location.pathname.includes('/instructor/');
+  const isStudent = location.pathname.includes('/student/');
 
   useEffect(() => {
     loadResult();
@@ -149,8 +156,17 @@ export default function ExamResult() {
 
         {/* BUTTON */}
         <div style={{ textAlign: 'center' }}>
-          <button onClick={() => navigate('/student?refresh=' + Date.now())} style={mainButton}>
-            Öğrenci Paneline Dön
+          <button 
+            onClick={() => {
+              if (isInstructor) {
+                navigate(-1); // Instructor için geri git
+              } else {
+                navigate('/student?refresh=' + Date.now());
+              }
+            }} 
+            style={mainButton}
+          >
+            {isInstructor ? 'Geri Dön' : 'Öğrenci Paneline Dön'}
           </button>
         </div>
       </div>

@@ -362,6 +362,26 @@ export default function StudentDashboard() {
               />
             </div>
 
+            <button
+              onClick={() => navigate('/student/my-results')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 16px',
+                borderRadius: '999px',
+                background: '#ffffff',
+                border: '1px solid #e8edf5',
+                color: '#4f46e5',
+                fontSize: '13px',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              <Clock3 size={16} />
+              Geçmiş Sınavlarım
+            </button>
+
             <span style={styles.pill}>
               <BookOpenCheck size={16} />
               {filteredExams.length} sınav listeleniyor

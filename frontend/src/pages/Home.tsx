@@ -367,6 +367,32 @@ export default function Home() {
                       <ArrowRight size={18} color="#94a3b8" />
                     </Link>
                   )}
+
+                  {hasRole('ADMIN') && (
+                    <Link to="/admin" style={styles.roleCard} {...cardEvents}>
+                      <div style={styles.roleLeft}>
+                        <div
+                          style={{
+                            ...styles.roleIcon,
+                            background: '#fef3c7',
+                            color: '#d97706',
+                            border: '1px solid #fde68a',
+                          }}
+                        >
+                          <ShieldCheck size={22} />
+                        </div>
+
+                        <div>
+                          <strong>Admin Paneli</strong>
+                          <div style={{ color: '#64748b', fontSize: '13px', marginTop: '3px' }}>
+                            Sistemi yönet
+                          </div>
+                        </div>
+                      </div>
+
+                      <ArrowRight size={18} color="#94a3b8" />
+                    </Link>
+                  )}
                 </div>
 
                 <button onClick={logout} style={styles.logoutButton}>

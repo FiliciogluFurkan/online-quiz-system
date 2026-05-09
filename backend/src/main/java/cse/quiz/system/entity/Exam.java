@@ -33,5 +33,15 @@ public class Exam {
     private Boolean randomizeQuestions = false;
     private Boolean published = false;
 
+    // Question Pool fields
+    @Column(name = "question_pool_enabled")
+    private Boolean questionPoolEnabled = false;
+
+    @Column(name = "pool_size")
+    private Integer poolSize; // Havuzdaki toplam soru sayısı
+
+    @Column(name = "questions_per_student")
+    private Integer questionsPerStudent; // Her öğrenciye gösterilecek soru sayısı
+
     private LocalDateTime createdAt = LocalDateTime.now();
 }

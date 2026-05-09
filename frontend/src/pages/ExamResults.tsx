@@ -12,6 +12,7 @@ import {
   Sparkles,
   Trophy,
   Users,
+  Edit3,
 } from 'lucide-react';
 import api from '../api/axios';
 
@@ -228,6 +229,20 @@ const styles = {
     border: '1px solid #bfdbfe',
     background: 'linear-gradient(135deg, #eff6ff, #ffffff)',
     color: '#1d4ed8',
+    fontWeight: 900,
+    cursor: 'pointer',
+    marginRight: '8px',
+  },
+  gradeButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '7px',
+    borderRadius: '13px',
+    padding: '9px 12px',
+    border: '1px solid #fde68a',
+    background: 'linear-gradient(135deg, #fffbeb, #ffffff)',
+    color: '#d97706',
     fontWeight: 900,
     cursor: 'pointer',
   },
@@ -452,10 +467,16 @@ export default function ExamResults() {
                         <td style={styles.td}>{formatDate(result.submittedAt)}</td>
                         <td style={{ ...styles.td, textAlign: 'center' }}>
                           {canViewDetail ? (
-                            <button onClick={() => navigate(`/instructor/result/${result.id}`)} style={styles.detailButton}>
-                              <Eye size={15} />
-                              Detay
-                            </button>
+                            <>
+                              <button onClick={() => navigate(`/instructor/result/${result.id}`)} style={styles.detailButton}>
+                                <Eye size={15} />
+                                Detay
+                              </button>
+                              <button onClick={() => navigate(`/instructor/grade/${result.id}`)} style={styles.gradeButton}>
+                                <Edit3 size={15} />
+                                Manuel Puanla
+                              </button>
+                            </>
                           ) : (
                             <span style={styles.muted}>-</span>
                           )}

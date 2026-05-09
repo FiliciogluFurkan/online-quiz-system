@@ -11,7 +11,8 @@ import {
   Save,
   Sparkles,
   X,
-  BookOpen
+  BookOpen,
+  Upload
 } from 'lucide-react';
 import api from '../api/axios';
 import type { Question } from '../types';
@@ -89,6 +90,8 @@ const styles = {
 export default function QuestionBank() {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     questionText: '',
@@ -96,24 +99,40 @@ export default function QuestionBank() {
     options: '',
     correctAnswer: '',
     points: 1,
+    categoryId: null as number | null,
   });
 
-  useEffect(() => { loadQuestions(); }, []);
+  useEffect(() => { 
+    loadQuestions(); 
+    loadCategories();
+  }, []);
+  
   const loadQuestions = () => api.get('/questions').then(res => setQuestions(res.data));
+  
+  const loadCategories = () => api.get('/categories').then(res => setCategories(res.data));
 
   const stats = useMemo(() => ({
     total: questions.length,
     mc: questions.filter(q => q.type === 'MULTIPLE_CHOICE').length,
     tf: questions.filter(q => q.type === 'TRUE_FALSE').length,
   }), [questions]);
+  
+  const filteredQuestions = useMemo(() => {
+    if (!selectedCategory) return questions;
+    return questions.filter(q => q.category?.id === parseInt(selectedCategory));
+  }, [questions, selectedCategory]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/questions', formData);
+      const payload = {
+        ...formData,
+        category: formData.categoryId ? { id: formData.categoryId } : null,
+      };
+      await api.post('/questions', payload);
       alert('Soru eklendi!');
       setShowForm(false);
-      setFormData({ questionText: '', type: 'MULTIPLE_CHOICE', options: '', correctAnswer: '', points: 1 });
+      setFormData({ questionText: '', type: 'MULTIPLE_CHOICE', options: '', correctAnswer: '', points: 1, categoryId: null });
       loadQuestions();
     } catch (error) {
       alert('Hata oluştu!');
@@ -131,6 +150,30 @@ export default function QuestionBank() {
             <p style={styles.subtitle}>Sorularını tek yerden oluştur, düzenle ve sınavlarda kullan.</p>
           </div>
           <div style={styles.actions}>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              style={{
+                padding: '12px 16px',
+                borderRadius: '14px',
+                border: '1px solid #e2e8f0',
+                background: '#ffffff',
+                color: '#475569',
+                fontWeight: 700,
+                fontSize: '14px',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="">Tüm Kategoriler</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            <button onClick={() => navigate('/instructor/bulk-import')} style={styles.ghostBtn}>
+              <Upload size={16}/> Toplu İçe Aktar
+            </button>
             <button onClick={() => setShowForm(v => !v)} style={styles.primaryBtn}>
               <Plus size={16}/> {showForm ? 'Formu Kapat' : 'Yeni Soru'}
             </button>
@@ -167,6 +210,22 @@ export default function QuestionBank() {
                     required
                     style={styles.textarea}
                   />
+                </div>
+                
+                <div style={styles.field}>
+                  <label style={styles.label}>Kategori (Opsiyonel)</label>
+                  <select
+                    value={formData.categoryId || ''}
+                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value ? parseInt(e.target.value) : null })}
+                    style={styles.input}
+                  >
+                    <option value="">Kategori Seçiniz</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {formData.type === 'MULTIPLE_CHOICE' && (
@@ -240,7 +299,7 @@ export default function QuestionBank() {
               <div style={styles.empty}>Henüz soru yok.</div>
             ) : (
               <div style={styles.qGrid}>
-                {questions.map((q, i) => (
+                {filteredQuestions.map((q, i) => (
                   <div key={q.id} style={styles.qCard}>
                     <div style={styles.tags}>
                       <span style={{ ...styles.tag, background: '#eff6ff', color: '#1d4ed8' }}>{q.type}</span>

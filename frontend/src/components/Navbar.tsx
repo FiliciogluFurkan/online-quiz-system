@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogOut, Home } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const { isAuthenticated, logout } = useAuth();
@@ -35,6 +36,9 @@ export default function Navbar() {
       >
         <Home size={16} />
       </button>
+
+      {/* Notification Bell */}
+      <NotificationBell />
 
       {/* Divider */}
       <div

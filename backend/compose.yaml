@@ -29,6 +29,8 @@ services:
     command: start-dev
     ports:
       - "8180:8080"
+    volumes:
+      - ./keycloak-theme/quiz-theme:/opt/keycloak/themes/quiz-theme
     depends_on:
       - postgres
     networks:
