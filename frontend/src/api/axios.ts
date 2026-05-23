@@ -1,6 +1,12 @@
 import axios from 'axios';
 import keycloak from '../keycloak';
 
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    _retried?: boolean;
+  }
+}
+
 const api = axios.create({
   baseURL: 'http://localhost:8080/api',
   headers: { 'Content-Type': 'application/json' },
@@ -20,7 +26,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retried) {
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retried) {
       originalRequest._retried = true;
       try {
         await keycloak.updateToken(30);
