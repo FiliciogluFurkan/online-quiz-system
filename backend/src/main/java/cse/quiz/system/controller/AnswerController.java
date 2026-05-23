@@ -2,6 +2,8 @@ package cse.quiz.system.controller;
 
 import cse.quiz.system.entity.Answer;
 import cse.quiz.system.entity.StudentExam;
+import cse.quiz.system.exception.NotFoundException;
+import cse.quiz.system.exception.UnauthorizedException;
 import cse.quiz.system.repository.AnswerRepository;
 import cse.quiz.system.repository.StudentExamRepository;
 import cse.quiz.system.util.SecurityUtils;
@@ -21,9 +23,9 @@ public class AnswerController {
         String currentUserId = SecurityUtils.getCurrentUserId();
         if (!SecurityUtils.hasAnyRole("INSTRUCTOR", "ADMIN")) {
             StudentExam studentExam = studentExamRepository.findById(studentExamId)
-                    .orElseThrow(() -> new RuntimeException("StudentExam not found"));
+                    .orElseThrow(() -> new NotFoundException("StudentExam not found"));
             if (currentUserId == null || !currentUserId.equals(studentExam.getKeycloakUserId())) {
-                throw new RuntimeException("Unauthorized");
+                throw new UnauthorizedException("Unauthorized");
             }
         }
         return answerRepository.findByStudentExamId(studentExamId);
@@ -32,12 +34,12 @@ public class AnswerController {
     @PostMapping
     public Answer saveAnswer(@RequestBody Answer answer) {
         StudentExam studentExam = studentExamRepository.findById(answer.getStudentExam().getId())
-                .orElseThrow(() -> new RuntimeException("StudentExam not found"));
+                .orElseThrow(() -> new NotFoundException("StudentExam not found"));
 
         String currentUserId = SecurityUtils.getCurrentUserId();
         if (!SecurityUtils.hasAnyRole("INSTRUCTOR", "ADMIN")
                 && (currentUserId == null || !currentUserId.equals(studentExam.getKeycloakUserId()))) {
-            throw new RuntimeException("Unauthorized: cannot submit answers for another student");
+            throw new UnauthorizedException("Unauthorized: cannot submit answers for another student");
         }
 
         return answerRepository.save(answer);

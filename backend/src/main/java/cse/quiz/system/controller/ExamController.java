@@ -1,6 +1,7 @@
 package cse.quiz.system.controller;
 
 import cse.quiz.system.entity.Exam;
+import cse.quiz.system.exception.NotFoundException;
 import cse.quiz.system.repository.ExamRepository;
 import cse.quiz.system.service.NotificationService;
 import cse.quiz.system.util.SecurityUtils;
@@ -37,7 +38,7 @@ public class ExamController {
 
     @GetMapping("/{id}")
     public Exam getExam(@PathVariable Long id) {
-        return examRepository.findById(id).orElseThrow();
+        return examRepository.findById(id).orElseThrow(() -> new NotFoundException("Exam not found"));
     }
 
     @PostMapping
@@ -53,7 +54,7 @@ public class ExamController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('INSTRUCTOR')")
     public Exam updateExam(@PathVariable Long id, @RequestBody Exam exam) {
-        Exam existingExam = examRepository.findById(id).orElseThrow();
+        Exam existingExam = examRepository.findById(id).orElseThrow(() -> new NotFoundException("Exam not found"));
         boolean wasUnpublished = !existingExam.getPublished();
         
         exam.setId(id);

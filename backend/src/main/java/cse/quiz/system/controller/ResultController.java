@@ -2,6 +2,8 @@ package cse.quiz.system.controller;
 
 import cse.quiz.system.entity.Answer;
 import cse.quiz.system.entity.StudentExam;
+import cse.quiz.system.exception.NotFoundException;
+import cse.quiz.system.exception.UnauthorizedException;
 import cse.quiz.system.repository.AnswerRepository;
 import cse.quiz.system.repository.StudentExamRepository;
 import cse.quiz.system.service.GradingService;
@@ -28,8 +30,8 @@ public class ResultController {
         gradingService.gradeExam(studentExamId);
         
         StudentExam studentExam = studentExamRepository.findById(studentExamId)
-                .orElseThrow(() -> new RuntimeException("StudentExam not found"));
-        
+                .orElseThrow(() -> new NotFoundException("StudentExam not found"));
+
         Map<String, Object> result = new HashMap<>();
         result.put("score", studentExam.getScore());
         result.put("status", studentExam.getStatus());
@@ -41,12 +43,12 @@ public class ResultController {
     @GetMapping("/student-exam/{studentExamId}")
     public Map<String, Object> getExamResult(@PathVariable Long studentExamId) {
         StudentExam studentExam = studentExamRepository.findById(studentExamId)
-                .orElseThrow(() -> new RuntimeException("StudentExam not found"));
+                .orElseThrow(() -> new NotFoundException("StudentExam not found"));
 
         String currentUserId = SecurityUtils.getCurrentUserId();
         if (!SecurityUtils.hasAnyRole("INSTRUCTOR", "ADMIN")
                 && (currentUserId == null || !currentUserId.equals(studentExam.getKeycloakUserId()))) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
         
         List<Answer> answers = answerRepository.findByStudentExamId(studentExamId);
@@ -167,7 +169,7 @@ public class ResultController {
     @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
     public Answer gradeAnswer(@PathVariable Long answerId, @RequestBody Map<String, Object> gradeData) {
         Answer answer = answerRepository.findById(answerId)
-                .orElseThrow(() -> new RuntimeException("Answer not found"));
+                .orElseThrow(() -> new NotFoundException("Answer not found"));
         
         Integer pointsEarned = ((Number) gradeData.get("pointsEarned")).intValue();
         answer.setPointsEarned(pointsEarned);
@@ -199,8 +201,8 @@ public class ResultController {
                 .sum();
         
         StudentExam studentExam = studentExamRepository.findById(studentExamId)
-                .orElseThrow(() -> new RuntimeException("StudentExam not found"));
-        
+                .orElseThrow(() -> new NotFoundException("StudentExam not found"));
+
         studentExam.setScore(totalScore);
         studentExam.setStatus(StudentExam.ExamStatus.GRADED);
         studentExamRepository.save(studentExam);

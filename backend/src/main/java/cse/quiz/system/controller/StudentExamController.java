@@ -1,6 +1,8 @@
 package cse.quiz.system.controller;
 
 import cse.quiz.system.entity.StudentExam;
+import cse.quiz.system.exception.NotFoundException;
+import cse.quiz.system.exception.UnauthorizedException;
 import cse.quiz.system.repository.StudentExamRepository;
 import cse.quiz.system.service.ExamSubmissionService;
 import cse.quiz.system.util.SecurityUtils;
@@ -56,7 +58,7 @@ public StudentExam startExam(@RequestBody StudentExam studentExam) {
         boolean alreadyDone = existing.stream()
             .anyMatch(se -> se.getStatus() == StudentExam.ExamStatus.SUBMITTED || 
                            se.getStatus() == StudentExam.ExamStatus.GRADED);
-        if (alreadyDone) throw new RuntimeException("Bu sınavı zaten tamamladınız!");
+        if (alreadyDone) throw new UnauthorizedException("Bu sınavı zaten tamamladınız!");
         
         // IN_PROGRESS varsa onu döndür
         Optional<StudentExam> inProgress = existing.stream()
@@ -89,12 +91,12 @@ public StudentExam startExam(@RequestBody StudentExam studentExam) {
  @PutMapping("/{id}")
 public StudentExam updateStudentExam(@PathVariable Long id, @RequestBody StudentExam studentExam) {
     StudentExam existing = studentExamRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("StudentExam not found"));
+            .orElseThrow(() -> new NotFoundException("StudentExam not found"));
 
     String currentUserId = SecurityUtils.getCurrentUserId();
     if (!SecurityUtils.hasAnyRole("INSTRUCTOR", "ADMIN")
             && (currentUserId == null || !currentUserId.equals(existing.getKeycloakUserId()))) {
-        throw new RuntimeException("Unauthorized");
+        throw new UnauthorizedException("Unauthorized");
     }
 
     existing.setStatus(studentExam.getStatus());
