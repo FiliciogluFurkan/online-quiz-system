@@ -3,12 +3,9 @@ import keycloak from '../keycloak';
 
 const api = axios.create({
   baseURL: 'http://localhost:8080/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor - Token ekle
 api.interceptors.request.use(
   (config) => {
     if (keycloak.token) {
@@ -16,21 +13,19 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor - 401 hatalarını yakala
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retried) {
+      originalRequest._retried = true;
       try {
         await keycloak.updateToken(30);
-        // Token yenilendi, isteği tekrar dene
-        error.config.headers.Authorization = `Bearer ${keycloak.token}`;
-        return axios.request(error.config);
+        originalRequest.headers.Authorization = `Bearer ${keycloak.token}`;
+        return api.request(originalRequest); // use api, not axios
       } catch {
         keycloak.login();
       }

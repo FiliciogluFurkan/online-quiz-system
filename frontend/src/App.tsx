@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import StudentDashboard from './pages/StudentDashboard';
 import MyResults from './pages/MyResults';
@@ -23,33 +24,37 @@ import ManualGrading from './pages/ManualGrading';
 import './App.css';
 
 function App() {
-  console.log('App component rendered');
-  
   return (
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/student" element={<StudentDashboard />} />
-          <Route path="/student/my-results" element={<MyResults />} />
-          <Route path="/student/notifications" element={<NotificationList />} />
-          <Route path="/student/exam/:id" element={<TakeExam />} />
-          <Route path="/student/result/:studentExamId" element={<ExamResult />} />
-          <Route path="/instructor" element={<InstructorDashboard />} />
-          <Route path="/instructor/create-exam" element={<CreateExam />} />
-          <Route path="/instructor/exam/:id" element={<ExamDetail />} />
-          <Route path="/instructor/exam/:id/preview" element={<ExamPreview />} />
-          <Route path="/instructor/exam/:id/results" element={<ExamResults />} />
-          <Route path="/instructor/exam/:id/statistics" element={<ExamStatistics />} />
-          <Route path="/instructor/result/:studentExamId" element={<ExamResult />} />
-          <Route path="/instructor/grade/:studentExamId" element={<ManualGrading />} />
-          <Route path="/instructor/questions" element={<QuestionBank />} />
-          <Route path="/instructor/bulk-import" element={<BulkImport />} />
-          <Route path="/instructor/categories" element={<CategoryManagement />} />
-          <Route path="/instructor/exam/:id/add-questions" element={<AddQuestionsToExam />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/exam/:id" element={<AdminExamDetail />} />
+
+          {/* Student routes */}
+          <Route path="/student" element={<ProtectedRoute roles={['STUDENT']}><StudentDashboard /></ProtectedRoute>} />
+          <Route path="/student/my-results" element={<ProtectedRoute roles={['STUDENT']}><MyResults /></ProtectedRoute>} />
+          <Route path="/student/notifications" element={<ProtectedRoute roles={['STUDENT']}><NotificationList /></ProtectedRoute>} />
+          <Route path="/student/exam/:id" element={<ProtectedRoute roles={['STUDENT']}><TakeExam /></ProtectedRoute>} />
+          <Route path="/student/result/:studentExamId" element={<ProtectedRoute roles={['STUDENT', 'INSTRUCTOR', 'ADMIN']}><ExamResult /></ProtectedRoute>} />
+
+          {/* Instructor routes */}
+          <Route path="/instructor" element={<ProtectedRoute roles={['INSTRUCTOR']}><InstructorDashboard /></ProtectedRoute>} />
+          <Route path="/instructor/create-exam" element={<ProtectedRoute roles={['INSTRUCTOR']}><CreateExam /></ProtectedRoute>} />
+          <Route path="/instructor/exam/:id" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamDetail /></ProtectedRoute>} />
+          <Route path="/instructor/exam/:id/preview" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamPreview /></ProtectedRoute>} />
+          <Route path="/instructor/exam/:id/results" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamResults /></ProtectedRoute>} />
+          <Route path="/instructor/exam/:id/statistics" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamStatistics /></ProtectedRoute>} />
+          <Route path="/instructor/result/:studentExamId" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamResult /></ProtectedRoute>} />
+          <Route path="/instructor/grade/:studentExamId" element={<ProtectedRoute roles={['INSTRUCTOR']}><ManualGrading /></ProtectedRoute>} />
+          <Route path="/instructor/questions" element={<ProtectedRoute roles={['INSTRUCTOR']}><QuestionBank /></ProtectedRoute>} />
+          <Route path="/instructor/bulk-import" element={<ProtectedRoute roles={['INSTRUCTOR']}><BulkImport /></ProtectedRoute>} />
+          <Route path="/instructor/categories" element={<ProtectedRoute roles={['INSTRUCTOR']}><CategoryManagement /></ProtectedRoute>} />
+          <Route path="/instructor/exam/:id/add-questions" element={<ProtectedRoute roles={['INSTRUCTOR']}><AddQuestionsToExam /></ProtectedRoute>} />
+
+          {/* Admin routes */}
+          <Route path="/admin" element={<ProtectedRoute roles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/exam/:id" element={<ProtectedRoute roles={['ADMIN']}><AdminExamDetail /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
