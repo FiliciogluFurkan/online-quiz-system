@@ -7,6 +7,7 @@ import cse.quiz.system.repository.StudentExamRepository;
 import cse.quiz.system.service.GradingService;
 import cse.quiz.system.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -22,6 +23,7 @@ public class ResultController {
     private final GradingService gradingService;
 
     @PostMapping("/grade/{studentExamId}")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
     public Map<String, Object> gradeExam(@PathVariable Long studentExamId) {
         gradingService.gradeExam(studentExamId);
         
@@ -40,6 +42,12 @@ public class ResultController {
     public Map<String, Object> getExamResult(@PathVariable Long studentExamId) {
         StudentExam studentExam = studentExamRepository.findById(studentExamId)
                 .orElseThrow(() -> new RuntimeException("StudentExam not found"));
+
+        String currentUserId = SecurityUtils.getCurrentUserId();
+        if (!SecurityUtils.hasAnyRole("INSTRUCTOR", "ADMIN")
+                && (currentUserId == null || !currentUserId.equals(studentExam.getKeycloakUserId()))) {
+            throw new RuntimeException("Unauthorized");
+        }
         
         List<Answer> answers = answerRepository.findByStudentExamId(studentExamId);
         
@@ -67,11 +75,13 @@ public class ResultController {
     }
 
     @GetMapping("/exam/{examId}")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
     public List<StudentExam> getExamResults(@PathVariable Long examId) {
         return studentExamRepository.findByExamId(examId);
     }
     
     @GetMapping("/exam/{examId}/statistics")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
     public Map<String, Object> getExamStatistics(@PathVariable Long examId) {
         List<StudentExam> studentExams = studentExamRepository.findByExamId(examId);
         List<Answer> allAnswers = new java.util.ArrayList<>();
@@ -154,6 +164,7 @@ public class ResultController {
     }
 
     @PutMapping("/answer/{answerId}/grade")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
     public Answer gradeAnswer(@PathVariable Long answerId, @RequestBody Map<String, Object> gradeData) {
         Answer answer = answerRepository.findById(answerId)
                 .orElseThrow(() -> new RuntimeException("Answer not found"));

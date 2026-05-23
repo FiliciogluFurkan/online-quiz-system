@@ -4,6 +4,7 @@ import cse.quiz.system.entity.StudentExam;
 import cse.quiz.system.repository.StudentExamRepository;
 import cse.quiz.system.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +17,7 @@ public class StudentExamController {
     private final StudentExamRepository studentExamRepository;
 
     @GetMapping("/student/{studentId}")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
     public List<StudentExam> getStudentExams(@PathVariable Long studentId) {
         return studentExamRepository.findByStudentId(studentId);
     }
@@ -69,18 +71,22 @@ public StudentExam startExam(@RequestBody StudentExam studentExam) {
 
  @PutMapping("/{id}")
 public StudentExam updateStudentExam(@PathVariable Long id, @RequestBody StudentExam studentExam) {
-    // Önce mevcut kaydı DB'den çek
     StudentExam existing = studentExamRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("StudentExam not found"));
-    
+
+    String currentUserId = SecurityUtils.getCurrentUserId();
+    if (!SecurityUtils.hasAnyRole("INSTRUCTOR", "ADMIN")
+            && (currentUserId == null || !currentUserId.equals(existing.getKeycloakUserId()))) {
+        throw new RuntimeException("Unauthorized");
+    }
+
     existing.setStatus(studentExam.getStatus());
-    existing.setScore(studentExam.getScore());
-    
+    // score is managed exclusively by GradingService, not settable via this endpoint
+
     if (studentExam.getStatus() == StudentExam.ExamStatus.SUBMITTED) {
         existing.setSubmittedAt(LocalDateTime.now());
     }
-    
-    // keycloakUserId, exam, startedAt gibi alanlar DB'deki haliyle korunur
+
     return studentExamRepository.save(existing);
 }
 }

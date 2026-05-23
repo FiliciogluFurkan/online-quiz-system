@@ -25,14 +25,6 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints (geçici - test için)
-                .requestMatchers("/api/exams/**").permitAll()
-                .requestMatchers("/api/questions/**").permitAll()
-                .requestMatchers("/api/exam-questions/**").permitAll()
-                .requestMatchers("/api/student-exams/**").permitAll()
-                .requestMatchers("/api/answers/**").permitAll()
-                .requestMatchers("/api/results/**").permitAll()
-                // Diğer tüm istekler authentication gerektirir
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
