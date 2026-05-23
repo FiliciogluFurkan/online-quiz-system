@@ -2,16 +2,16 @@ package cse.quiz.system.service;
 
 import cse.quiz.system.entity.Exam;
 import cse.quiz.system.entity.Notification;
+import cse.quiz.system.exception.NotFoundException;
 import cse.quiz.system.repository.ExamRepository;
 import cse.quiz.system.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -22,15 +22,14 @@ public class NotificationService {
     private final KeycloakService keycloakService;
 
     @Async
+    @Transactional
     public void notifyNewExamPublished(Long examId) {
         Exam exam = examRepository.findById(examId)
-                .orElseThrow(() -> new RuntimeException("Exam not found"));
+                .orElseThrow(() -> new NotFoundException("Exam not found: " + examId));
 
-        // Keycloak'tan STUDENT rolüne sahip tüm kullanıcıları al
         List<String> studentIds = keycloakService.getAllStudentIds();
 
-        System.out.println("Creating notifications for " + studentIds.size() + " students");
-
+        List<Notification> notifications = new ArrayList<>();
         for (String studentId : studentIds) {
             Notification notification = new Notification();
             notification.setKeycloakUserId(studentId);
@@ -39,8 +38,9 @@ public class NotificationService {
             notification.setMessage(exam.getTitle() + " sınavı yayınlandı!");
             notification.setRelatedEntityType("EXAM");
             notification.setRelatedEntityId(examId);
-            notificationRepository.save(notification);
+            notifications.add(notification);
         }
+        notificationRepository.saveAll(notifications);
     }
 
     public List<Notification> getUserNotifications(String keycloakUserId) {
