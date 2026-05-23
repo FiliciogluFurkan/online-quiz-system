@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../api/axios';
 import type { Exam, Question } from '../types';
 
@@ -27,7 +27,7 @@ export function useAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [statsRes, examsRes, questionsRes, studentExamsRes] = await Promise.all([
@@ -38,7 +38,7 @@ export function useAdminDashboard() {
       ]);
 
       setStats(statsRes.data);
-      setExams(statsRes.data ? examsRes.data : []);
+      setExams(examsRes.data ?? []);
       setQuestions(questionsRes.data);
       setStudentExams(studentExamsRes.data);
     } catch (error) {
@@ -47,11 +47,11 @@ export function useAdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleDeleteExam = async (id: number) => {
     if (!confirm('Bu sınavı silmek istediğinize emin misiniz?')) return;
