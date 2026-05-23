@@ -2,6 +2,7 @@ package cse.quiz.system.service;
 
 import cse.quiz.system.entity.Answer;
 import cse.quiz.system.entity.StudentExam;
+import cse.quiz.system.exception.ConflictException;
 import cse.quiz.system.exception.NotFoundException;
 import cse.quiz.system.exception.UnauthorizedException;
 import cse.quiz.system.repository.AnswerRepository;
@@ -35,7 +36,7 @@ public class ExamSubmissionService {
         }
 
         if (existing.getStatus() != StudentExam.ExamStatus.IN_PROGRESS) {
-            throw new UnauthorizedException("Exam is not in progress");
+            throw new ConflictException("Exam is not in progress");
         }
 
         answers.forEach((questionIdStr, answerText) -> {

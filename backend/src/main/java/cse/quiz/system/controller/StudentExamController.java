@@ -1,6 +1,7 @@
 package cse.quiz.system.controller;
 
 import cse.quiz.system.entity.StudentExam;
+import cse.quiz.system.exception.ConflictException;
 import cse.quiz.system.exception.NotFoundException;
 import cse.quiz.system.exception.UnauthorizedException;
 import cse.quiz.system.repository.StudentExamRepository;
@@ -58,7 +59,7 @@ public StudentExam startExam(@RequestBody StudentExam studentExam) {
         boolean alreadyDone = existing.stream()
             .anyMatch(se -> se.getStatus() == StudentExam.ExamStatus.SUBMITTED || 
                            se.getStatus() == StudentExam.ExamStatus.GRADED);
-        if (alreadyDone) throw new UnauthorizedException("Bu sınavı zaten tamamladınız!");
+        if (alreadyDone) throw new ConflictException("Bu sınavı zaten tamamladınız!");
         
         // IN_PROGRESS varsa onu döndür
         Optional<StudentExam> inProgress = existing.stream()
