@@ -127,29 +127,18 @@ export default function TakeExam() {
 
   const handleSubmit = async () => {
     if (!studentExamId) return;
-    
+
     try {
-      // Cevapları kaydet
-      for (const answer of answers) {
-        if (answer.answerText) {
-          await api.post('/answers', {
-            studentExam: { id: studentExamId },
-            question: { id: answer.questionId },
-            answerText: answer.answerText
-          });
+      // Build answersMap: { questionId: answerText }
+      const answersMap: Record<string, string> = {};
+      answers.forEach((a) => {
+        if (a.answerText) {
+          answersMap[String(a.questionId)] = a.answerText;
         }
-      }
-      
-      // Sınav durumunu güncelle
-      await api.put(`/student-exams/${studentExamId}`, {
-        status: 'SUBMITTED'
       });
-      
-      // Otomatik puanlama yap
-      await api.post(`/results/grade/${studentExamId}`);
-      
-      alert('Sınav başarıyla teslim edildi ve puanlandı!');
-      navigate(`/student/result/${studentExamId}`);
+
+      const res = await api.post(`/student-exams/${studentExamId}/submit`, answersMap);
+      navigate(`/student/result/${res.data.studentExamId}`);
     } catch (error) {
       console.error('Error submitting exam:', error);
       alert('Sınav teslim edilirken hata oluştu!');
