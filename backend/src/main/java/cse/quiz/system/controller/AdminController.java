@@ -30,10 +30,8 @@ public class AdminController {
         stats.put("totalExams", examRepository.count());
         stats.put("totalQuestions", questionRepository.count());
         stats.put("totalStudentExams", studentExamRepository.count());
-        stats.put("completedExams", studentExamRepository.findAll().stream()
-                .filter(se -> se.getStatus() == StudentExam.ExamStatus.GRADED || 
-                             se.getStatus() == StudentExam.ExamStatus.SUBMITTED)
-                .count());
+        stats.put("completedExams", studentExamRepository.countByStatusIn(
+                List.of(StudentExam.ExamStatus.GRADED, StudentExam.ExamStatus.SUBMITTED)));
         
         return stats;
     }
