@@ -1,4 +1,8 @@
-import { CSSProperties, ReactNode } from 'react';
+import { CSSProperties, ReactNode, useEffect, useState } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Bell, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/axios';
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
 
@@ -33,10 +37,191 @@ export function PageShell({ children, maxWidth = 1200 }: { children: ReactNode; 
       fontFamily: tokens.sans,
       color: tokens.ink,
     }}>
-      <div style={{ padding: '40px 40px 56px', maxWidth, margin: '0 auto' }}>
+      <div style={{ padding: '32px 40px 56px', maxWidth, margin: '0 auto' }}>
         {children}
       </div>
     </main>
+  );
+}
+
+// ─── Top bar (role-aware) ───────────────────────────────────────────────────
+
+const HIDDEN_PATHS = ['/'];
+function isHidden(pathname: string): boolean {
+  if (HIDDEN_PATHS.includes(pathname)) return true;
+  // TakeExam has its own sticky bar with timer
+  if (/^\/student\/exam\/[^/]+$/.test(pathname)) return true;
+  return false;
+}
+
+const NAV_BY_ROLE: Record<'STUDENT' | 'INSTRUCTOR' | 'ADMIN',
+  { label: string; href: string }[]> = {
+  STUDENT: [
+    { label: 'Sınavlarım', href: '/student' },
+    { label: 'Sonuçlar', href: '/student/my-results' },
+    { label: 'Bildirimler', href: '/student/notifications' },
+  ],
+  INSTRUCTOR: [
+    { label: 'Genel Bakış', href: '/instructor' },
+    { label: 'Soru Bankası', href: '/instructor/questions' },
+    { label: 'Kategoriler', href: '/instructor/categories' },
+  ],
+  ADMIN: [
+    { label: 'Genel Bakış', href: '/admin' },
+  ],
+};
+
+function pickRole(roles: string[]): 'STUDENT' | 'INSTRUCTOR' | 'ADMIN' {
+  if (roles.includes('ADMIN')) return 'ADMIN';
+  if (roles.includes('INSTRUCTOR')) return 'INSTRUCTOR';
+  return 'STUDENT';
+}
+
+function initialsFor(username?: string): string {
+  if (!username) return 'QL';
+  const parts = username.split(/[\s._-]+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return username.slice(0, 2).toUpperCase();
+}
+
+function roleLabel(role: 'STUDENT' | 'INSTRUCTOR' | 'ADMIN'): string {
+  if (role === 'ADMIN') return 'Yönetim';
+  if (role === 'INSTRUCTOR') return 'Eğitmen';
+  return 'Akademik';
+}
+
+export function TopBar() {
+  const { isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const role = pickRole(user?.roles || []);
+  const navItems = NAV_BY_ROLE[role];
+  const notificationsHref = role === 'STUDENT' ? '/student/notifications' : '/student/notifications';
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    api.get('/notifications/unread-count')
+      .then(res => setUnreadCount(res.data?.count ?? res.data ?? 0))
+      .catch(() => {});
+  }, [isAuthenticated, location.pathname]);
+
+  if (!isAuthenticated || isHidden(location.pathname)) return null;
+
+  return (
+    <header style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '16px 40px',
+      background: tokens.bg,
+      borderBottom: `1px solid ${tokens.hairline}`,
+      fontFamily: tokens.sans,
+      position: 'sticky' as const, top: 0, zIndex: 50,
+    }}>
+      {/* Brand */}
+      <Link to={`/${role.toLowerCase()}`} style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        textDecoration: 'none', color: tokens.ink,
+      }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: 8,
+          background: tokens.indigo, color: '#fff',
+          display: 'grid', placeItems: 'center',
+          fontFamily: tokens.serif, fontSize: 18, fontStyle: 'italic' as const,
+        }}>Q</div>
+        <div style={{ lineHeight: 1.1 }}>
+          <strong style={{
+            fontFamily: tokens.serif, fontSize: 18,
+            fontWeight: 400, letterSpacing: '-0.01em', display: 'block',
+          }}>Quizlab</strong>
+          <span style={{
+            fontFamily: tokens.mono, fontSize: 10,
+            color: tokens.subtle, letterSpacing: '0.08em',
+            textTransform: 'uppercase' as const,
+          }}>{roleLabel(role)}</span>
+        </div>
+      </Link>
+
+      {/* Nav links */}
+      <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        {navItems.map(item => {
+          const active = location.pathname === item.href
+            || (item.href !== '/' && location.pathname.startsWith(item.href + '/'));
+          return (
+            <Link key={item.href} to={item.href} style={{
+              padding: '8px 14px', borderRadius: 8,
+              background: active ? tokens.indigoSoft : 'transparent',
+              color: active ? tokens.indigo : tokens.text,
+              fontSize: 13.5, fontWeight: 500,
+              textDecoration: 'none',
+            }}>{item.label}</Link>
+          );
+        })}
+      </nav>
+
+      {/* Right: notifications + user */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button
+          type="button"
+          onClick={() => navigate(notificationsHref)}
+          title="Bildirimler"
+          style={{
+            width: 36, height: 36, borderRadius: 8,
+            background: 'transparent',
+            border: `1px solid ${tokens.hairline}`,
+            color: tokens.text,
+            display: 'grid', placeItems: 'center',
+            cursor: 'pointer', position: 'relative' as const,
+          }}>
+          <Bell size={16} />
+          {unreadCount > 0 && (
+            <span style={{
+              position: 'absolute', top: 4, right: 4,
+              minWidth: 14, height: 14, padding: '0 4px',
+              borderRadius: 999, background: tokens.indigo, color: '#fff',
+              fontFamily: tokens.mono, fontSize: 9, fontWeight: 600,
+              display: 'grid', placeItems: 'center', lineHeight: 1,
+            }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+          )}
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            background: tokens.indigoSoft, color: tokens.indigo,
+            display: 'grid', placeItems: 'center',
+            fontFamily: tokens.serif, fontSize: 14, fontWeight: 400,
+          }}>{initialsFor(user?.username)}</div>
+          <div style={{ lineHeight: 1.1 }}>
+            <div style={{
+              fontSize: 13.5, color: tokens.ink, fontWeight: 500,
+              maxWidth: 140, overflow: 'hidden',
+              textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+            }}>{user?.username || 'Kullanıcı'}</div>
+            <div style={{
+              fontFamily: tokens.mono, fontSize: 10,
+              color: tokens.subtle, letterSpacing: '0.06em',
+              textTransform: 'uppercase' as const,
+            }}>{role}</div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={logout}
+          title="Çıkış Yap"
+          style={{
+            width: 36, height: 36, borderRadius: 8,
+            background: 'transparent',
+            border: `1px solid ${tokens.hairline}`,
+            color: tokens.bad,
+            display: 'grid', placeItems: 'center',
+            cursor: 'pointer',
+          }}>
+          <LogOut size={15} />
+        </button>
+      </div>
+    </header>
   );
 }
 

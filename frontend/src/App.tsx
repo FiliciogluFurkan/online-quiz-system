@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import Navbar from './components/Navbar';
+import { TopBar } from './components/academic-ui';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import StudentDashboard from './pages/StudentDashboard';
@@ -27,7 +27,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Navbar />
+        <TopBar />
         <Routes>
           <Route path="/" element={<Home />} />
 
