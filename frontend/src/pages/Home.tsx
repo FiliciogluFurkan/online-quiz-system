@@ -1,409 +1,233 @@
-import { type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ArrowRight,
-  BookOpen,
-  GraduationCap,
-  LogIn,
-  LogOut,
-  ShieldCheck,
-  Sparkles,
-  UserRound,
-} from 'lucide-react';
+import { ArrowRight, LogIn, LogOut, GraduationCap, BookOpen, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const styles: Record<string, CSSProperties> = {
-  page: {
-    minHeight: '100vh',
-    fontFamily:
-      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    background:
-      'radial-gradient(circle at 12% 8%, rgba(99,102,241,0.10), transparent 26%), radial-gradient(circle at 88% 12%, rgba(14,165,233,0.10), transparent 24%), #f8fafc',
-    color: '#0f172a',
-    padding: '32px',
-    boxSizing: 'border-box',
-  },
-  container: {
-    maxWidth: '1120px',
-    margin: '0 auto',
-  },
-  nav: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '16px',
-    padding: '18px 20px',
-    borderRadius: '22px',
-    background: 'rgba(255,255,255,0.9)',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 16px 40px rgba(15,23,42,0.055)',
-    marginBottom: '46px',
-  },
-  brand: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  brandIcon: {
-    width: '44px',
-    height: '44px',
-    borderRadius: '16px',
-    display: 'grid',
-    placeItems: 'center',
-    background: '#eef2ff',
-    color: '#4f46e5',
-    border: '1px solid #c7d2fe',
-  },
-  navText: {
-    color: '#64748b',
-    fontSize: '14px',
-    fontWeight: 800,
-  },
-  hero: {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr) 390px',
-    gap: '28px',
-    alignItems: 'stretch',
-  },
-  heroCard: {
-    padding: '44px',
-    borderRadius: '32px',
-    background: 'rgba(255,255,255,0.92)',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 28px 80px rgba(15,23,42,0.075)',
-  },
-  eyebrow: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '9px 13px',
-    borderRadius: '999px',
-    background: '#eef2ff',
-    border: '1px solid #c7d2fe',
-    color: '#4f46e5',
-    fontSize: '14px',
-    fontWeight: 900,
-    marginBottom: '18px',
-  },
-  title: {
-    margin: 0,
-    fontSize: '56px',
-    lineHeight: 1.02,
-    letterSpacing: '-0.055em',
-    fontWeight: 950,
-    color: '#0f172a',
-  },
-  subtitle: {
-    maxWidth: '650px',
-    margin: '20px 0 0',
-    color: '#64748b',
-    fontSize: '18px',
-    lineHeight: 1.75,
-  },
-  authPanel: {
-    padding: '26px',
-    borderRadius: '32px',
-    background: 'linear-gradient(135deg, rgba(255,255,255,0.94), rgba(239,246,255,0.82))',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 28px 80px rgba(15,23,42,0.075)',
-  },
-  userBox: {
-    padding: '22px',
-    borderRadius: '26px',
-    background: '#ffffff',
-    border: '1px solid #e2e8f0',
-    marginBottom: '16px',
-    boxShadow: '0 14px 34px rgba(15,23,42,0.045)',
-  },
-  avatar: {
-    width: '58px',
-    height: '58px',
-    borderRadius: '20px',
-    display: 'grid',
-    placeItems: 'center',
-    background: '#eef2ff',
-    color: '#4f46e5',
-    border: '1px solid #c7d2fe',
-    marginBottom: '14px',
-  },
-  primaryButton: {
-    width: '100%',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '9px',
-    borderRadius: '16px',
-    padding: '15px 18px',
-    border: '1px solid #bfdbfe',
-    background: 'linear-gradient(135deg, #eff6ff, #ffffff)',
-    color: '#1d4ed8',
-    fontWeight: 950,
-    fontSize: '15px',
-    cursor: 'pointer',
-    boxShadow: '0 16px 34px rgba(37,99,235,0.10)',
-  },
-  logoutButton: {
-    width: '100%',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '9px',
-    borderRadius: '16px',
-    padding: '14px 18px',
-    border: '1px solid #fecaca',
-    background: 'linear-gradient(135deg, #fef2f2, #ffffff)',
-    color: '#b91c1c',
-    fontWeight: 950,
-    cursor: 'pointer',
-    marginTop: '14px',
-  },
-  roleGrid: {
-    display: 'grid',
-    gap: '12px',
-    marginTop: '16px',
-  },
-  roleCard: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '14px',
-    padding: '18px',
-    borderRadius: '22px',
-    textDecoration: 'none',
-    color: '#0f172a',
-    background: 'linear-gradient(135deg, #ffffff, #f8fafc)',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 16px 34px rgba(15,23,42,0.06)',
-    transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
-  },
-  roleLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '13px',
-  },
-  roleIcon: {
-    width: '44px',
-    height: '44px',
-    borderRadius: '16px',
-    display: 'grid',
-    placeItems: 'center',
-    flexShrink: 0,
-  },
-  featureGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-    gap: '16px',
-    marginTop: '26px',
-  },
-  featureCard: {
-    padding: '20px',
-    borderRadius: '24px',
-    background: 'rgba(255,255,255,0.88)',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 16px 40px rgba(15,23,42,0.045)',
-  },
-};
-
-const cardEvents = {
-  onMouseEnter: (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.currentTarget.style.transform = 'translateY(-3px)';
-    e.currentTarget.style.boxShadow = '0 22px 44px rgba(15,23,42,0.10)';
-    e.currentTarget.style.borderColor = '#c7d2fe';
-  },
-  onMouseLeave: (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.currentTarget.style.transform = 'translateY(0)';
-    e.currentTarget.style.boxShadow = '0 16px 34px rgba(15,23,42,0.06)';
-    e.currentTarget.style.borderColor = '#e2e8f0';
-  },
-};
+import { tokens, Kicker, Btn, CodeTag } from '../components/academic-ui';
 
 export default function Home() {
   const { isAuthenticated, user, login, logout, hasRole } = useAuth();
 
   return (
-    <main style={styles.page}>
-      <div style={styles.container}>
-        <nav style={styles.nav}>
-          <div style={styles.brand}>
-            <div style={styles.brandIcon}>
-              <BookOpen size={23} />
-            </div>
-            <div>
-              <strong style={{ fontSize: '20px' }}>QuizLab</strong>
-              <div style={{ color: '#94a3b8', fontSize: '13px', marginTop: '2px' }}>
-                Online sınav sistemi
-              </div>
-            </div>
+    <main style={{
+      minHeight: '100vh', background: tokens.bg,
+      fontFamily: tokens.sans, color: tokens.ink,
+    }}>
+      {/* Top bar */}
+      <header style={{
+        padding: '20px 40px',
+        borderBottom: `1px solid ${tokens.hairline}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 8,
+            background: tokens.indigo, color: '#fff',
+            display: 'grid', placeItems: 'center',
+            fontFamily: tokens.serif, fontSize: 20, fontStyle: 'italic' as const,
+          }}>Q</div>
+          <div style={{ lineHeight: 1.15 }}>
+            <strong style={{
+              fontFamily: tokens.serif, fontSize: 20,
+              fontWeight: 400, letterSpacing: '-0.01em',
+            }}>Quizlab</strong>
+            <div style={{
+              fontFamily: tokens.mono, fontSize: 10,
+              color: tokens.subtle, letterSpacing: '0.08em',
+              textTransform: 'uppercase' as const,
+            }}>Akademik</div>
           </div>
+        </div>
+        <CodeTag tone="slate">ONLINE QUIZ SYSTEM</CodeTag>
+      </header>
 
-          <span style={styles.navText}>Modern eğitim platformu</span>
-        </nav>
+      <div style={{
+        maxWidth: 1200, margin: '0 auto', padding: '64px 40px',
+        display: 'grid', gridTemplateColumns: '1fr 380px', gap: 48, alignItems: 'start',
+      }}>
+        {/* Hero */}
+        <section>
+          <Kicker>Akademik sınav platformu</Kicker>
+          <h1 style={{
+            margin: '12px 0 0', fontFamily: tokens.serif,
+            fontSize: 56, fontWeight: 400, color: tokens.ink,
+            letterSpacing: '-0.03em', lineHeight: 1.02,
+          }}>
+            Sınav, öğrenme<br/>ve değerlendirme<span style={{ color: tokens.indigo }}>.</span>
+          </h1>
+          <p style={{
+            margin: '20px 0 0', maxWidth: 540, color: tokens.muted,
+            fontSize: 17, lineHeight: 1.7,
+          }}>
+            Öğrenciler için odaklı sınav deneyimi, eğitmenler için kolay yönetim
+            ve sonuç takibi. Tek bir akademik arayüzde.
+          </p>
 
-        <section style={styles.hero}>
-          <div style={styles.heroCard}>
-            <div style={styles.eyebrow}>
-              <Sparkles size={16} />
-              Akıllı ve sade sınav deneyimi
-            </div>
-
-            <h1 style={styles.title}>Online Quiz ve Sınav Sistemi</h1>
-
-            <p style={styles.subtitle}>
-              Öğrenciler için odaklı sınav deneyimi, eğitmenler için kolay yönetim ve sonuç
-              takibi. Devam etmek için hesabınla giriş yap.
-            </p>
-
-            <div style={styles.featureGrid}>
-              <div style={styles.featureCard}>
-                <ShieldCheck size={24} color="#4f46e5" />
-                <h3 style={{ margin: '12px 0 6px' }}>Güvenli Giriş</h3>
-                <p style={{ margin: 0, color: '#64748b', lineHeight: 1.55 }}>
-                  Güvenli oturum sistemi ile hesabınıza kolayca erişin.
-                </p>
-              </div>
-
-              <div style={styles.featureCard}>
-                <GraduationCap size={24} color="#0284c7" />
-                <h3 style={{ margin: '12px 0 6px' }}>Öğrenci Paneli</h3>
-                <p style={{ margin: 0, color: '#64748b', lineHeight: 1.55 }}>
-                  Sınavlara katılın ve performansınızı takip edin.
-                </p>
-              </div>
-
-              <div style={styles.featureCard}>
-                <BookOpen size={24} color="#16a34a" />
-                <h3 style={{ margin: '12px 0 6px' }}>Eğitmen Paneli</h3>
-                <p style={{ margin: 0, color: '#64748b', lineHeight: 1.55 }}>
-                  Sınav oluşturun, soruları ve sonuçları yönetin.
-                </p>
-              </div>
-            </div>
+          <div style={{
+            marginTop: 48,
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16,
+          }}>
+            {[
+              {
+                num: '01',
+                title: 'Güvenli Giriş',
+                desc: 'Keycloak tabanlı kimlik doğrulama ile hesabına güvenli erişim.',
+                icon: ShieldCheck,
+              },
+              {
+                num: '02',
+                title: 'Öğrenci Akışı',
+                desc: 'Sınavlara katıl, geçmiş sonuçlarını ve performansını gör.',
+                icon: GraduationCap,
+              },
+              {
+                num: '03',
+                title: 'Eğitmen Akışı',
+                desc: 'Soru bankası, sınav oluşturma ve detaylı istatistikler.',
+                icon: BookOpen,
+              },
+            ].map(f => (
+              <article key={f.num} style={{
+                padding: 22, background: '#fff',
+                border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{
+                    fontFamily: tokens.mono, fontSize: 11,
+                    color: tokens.indigo, letterSpacing: '0.08em', fontWeight: 600,
+                  }}>{f.num}</span>
+                  <span style={{ flex: 1, height: 1, background: tokens.hairlineSoft }} />
+                  <f.icon size={16} style={{ color: tokens.indigo }} />
+                </div>
+                <h3 style={{
+                  margin: '0 0 8px', fontFamily: tokens.serif,
+                  fontSize: 19, fontWeight: 400, color: tokens.ink,
+                  letterSpacing: '-0.01em',
+                }}>{f.title}</h3>
+                <p style={{
+                  margin: 0, fontSize: 13, color: tokens.muted,
+                  lineHeight: 1.6,
+                }}>{f.desc}</p>
+              </article>
+            ))}
           </div>
-
-          <aside style={styles.authPanel}>
-            {!isAuthenticated ? (
-              <>
-                <div style={styles.userBox}>
-                  <div style={styles.avatar}>
-                    <LogIn size={27} />
-                  </div>
-
-                  <h2 style={{ margin: '0 0 8px', fontSize: '25px' }}>Hoş geldiniz</h2>
-
-                  <p style={{ margin: 0, color: '#64748b', lineHeight: 1.65 }}>
-                    Platforma devam etmek için hesabınızla giriş yapın.
-                  </p>
-                </div>
-
-                <button onClick={login} style={styles.primaryButton}>
-                  <LogIn size={18} />
-                  Giriş Yap
-                </button>
-              </>
-            ) : (
-              <>
-                <div style={styles.userBox}>
-                  <div style={styles.avatar}>
-                    <UserRound size={28} />
-                  </div>
-
-                  <h2 style={{ margin: '0 0 6px', fontSize: '25px' }}>
-                    Hoş geldiniz, {user?.username}
-                  </h2>
-
-                  <p style={{ margin: 0, color: '#64748b', lineHeight: 1.65 }}>
-                    Devam etmek istediğiniz paneli seçin.
-                  </p>
-                </div>
-
-                <div style={styles.roleGrid}>
-                  {hasRole('STUDENT') && (
-                    <Link to="/student" style={styles.roleCard} {...cardEvents}>
-                      <div style={styles.roleLeft}>
-                        <div
-                          style={{
-                            ...styles.roleIcon,
-                            background: '#f0f9ff',
-                            color: '#0284c7',
-                            border: '1px solid #bae6fd',
-                          }}
-                        >
-                          <GraduationCap size={22} />
-                        </div>
-
-                        <div>
-                          <strong>Öğrenci Paneli</strong>
-                          <div style={{ color: '#64748b', fontSize: '13px', marginTop: '3px' }}>
-                            Sınavlarına geç
-                          </div>
-                        </div>
-                      </div>
-
-                      <ArrowRight size={18} color="#94a3b8" />
-                    </Link>
-                  )}
-
-                  {hasRole('INSTRUCTOR') && (
-                    <Link to="/instructor" style={styles.roleCard} {...cardEvents}>
-                      <div style={styles.roleLeft}>
-                        <div
-                          style={{
-                            ...styles.roleIcon,
-                            background: '#ecfdf5',
-                            color: '#16a34a',
-                            border: '1px solid #bbf7d0',
-                          }}
-                        >
-                          <BookOpen size={22} />
-                        </div>
-
-                        <div>
-                          <strong>Eğitmen Paneli</strong>
-                          <div style={{ color: '#64748b', fontSize: '13px', marginTop: '3px' }}>
-                            Sınavları yönet
-                          </div>
-                        </div>
-                      </div>
-
-                      <ArrowRight size={18} color="#94a3b8" />
-                    </Link>
-                  )}
-
-                  {hasRole('ADMIN') && (
-                    <Link to="/admin" style={styles.roleCard} {...cardEvents}>
-                      <div style={styles.roleLeft}>
-                        <div
-                          style={{
-                            ...styles.roleIcon,
-                            background: '#fef3c7',
-                            color: '#d97706',
-                            border: '1px solid #fde68a',
-                          }}
-                        >
-                          <ShieldCheck size={22} />
-                        </div>
-
-                        <div>
-                          <strong>Admin Paneli</strong>
-                          <div style={{ color: '#64748b', fontSize: '13px', marginTop: '3px' }}>
-                            Sistemi yönet
-                          </div>
-                        </div>
-                      </div>
-
-                      <ArrowRight size={18} color="#94a3b8" />
-                    </Link>
-                  )}
-                </div>
-
-                <button onClick={logout} style={styles.logoutButton}>
-                  <LogOut size={18} />
-                  Çıkış Yap
-                </button>
-              </>
-            )}
-          </aside>
         </section>
+
+        {/* Auth panel */}
+        <aside style={{
+          padding: 28, background: '#fff',
+          border: `1px solid ${tokens.hairline}`, borderRadius: 16,
+          position: 'sticky' as const, top: 24,
+        }}>
+          {!isAuthenticated ? (
+            <>
+              <Kicker>Hoş geldin</Kicker>
+              <h2 style={{
+                margin: '8px 0 0', fontFamily: tokens.serif,
+                fontSize: 28, fontWeight: 400, color: tokens.ink,
+                letterSpacing: '-0.02em', lineHeight: 1.15,
+              }}>Devam etmek için<br/>giriş yap.</h2>
+              <p style={{
+                margin: '14px 0 0', color: tokens.muted,
+                fontSize: 14, lineHeight: 1.6,
+              }}>
+                Akademik sınav platformuna hesabınla erişim sağla. Rolüne uygun panel otomatik açılır.
+              </p>
+
+              <Btn
+                variant="primary"
+                onClick={login}
+                icon={<LogIn size={14} />}
+                style={{
+                  marginTop: 24, width: '100%',
+                  justifyContent: 'center', padding: '14px 16px', fontSize: 14,
+                }}
+              >Giriş Yap</Btn>
+
+              <div style={{
+                marginTop: 18, padding: 12,
+                background: tokens.ivory, border: `1px solid ${tokens.hairlineSoft}`,
+                borderRadius: 10, fontSize: 12, color: tokens.subtle, lineHeight: 1.55,
+              }}>
+                Keycloak ile yönlendirileceksin. Geri dönüşte rolüne göre paneline ileteceğiz.
+              </div>
+            </>
+          ) : (
+            <>
+              <Kicker>Oturum açık</Kicker>
+              <h2 style={{
+                margin: '8px 0 0', fontFamily: tokens.serif,
+                fontSize: 26, fontWeight: 400, color: tokens.ink,
+                letterSpacing: '-0.02em',
+              }}>{user?.username ? `Merhaba, ${user.username}` : 'Hoş geldin'}<span style={{ color: tokens.indigo }}>.</span></h2>
+              <p style={{
+                margin: '14px 0 0', color: tokens.muted,
+                fontSize: 14, lineHeight: 1.6,
+              }}>Devam etmek istediğin paneli seç.</p>
+
+              <div style={{ marginTop: 20, display: 'grid', gap: 8 }}>
+                {hasRole('STUDENT') && (
+                  <Link to="/student" style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '14px 16px',
+                    background: '#fff', border: `1px solid ${tokens.hairline}`,
+                    borderRadius: 12, textDecoration: 'none', color: tokens.ink,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <GraduationCap size={18} style={{ color: tokens.indigo }} />
+                      <div>
+                        <div style={{ fontWeight: 500, fontSize: 14 }}>Öğrenci Paneli</div>
+                        <div style={{ fontSize: 12, color: tokens.subtle, marginTop: 2 }}>Sınavlarıma geç</div>
+                      </div>
+                    </div>
+                    <ArrowRight size={14} style={{ color: tokens.subtle }} />
+                  </Link>
+                )}
+                {hasRole('INSTRUCTOR') && (
+                  <Link to="/instructor" style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '14px 16px',
+                    background: '#fff', border: `1px solid ${tokens.hairline}`,
+                    borderRadius: 12, textDecoration: 'none', color: tokens.ink,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <BookOpen size={18} style={{ color: tokens.indigo }} />
+                      <div>
+                        <div style={{ fontWeight: 500, fontSize: 14 }}>Eğitmen Paneli</div>
+                        <div style={{ fontSize: 12, color: tokens.subtle, marginTop: 2 }}>Sınavları yönet</div>
+                      </div>
+                    </div>
+                    <ArrowRight size={14} style={{ color: tokens.subtle }} />
+                  </Link>
+                )}
+                {hasRole('ADMIN') && (
+                  <Link to="/admin" style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '14px 16px',
+                    background: '#fff', border: `1px solid ${tokens.hairline}`,
+                    borderRadius: 12, textDecoration: 'none', color: tokens.ink,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <ShieldCheck size={18} style={{ color: tokens.indigo }} />
+                      <div>
+                        <div style={{ fontWeight: 500, fontSize: 14 }}>Admin Paneli</div>
+                        <div style={{ fontSize: 12, color: tokens.subtle, marginTop: 2 }}>Sistemi yönet</div>
+                      </div>
+                    </div>
+                    <ArrowRight size={14} style={{ color: tokens.subtle }} />
+                  </Link>
+                )}
+              </div>
+
+              <Btn
+                onClick={logout}
+                icon={<LogOut size={14} />}
+                style={{
+                  marginTop: 20, width: '100%',
+                  justifyContent: 'center', padding: '12px 16px',
+                }}
+              >Çıkış Yap</Btn>
+            </>
+          )}
+        </aside>
       </div>
     </main>
   );
