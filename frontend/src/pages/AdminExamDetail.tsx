@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import api from '../api/axios';
-import type { Exam, Question } from '../types';
+import type { Exam, Question, AuditLogEntry } from '../types';
 import {
   tokens, PageShell, Crumbs, Kicker, HeroTitle, SectionHeader, Btn, CodeTag,
   formatTrDate,
@@ -13,6 +13,15 @@ interface ExamQuestion {
   question: Question;
   orderIndex: number;
 }
+
+const ACTION_TONE: Record<string, string> = {
+  CREATE: tokens.indigo,
+  UPDATE: tokens.indigo,
+  PUBLISH: tokens.good,
+  UNPUBLISH: '#b45309',
+  DELETE: tokens.bad,
+  GRADE: tokens.indigo,
+};
 
 function typeLabel(type: string): string {
   if (type === 'MULTIPLE_CHOICE') return 'Çoktan Seçmeli';
@@ -25,19 +34,21 @@ export default function AdminExamDetail() {
   const navigate = useNavigate();
   const [exam, setExam] = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
+  const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       api.get(`/admin/exams/${id}`),
       api.get(`/exam-questions/exam/${id}`),
+      api.get(`/admin/exams/${id}/audit-log`),
     ])
-      .then(([examRes, qsRes]) => {
-        setExam(examRes.data);
-        setQuestions(qsRes.data);
-      })
-      .catch(err => {
-        console.error('Error loading exam detail:', err);
-        alert('Sınav detayları yüklenirken hata oluştu!');
+      .then(([examRes, qsRes, auditRes]) => {
+        if (examRes.status === 'fulfilled') setExam(examRes.value.data);
+        if (qsRes.status === 'fulfilled') setQuestions(qsRes.value.data);
+        if (auditRes.status === 'fulfilled') setAuditLog(auditRes.value.data ?? []);
+        if (examRes.status === 'rejected') {
+          alert('Sınav detayları yüklenirken hata oluştu!');
+        }
       });
   }, [id]);
 
@@ -176,6 +187,131 @@ export default function AdminExamDetail() {
           ))}
         </div>
       )}
+
+      {/* Owner + Audit log */}
+      <section style={{
+        marginTop: 48,
+        display: 'grid', gridTemplateColumns: '320px 1fr', gap: 24, alignItems: 'start',
+      }}>
+        <aside style={{
+          padding: 22, background: '#fff',
+          border: `1px solid ${tokens.hairline}`, borderRadius: 12,
+        }}>
+          <Kicker>Sahip / Eğitmen</Kicker>
+
+          {exam.instructor ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, marginBottom: 18 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%',
+                  background: tokens.indigoSoft, color: '#3730a3',
+                  display: 'grid', placeItems: 'center',
+                  fontFamily: tokens.serif, fontSize: 17,
+                }}>
+                  {(exam.instructor.fullName || '?')
+                    .split(/[\s.]+/).filter(Boolean).slice(0, 2)
+                    .map(s => s[0]?.toUpperCase()).join('') || '?'}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14, color: tokens.ink, fontWeight: 500 }}>
+                    {exam.instructor.fullName || 'Bilinmiyor'}
+                  </div>
+                  {exam.instructor.email && (
+                    <div style={{
+                      fontSize: 11.5, color: tokens.subtle, marginTop: 2,
+                      fontFamily: tokens.mono,
+                    }}>{exam.instructor.email}</div>
+                  )}
+                </div>
+              </div>
+              <hr style={{ border: 'none', borderTop: `1px solid ${tokens.hairline}`, margin: '0 0 14px' }} />
+            </>
+          ) : (
+            <div style={{
+              marginTop: 14, marginBottom: 14, padding: 12,
+              background: tokens.ivory, border: `1px solid ${tokens.hairlineSoft}`,
+              borderRadius: 8, fontSize: 12.5, color: tokens.subtle,
+            }}>Bu sınav için sahip bilgisi bulunmuyor (eski kayıt).</div>
+          )}
+
+          <div style={{ display: 'grid', gap: 10 }}>
+            {[
+              ['Oluşturulma', formatTrDate(exam.createdAt)],
+              ['Sınav ID', `#${String(exam.id).padStart(3, '0')}`],
+              ['Durum', exam.published ? 'Yayında' : 'Taslak'],
+            ].map(([k, v]) => (
+              <div key={k} style={{
+                display: 'flex', justifyContent: 'space-between', fontSize: 12.5,
+              }}>
+                <span style={{ color: tokens.subtle }}>{k}</span>
+                <span style={{
+                  color: tokens.ink, fontWeight: 500, fontFamily: tokens.mono,
+                }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        <div>
+          <SectionHeader
+            kicker="Audit log"
+            title="Son aktiviteler"
+            count={auditLog.length}
+            sub="Bu sınavda yapılan tüm değişikliklerin kaydı"
+          />
+
+          {auditLog.length === 0 ? (
+            <div style={{
+              padding: '32px 24px', textAlign: 'center' as const,
+              background: '#fff', border: `1px solid ${tokens.hairline}`, borderRadius: 12,
+              color: tokens.subtle, fontSize: 13.5,
+            }}>Henüz aktivite kaydı yok.</div>
+          ) : (
+            <div style={{
+              background: '#fff', border: `1px solid ${tokens.hairline}`,
+              borderRadius: 12, overflow: 'hidden',
+            }}>
+              {auditLog.map((entry, i) => {
+                const color = ACTION_TONE[entry.action?.toUpperCase()] ?? tokens.subtle;
+                return (
+                  <div key={entry.id} style={{
+                    display: 'grid', gridTemplateColumns: '150px 1fr 130px 90px',
+                    gap: 16, alignItems: 'center',
+                    padding: '14px 18px',
+                    borderBottom: i < auditLog.length - 1
+                      ? `1px solid ${tokens.hairlineSoft}` : 'none',
+                  }}>
+                    <span style={{
+                      fontFamily: tokens.mono, fontSize: 11.5, color: tokens.muted,
+                    }}>{formatTrDate(entry.createdAt)}</span>
+                    <span style={{ fontSize: 13, color: tokens.ink, lineHeight: 1.45 }}>
+                      {entry.payload || `${entry.action} · ${entry.entityType}`}
+                    </span>
+                    <span style={{
+                      fontSize: 12, color: tokens.muted,
+                      overflow: 'hidden', textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap' as const,
+                    }}>{entry.userName || (entry.userId != null ? `#${entry.userId}` : 'Sistem')}</span>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: '3px 8px', borderRadius: 4,
+                      background: '#fafafb', color,
+                      fontSize: 10.5, fontFamily: tokens.mono,
+                      fontWeight: 600, letterSpacing: '0.04em',
+                      width: 'fit-content' as const,
+                    }}>
+                      <span style={{
+                        width: 5, height: 5, borderRadius: '50%', background: color,
+                      }} />
+                      {(entry.action || '').toLowerCase()}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
     </PageShell>
   );
 }
