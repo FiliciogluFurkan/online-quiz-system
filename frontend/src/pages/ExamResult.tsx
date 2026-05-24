@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Download, Send } from 'lucide-react';
 import api from '../api/axios';
-import type { Question } from '../types';
+import type { Question, CategoryBreakdown, ExamAggregate } from '../types';
 import {
   tokens, PageShell, Crumbs, HeroTitle, Kicker, SectionHeader, Btn, CodeTag,
   scoreLabel, formatTrDate,
@@ -22,6 +22,7 @@ interface ResultData {
     score: number;
     status: string;
     submittedAt: string;
+    exam?: { id: number; title?: string };
   };
   answers: Answer[];
   correctCount: number;
@@ -35,12 +36,27 @@ export default function ExamResult() {
   const navigate = useNavigate();
   const location = useLocation();
   const [result, setResult] = useState<ResultData | null>(null);
+  const [topics, setTopics] = useState<CategoryBreakdown[]>([]);
+  const [aggregate, setAggregate] = useState<ExamAggregate | null>(null);
 
   const isInstructor = location.pathname.includes('/instructor/');
 
   useEffect(() => {
+    if (!studentExamId) return;
     api.get(`/results/student-exam/${studentExamId}`)
-      .then(res => setResult(res.data))
+      .then(res => {
+        setResult(res.data);
+        const examId = res.data.studentExam?.exam?.id;
+        // Fetch enrichment endpoints in parallel — failures are non-fatal
+        api.get(`/results/student-exam/${studentExamId}/by-category`)
+          .then(r => setTopics(r.data || []))
+          .catch(() => setTopics([]));
+        if (examId) {
+          api.get(`/results/exam/${examId}/aggregate`)
+            .then(r => setAggregate(r.data))
+            .catch(() => setAggregate(null));
+        }
+      })
       .catch(() => alert('Sonuç yüklenemedi'));
   }, [studentExamId]);
 
@@ -162,6 +178,49 @@ export default function ExamResult() {
             </div>
           )}
 
+          {/* Topic breakdown */}
+          {topics.length > 0 && (
+            <section style={{ marginTop: 40 }}>
+              <SectionHeader
+                kicker="Performans"
+                title="Konu bazında"
+                sub="Hangi konuda nerede güçlüsün?"
+              />
+              <div style={{ display: 'grid', gap: 12 }}>
+                {topics.map((t, idx) => {
+                  const pct = t.successRate * 100;
+                  const color = pct >= 70 ? tokens.indigo : pct >= 40 ? '#b45309' : tokens.bad;
+                  return (
+                    <div key={idx} style={{
+                      display: 'grid', gridTemplateColumns: '220px 1fr 80px',
+                      gap: 16, alignItems: 'center',
+                    }}>
+                      <span style={{ fontSize: 13.5, color: tokens.text }}>
+                        {t.category?.name || 'Diğer'}
+                        <span style={{ fontSize: 11, color: tokens.subtle, marginLeft: 6 }}>
+                          ({t.questionCount} soru)
+                        </span>
+                      </span>
+                      <div style={{
+                        height: 6, background: tokens.hairlineSoft,
+                        borderRadius: 3, overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          width: `${pct}%`, height: '100%', background: color,
+                          transition: 'width .35s',
+                        }} />
+                      </div>
+                      <span style={{
+                        fontFamily: tokens.mono, fontSize: 12,
+                        color: tokens.ink, fontWeight: 500, textAlign: 'right' as const,
+                      }}>{Math.round(t.earned)}/{Math.round(t.total)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
           {/* Answers list */}
           <section style={{ marginTop: 40 }}>
             <SectionHeader
@@ -234,42 +293,20 @@ export default function ExamResult() {
 
         {/* Sidebar */}
         <aside style={{ position: 'sticky', top: 24 }}>
-          <div style={{
-            padding: 24, background: '#fff',
-            border: `1px solid ${tokens.hairline}`, borderRadius: 14, marginBottom: 12,
-          }}>
-            <Kicker>Özet</Kicker>
+          {aggregate ? (
+            <ClassComparisonCard agg={aggregate} />
+          ) : (
+            <SummaryCard
+              score={result.studentExam.score}
+              total={totalPoints}
+              status={result.studentExam.status}
+              correct={correct}
+              wrong={wrong}
+              empty={empty}
+            />
+          )}
 
-            <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
-              {[
-                ['Doğru', correct, tokens.good],
-                ['Yanlış', wrong, tokens.bad],
-                ['Boş', empty, tokens.muted],
-                ['Toplam puan', `${result.studentExam.score} / ${totalPoints}`, tokens.ink],
-              ].map(([k, v, c]) => (
-                <div key={k as string} style={{
-                  display: 'flex', justifyContent: 'space-between', fontSize: 13,
-                  paddingBottom: 8, borderBottom: `1px solid ${tokens.hairlineSoft}`,
-                }}>
-                  <span style={{ color: tokens.subtle }}>{k}</span>
-                  <span style={{
-                    color: c as string, fontWeight: 600, fontFamily: tokens.mono,
-                  }}>{v as string | number}</span>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ marginTop: 18 }}>
-              <Kicker>Durum</Kicker>
-              <div style={{ marginTop: 8 }}>
-                <CodeTag tone={result.studentExam.status === 'GRADED' ? 'indigo' : 'slate'}>
-                  {result.studentExam.status === 'GRADED' ? 'DEĞERLENDİRİLDİ' : 'TESLİM EDİLDİ'}
-                </CodeTag>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
             <Btn
               variant="outline"
               onClick={() => isInstructor ? navigate(-1) : navigate('/student?refresh=' + Date.now())}
@@ -286,5 +323,148 @@ export default function ExamResult() {
         </aside>
       </div>
     </PageShell>
+  );
+}
+
+function SummaryCard({ score, total, status, correct, wrong, empty }: {
+  score: number; total: number; status: string;
+  correct: number; wrong: number; empty: number;
+}) {
+  return (
+    <div style={{
+      padding: 24, background: '#fff',
+      border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+    }}>
+      <Kicker>Özet</Kicker>
+      <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+        {[
+          ['Doğru', correct, tokens.good],
+          ['Yanlış', wrong, tokens.bad],
+          ['Boş', empty, tokens.muted],
+          ['Toplam puan', `${score} / ${total}`, tokens.ink],
+        ].map(([k, v, c]) => (
+          <div key={k as string} style={{
+            display: 'flex', justifyContent: 'space-between', fontSize: 13,
+            paddingBottom: 8, borderBottom: `1px solid ${tokens.hairlineSoft}`,
+          }}>
+            <span style={{ color: tokens.subtle }}>{k}</span>
+            <span style={{
+              color: c as string, fontWeight: 600, fontFamily: tokens.mono,
+            }}>{v as string | number}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 18 }}>
+        <Kicker>Durum</Kicker>
+        <div style={{ marginTop: 8 }}>
+          <CodeTag tone={status === 'GRADED' ? 'indigo' : 'slate'}>
+            {status === 'GRADED' ? 'DEĞERLENDİRİLDİ' : 'TESLİM EDİLDİ'}
+          </CodeTag>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ClassComparisonCard({ agg }: { agg: ExamAggregate }) {
+  const pct = Math.max(0, Math.min(100, agg.yourPercentile));
+  const topLabel = pct >= 50 ? `Üst %${(100 - pct).toFixed(0)}` : `Alt %${pct.toFixed(0)}`;
+
+  const bins = agg.histogram?.bins ?? [];
+  const counts = agg.histogram?.counts ?? [];
+  const maxCount = counts.length > 0 ? Math.max(...counts, 1) : 1;
+
+  // Find which bin the student is in
+  let userBin = -1;
+  if (bins.length >= 2 && agg.yourScore != null) {
+    for (let i = 0; i < counts.length; i++) {
+      const lo = bins[i];
+      const hi = bins[i + 1] ?? bins[i];
+      if (agg.yourScore >= lo && agg.yourScore <= hi) {
+        userBin = i;
+        break;
+      }
+    }
+  }
+
+  return (
+    <div style={{
+      padding: 24, background: '#fff',
+      border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+    }}>
+      <Kicker>Sınıf karşılaştırması</Kicker>
+
+      <div style={{ marginTop: 14, marginBottom: 18 }}>
+        <span style={{
+          fontFamily: tokens.serif, fontSize: 36, color: tokens.ink, lineHeight: 1,
+        }}>{topLabel}</span>
+        <div style={{ fontSize: 11.5, color: tokens.subtle, marginTop: 4 }}>
+          {agg.classSize} öğrencilik sınıfta · {agg.completedCount} tamamlandı
+        </div>
+      </div>
+
+      {counts.length > 0 && (
+        <>
+          <div style={{
+            display: 'flex', alignItems: 'flex-end', gap: 3,
+            height: 60, marginBottom: 6,
+          }}>
+            {counts.map((c, i) => {
+              const h = (c / maxCount) * 100;
+              const isUser = i === userBin;
+              return (
+                <div key={i} style={{
+                  flex: 1, height: `${h}%`,
+                  background: isUser ? tokens.indigo : '#e2e3eb',
+                  borderRadius: '2px 2px 0 0',
+                  position: 'relative' as const,
+                  minHeight: c > 0 ? 2 : 0,
+                }}>
+                  {isUser && (
+                    <span style={{
+                      position: 'absolute' as const, bottom: '100%',
+                      left: '50%', transform: 'translateX(-50%)',
+                      marginBottom: 4,
+                      fontFamily: tokens.mono, fontSize: 10, color: tokens.indigo,
+                      fontWeight: 600, whiteSpace: 'nowrap' as const,
+                    }}>SEN ↓</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between',
+            fontFamily: tokens.mono, fontSize: 9.5, color: tokens.subtle,
+          }}>
+            <span>{Math.round(bins[0] ?? 0)}</span>
+            <span>{Math.round(bins[Math.floor(bins.length / 2)] ?? 50)}</span>
+            <span>{Math.round(bins[bins.length - 1] ?? 100)}</span>
+          </div>
+        </>
+      )}
+
+      <hr style={{ border: 'none', borderTop: `1px solid ${tokens.hairline}`, margin: '18px 0' }} />
+
+      <div style={{ display: 'grid', gap: 10 }}>
+        {[
+          ['Senin puanın', agg.yourScore?.toFixed(0) ?? '—'],
+          ['Sınıf ortalaması', agg.average.toFixed(1)],
+          ['Medyan', agg.median.toFixed(0)],
+          ['En yüksek', agg.max.toFixed(0)],
+          ['En düşük', agg.min.toFixed(0)],
+          ['Std. sapma', agg.stdDev.toFixed(1)],
+        ].map(([k, v]) => (
+          <div key={k as string} style={{
+            display: 'flex', justifyContent: 'space-between', fontSize: 12.5,
+          }}>
+            <span style={{ color: tokens.subtle }}>{k}</span>
+            <span style={{
+              color: tokens.ink, fontWeight: 500, fontFamily: tokens.mono,
+            }}>{v as string}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
