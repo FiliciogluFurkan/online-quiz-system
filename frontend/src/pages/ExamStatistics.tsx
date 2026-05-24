@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   AlertCircle,
@@ -15,31 +14,7 @@ import {
   Users,
   XCircle,
 } from 'lucide-react';
-import api from '../api/axios';
-
-interface Question {
-  id: number;
-  questionText: string;
-  points: number;
-  type: string;
-}
-
-interface QuestionStat {
-  question: Question;
-  totalAnswers: number;
-  correctAnswers: number;
-  incorrectAnswers: number;
-  successRate: number;
-}
-
-interface Statistics {
-  totalParticipants: number;
-  completedCount: number;
-  averageScore: number;
-  maxScore: number;
-  minScore: number;
-  questionStatistics: QuestionStat[];
-}
+import { useExamStatistics } from '../hooks/useExamStatistics';
 
 const styles = {
   page: {
@@ -361,34 +336,7 @@ function getSuccessColor(rate: number) {
 export default function ExamStatistics() {
   const { id } = useParams();
   const navigate = useNavigate();
-
-  const [stats, setStats] = useState<Statistics | null>(null);
-  const [examTitle, setExamTitle] = useState('');
-
-  useEffect(() => {
-    loadStatistics();
-  }, [id]);
-
-  const loadStatistics = async () => {
-    try {
-      const examRes = await api.get(`/exams/${id}`);
-      setExamTitle(examRes.data.title);
-
-      const statsRes = await api.get(`/results/exam/${id}/statistics`);
-      setStats(statsRes.data);
-    } catch (error) {
-      console.error('Error loading statistics:', error);
-      alert('İstatistikler yüklenirken hata oluştu!');
-    }
-  };
-
-  const sortedQuestions = useMemo(() => {
-    if (!stats) return [];
-
-    return [...stats.questionStatistics].sort(
-      (a, b) => a.successRate - b.successRate
-    );
-  }, [stats]);
+  const { stats, examTitle, sortedQuestions } = useExamStatistics(id);
 
   if (!stats) {
     return <div style={styles.loading}>İstatistikler yükleniyor...</div>;
