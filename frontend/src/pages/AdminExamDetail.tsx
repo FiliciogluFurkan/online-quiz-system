@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  BookOpen,
   CalendarClock,
   CheckCircle2,
   CircleHelp,

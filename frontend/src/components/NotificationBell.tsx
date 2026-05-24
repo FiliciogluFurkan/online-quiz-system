@@ -1,4 +1,4 @@
-import { Bell, Sparkles } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';

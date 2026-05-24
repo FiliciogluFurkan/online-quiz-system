@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import type { Question } from '../types';
 
@@ -30,12 +29,10 @@ export default function ExamResult() {
   const { studentExamId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { hasRole } = useAuth();
   const [result, setResult] = useState<ResultData | null>(null);
 
   // URL'den role belirle
   const isInstructor = location.pathname.includes('/instructor/');
-  const isStudent = location.pathname.includes('/student/');
 
   useEffect(() => {
     loadResult();
@@ -186,10 +183,9 @@ function Stat({ label, value, color, bg }: any) {
 }
 
 /* 🎯 DONUT CHART */
-function DonutChart({ correct, wrong, empty, total }: any) {
+function DonutChart({ correct, wrong, total }: any) {
   const c = (correct / total) * 100;
   const w = (wrong / total) * 100;
-  const e = (empty / total) * 100;
 
   const gradient = `
     conic-gradient(

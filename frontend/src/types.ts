@@ -22,4 +22,6 @@ export type Question = {
   questionText: string;
   options?: string;
   points: number;
+  correctAnswer?: string;
+  category?: { id: number; name: string };
 }

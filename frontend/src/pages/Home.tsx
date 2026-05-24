@@ -1,3 +1,4 @@
+import { type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -11,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   page: {
     minHeight: '100vh',
     fontFamily:
