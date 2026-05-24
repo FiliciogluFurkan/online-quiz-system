@@ -59,15 +59,21 @@ const NAV_BY_ROLE: Record<'STUDENT' | 'INSTRUCTOR' | 'ADMIN',
   STUDENT: [
     { label: 'Sınavlarım', href: '/student' },
     { label: 'Sonuçlar', href: '/student/my-results' },
-    { label: 'Bildirimler', href: '/student/notifications' },
+    { label: 'Bildirimler', href: '/notifications' },
   ],
   INSTRUCTOR: [
-    { label: 'Genel Bakış', href: '/instructor' },
+    { label: 'Sınavlar', href: '/instructor' },
+    { label: 'Sonuçlar', href: '/instructor?view=results' },
     { label: 'Soru Bankası', href: '/instructor/questions' },
     { label: 'Kategoriler', href: '/instructor/categories' },
+    { label: 'Bildirimler', href: '/notifications' },
   ],
   ADMIN: [
     { label: 'Genel Bakış', href: '/admin' },
+    { label: 'Sınavlar', href: '/admin?tab=exams' },
+    { label: 'Sorular', href: '/admin?tab=questions' },
+    { label: 'Katılımlar', href: '/admin?tab=submissions' },
+    { label: 'Bildirimler', href: '/notifications' },
   ],
 };
 
@@ -145,8 +151,12 @@ export function TopBar() {
       {/* Nav links */}
       <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         {navItems.map(item => {
-          const active = location.pathname === item.href
-            || (item.href !== '/' && location.pathname.startsWith(item.href + '/'));
+          const [itemPath, itemQuery] = item.href.split('?');
+          const currentFull = location.pathname + location.search;
+          const active = itemQuery
+            ? currentFull === item.href
+            : (location.pathname === itemPath && !location.search)
+              || (itemPath !== '/' && location.pathname.startsWith(itemPath + '/'));
           return (
             <Link key={item.href} to={item.href} style={{
               padding: '8px 14px', borderRadius: 8,

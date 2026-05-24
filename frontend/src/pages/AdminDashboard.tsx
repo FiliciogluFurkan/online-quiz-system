@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, Search, Trash2 } from 'lucide-react';
 import { useAdminDashboard } from '../hooks/useAdminDashboard';
 import {
@@ -31,7 +31,22 @@ const tdStyle = {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<ActiveTab>('exams');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') as ActiveTab | null;
+  const [activeTab, setActiveTab] = useState<ActiveTab>(
+    tabFromUrl && ['exams', 'questions', 'submissions'].includes(tabFromUrl) ? tabFromUrl : 'exams'
+  );
+
+  useEffect(() => {
+    if (tabFromUrl && ['exams', 'questions', 'submissions'].includes(tabFromUrl) && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  const switchTab = (tab: ActiveTab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab }, { replace: true });
+  };
   const {
     stats, exams, questions, studentExams, loading,
     search, setSearch,
@@ -94,7 +109,7 @@ export default function AdminDashboard() {
           {tabs.map(tab => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => switchTab(tab.key)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 padding: '9px 14px', borderRadius: 999,
