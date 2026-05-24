@@ -8,6 +8,7 @@ interface Answer {
   answerText: string;
   isCorrect: boolean | null;
   pointsEarned: number | null;
+  feedback?: string | null;
 }
 
 export interface ResultData {
@@ -23,6 +24,7 @@ export interface ResultData {
 export function useManualGrading(studentExamId: string | undefined) {
   const [result, setResult] = useState<ResultData | null>(null);
   const [grades, setGrades] = useState<Record<number, number>>({});
+  const [feedbacks, setFeedbacks] = useState<Record<number, string>>({});
   const [savedAnswers, setSavedAnswers] = useState<Set<number>>(new Set());
 
   const loadResult = useCallback(async () => {
@@ -31,12 +33,17 @@ export function useManualGrading(studentExamId: string | undefined) {
       const res = await api.get(`/results/student-exam/${studentExamId}`);
       setResult(res.data);
       const initialGrades: Record<number, number> = {};
+      const initialFeedbacks: Record<number, string> = {};
       res.data.answers.forEach((answer: Answer) => {
         if (answer.pointsEarned !== null) {
           initialGrades[answer.id] = answer.pointsEarned;
         }
+        if (answer.feedback) {
+          initialFeedbacks[answer.id] = answer.feedback;
+        }
       });
       setGrades(initialGrades);
+      setFeedbacks(initialFeedbacks);
     } catch (error) {
       console.error('Error loading result:', error);
       alert('Sonuç yüklenirken hata oluştu!');
@@ -59,6 +66,15 @@ export function useManualGrading(studentExamId: string | undefined) {
     }
   };
 
+  const handleFeedbackChange = (answerId: number, value: string) => {
+    setFeedbacks((prev) => ({ ...prev, [answerId]: value }));
+    setSavedAnswers((prev) => {
+      const next = new Set(prev);
+      next.delete(answerId);
+      return next;
+    });
+  };
+
   const handleSaveGrade = async (answerId: number, maxPoints: number) => {
     const pointsEarned = grades[answerId];
     if (pointsEarned === undefined || pointsEarned < 0 || pointsEarned > maxPoints) {
@@ -66,10 +82,10 @@ export function useManualGrading(studentExamId: string | undefined) {
       return;
     }
     try {
-      await api.put(`/results/answer/${answerId}/grade`, { pointsEarned });
+      const feedback = feedbacks[answerId]?.trim() || null;
+      await api.put(`/results/answer/${answerId}/grade`, { pointsEarned, feedback });
       setSavedAnswers((prev) => new Set(prev).add(answerId));
       await loadResult();
-      alert('Puan kaydedildi!');
     } catch (error) {
       console.error('Error saving grade:', error);
       alert('Puan kaydedilirken hata oluştu!');
@@ -86,5 +102,9 @@ export function useManualGrading(studentExamId: string | undefined) {
     return result.answers.reduce((sum, a) => sum + (a.question.points || 0), 0);
   }, [result]);
 
-  return { result, grades, savedAnswers, handleGradeChange, handleSaveGrade, manualAnswers, totalPossiblePoints };
+  return {
+    result, grades, feedbacks, savedAnswers,
+    handleGradeChange, handleFeedbackChange, handleSaveGrade,
+    manualAnswers, totalPossiblePoints,
+  };
 }

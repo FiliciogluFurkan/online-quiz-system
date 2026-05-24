@@ -48,7 +48,7 @@ export default function AdminDashboard() {
     setSearchParams({ tab }, { replace: true });
   };
   const {
-    stats, exams, questions, studentExams, loading,
+    stats, roleCounts, exams, questions, studentExams, loading,
     search, setSearch,
     handleDeleteExam, handleDeleteQuestion,
     filteredExams, filteredQuestions, filteredStudentExams,
@@ -91,14 +91,77 @@ export default function AdminDashboard() {
       </section>
 
       {stats && (
-        <section style={{
-          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 48,
-        }}>
-          <Stat label="Toplam Sınav" value={String(stats.totalExams).padStart(2, '0')} accent={tokens.indigo} />
-          <Stat label="Toplam Soru" value={String(stats.totalQuestions).padStart(2, '0')} />
-          <Stat label="Katılım" value={String(stats.totalStudentExams).padStart(2, '0')} sub="oturum" />
-          <Stat label="Tamamlanan" value={String(stats.completedExams).padStart(2, '0')} sub="sonuç verildi" />
-        </section>
+        <>
+          <section style={{
+            display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 24,
+          }}>
+            <Stat label="Toplam Sınav" value={String(stats.totalExams).padStart(2, '0')} accent={tokens.indigo} />
+            <Stat label="Toplam Soru" value={String(stats.totalQuestions).padStart(2, '0')} />
+            <Stat label="Toplam Kullanıcı" value={String(stats.totalUsers ?? '—')}
+              sub={roleCounts ? `${roleCounts.STUDENT} öğr · ${roleCounts.INSTRUCTOR} eğt · ${roleCounts.ADMIN} adm` : undefined} />
+            <Stat label="Aktif (30g)" value={String(stats.activeUsers ?? '—')}
+              accent="#16a34a" sub="son 30 günde giriş yapan" />
+            <Stat label="Katılım" value={String(stats.totalStudentExams).padStart(2, '0')} sub="oturum" />
+            <Stat label="Tamamlanan" value={String(stats.completedExams).padStart(2, '0')}
+              sub={stats.totalStudentExams > 0
+                ? `%${Math.round((stats.completedExams / stats.totalStudentExams) * 100)} tamamlanma`
+                : undefined} />
+          </section>
+
+          {roleCounts && (
+            <section style={{
+              padding: 22, background: '#fff',
+              border: `1px solid ${tokens.hairline}`, borderRadius: 12,
+              marginBottom: 32,
+            }}>
+              <div style={{
+                fontFamily: tokens.mono, fontSize: 10,
+                color: tokens.subtle, letterSpacing: '0.1em',
+                textTransform: 'uppercase' as const, marginBottom: 4,
+              }}>Roller</div>
+              <h3 style={{
+                margin: '4px 0 18px', fontFamily: tokens.serif,
+                fontSize: 22, fontWeight: 400, color: tokens.ink,
+                letterSpacing: '-0.015em',
+              }}>Kullanıcı dağılımı</h3>
+              {([
+                ['Öğrenci', roleCounts.STUDENT, tokens.indigo],
+                ['Eğitmen', roleCounts.INSTRUCTOR, tokens.good],
+                ['Yönetici', roleCounts.ADMIN, tokens.ink],
+              ] as [string, number, string][]).map(([role, count, color]) => {
+                const pct = roleCounts.total > 0
+                  ? (count / roleCounts.total) * 100
+                  : 0;
+                return (
+                  <div key={role} style={{ marginBottom: 14 }}>
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', marginBottom: 5,
+                    }}>
+                      <span style={{ fontSize: 13, color: tokens.text }}>{role}</span>
+                      <span style={{
+                        fontFamily: tokens.mono, fontSize: 12,
+                        color: tokens.ink, fontWeight: 600,
+                      }}>
+                        {count}
+                        <span style={{
+                          color: tokens.subtle, fontWeight: 400, marginLeft: 6,
+                        }}>· %{pct.toFixed(1)}</span>
+                      </span>
+                    </div>
+                    <div style={{
+                      height: 5, background: tokens.hairlineSoft,
+                      borderRadius: 3, overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        width: `${pct}%`, height: '100%', background: color,
+                      }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </section>
+          )}
+        </>
       )}
 
       <div style={{

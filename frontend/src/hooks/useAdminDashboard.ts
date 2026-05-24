@@ -7,6 +7,15 @@ interface Stats {
   totalQuestions: number;
   totalStudentExams: number;
   completedExams: number;
+  activeUsers?: number;
+  totalUsers?: number;
+}
+
+export interface RoleCounts {
+  STUDENT: number;
+  INSTRUCTOR: number;
+  ADMIN: number;
+  total: number;
 }
 
 interface StudentExam {
@@ -21,6 +30,7 @@ interface StudentExam {
 
 export function useAdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [roleCounts, setRoleCounts] = useState<RoleCounts | null>(null);
   const [exams, setExams] = useState<Exam[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [studentExams, setStudentExams] = useState<StudentExam[]>([]);
@@ -30,17 +40,19 @@ export function useAdminDashboard() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [statsRes, examsRes, questionsRes, studentExamsRes] = await Promise.all([
+      const [statsRes, examsRes, questionsRes, studentExamsRes, rolesRes] = await Promise.allSettled([
         api.get('/admin/stats'),
         api.get('/admin/exams'),
         api.get('/admin/questions'),
         api.get('/admin/student-exams'),
+        api.get('/admin/users/role-counts'),
       ]);
 
-      setStats(statsRes.data);
-      setExams(examsRes.data ?? []);
-      setQuestions(questionsRes.data);
-      setStudentExams(studentExamsRes.data);
+      if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
+      if (examsRes.status === 'fulfilled') setExams(examsRes.value.data ?? []);
+      if (questionsRes.status === 'fulfilled') setQuestions(questionsRes.value.data);
+      if (studentExamsRes.status === 'fulfilled') setStudentExams(studentExamsRes.value.data);
+      if (rolesRes.status === 'fulfilled') setRoleCounts(rolesRes.value.data);
     } catch (error) {
       console.error('Error loading admin data:', error);
       alert('Veri yüklenirken hata oluştu!');
@@ -99,6 +111,7 @@ export function useAdminDashboard() {
 
   return {
     stats,
+    roleCounts,
     exams,
     questions,
     studentExams,

@@ -14,6 +14,7 @@ interface Answer {
   answerText: string;
   isCorrect: boolean | null;
   pointsEarned: number | null;
+  feedback?: string | null;
 }
 
 interface ResultData {
@@ -282,6 +283,23 @@ export default function ExamResult() {
                       }}>
                         <span style={{ color: '#16a34a' }}>Doğru cevap: </span>
                         {a.question.correctAnswer}
+                      </div>
+                    )}
+                    {a.feedback && (
+                      <div style={{
+                        marginTop: 8, padding: '10px 12px',
+                        background: tokens.indigoSoft,
+                        border: `1px solid ${tokens.indigoBorder}`,
+                        borderRadius: 6, fontSize: 13, color: '#3730a3',
+                        lineHeight: 1.55,
+                      }}>
+                        <div style={{
+                          fontFamily: tokens.mono, fontSize: 10.5,
+                          color: tokens.indigo, letterSpacing: '0.1em',
+                          textTransform: 'uppercase' as const, fontWeight: 600,
+                          marginBottom: 4,
+                        }}>Eğitmen notu</div>
+                        {a.feedback}
                       </div>
                     )}
                   </article>

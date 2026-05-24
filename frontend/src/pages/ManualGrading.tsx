@@ -9,8 +9,8 @@ export default function ManualGrading() {
   const { studentExamId } = useParams();
   const navigate = useNavigate();
   const {
-    result, grades, savedAnswers,
-    handleGradeChange, handleSaveGrade,
+    result, grades, feedbacks, savedAnswers,
+    handleGradeChange, handleFeedbackChange, handleSaveGrade,
     manualAnswers, totalPossiblePoints,
   } = useManualGrading(studentExamId);
 
@@ -123,6 +123,29 @@ export default function ManualGrading() {
 
                     <div style={{
                       marginTop: 18, paddingTop: 16,
+                      borderTop: `1px solid ${tokens.hairlineSoft}`,
+                    }}>
+                      <Kicker>Öğrenciye Geri Bildirim</Kicker>
+                      <textarea
+                        value={feedbacks[answer.id] ?? ''}
+                        onChange={e => handleFeedbackChange(answer.id, e.target.value)}
+                        placeholder="Cevap hakkında not yazabilirsin — öğrenci sonuç sayfasında görür (opsiyonel)…"
+                        rows={2}
+                        style={{
+                          marginTop: 8, width: '100%',
+                          padding: '10px 12px',
+                          background: '#fafafb',
+                          border: `1px solid ${tokens.hairline}`,
+                          borderRadius: 8, fontFamily: 'inherit',
+                          fontSize: 13.5, color: tokens.ink, lineHeight: 1.55,
+                          resize: 'vertical' as const, outline: 'none',
+                          boxSizing: 'border-box' as const,
+                        }}
+                      />
+                    </div>
+
+                    <div style={{
+                      marginTop: 14, paddingTop: 14,
                       borderTop: `1px solid ${tokens.hairlineSoft}`,
                       display: 'flex', alignItems: 'center', gap: 12,
                     }}>
