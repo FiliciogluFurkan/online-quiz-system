@@ -1,511 +1,228 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  AlertCircle,
-  ArrowLeft,
-  BookOpen,
-  CheckCircle2,
-  CircleHelp,
-  Save,
-  Shield,
-  Sparkles,
-  Trophy,
-} from 'lucide-react';
+import { ArrowLeft, Save, Check } from 'lucide-react';
 import { useManualGrading } from '../hooks/useManualGrading';
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    fontFamily:
-      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    background:
-      'radial-gradient(circle at 10% 8%, rgba(99,102,241,0.10), transparent 26%), radial-gradient(circle at 88% 12%, rgba(14,165,233,0.10), transparent 24%), #f8fafc',
-    color: '#0f172a',
-    padding: '32px',
-    boxSizing: 'border-box' as const,
-  },
-  container: {
-    maxWidth: '1280px',
-    margin: '0 auto',
-  },
-  topbar: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '16px',
-    marginBottom: '24px',
-  },
-  backButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '9px',
-    border: '1px solid #e2e8f0',
-    background: 'rgba(255,255,255,0.86)',
-    color: '#334155',
-    padding: '12px 16px',
-    borderRadius: '14px',
-    cursor: 'pointer',
-    fontWeight: 850,
-    boxShadow: '0 10px 24px rgba(15,23,42,0.05)',
-  },
-  topBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '7px',
-    padding: '9px 12px',
-    borderRadius: '999px',
-    fontSize: '13px',
-    fontWeight: 900,
-    border: '1px solid #e2e8f0',
-    background: '#ffffff',
-    color: '#475569',
-  },
-  heroCard: {
-    overflow: 'hidden',
-    borderRadius: '30px',
-    background: 'rgba(255,255,255,0.92)',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 24px 70px rgba(15,23,42,0.075)',
-    marginBottom: '24px',
-  },
-  heroTop: {
-    padding: '28px',
-    background: 'linear-gradient(135deg, rgba(238,242,255,0.95), rgba(240,249,255,0.9))',
-    borderBottom: '1px solid #e2e8f0',
-  },
-  eyebrow: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '9px 13px',
-    borderRadius: '999px',
-    background: '#ffffff',
-    border: '1px solid #c7d2fe',
-    color: '#4f46e5',
-    fontSize: '14px',
-    fontWeight: 850,
-    marginBottom: '16px',
-  },
-  title: {
-    margin: 0,
-    fontSize: '42px',
-    lineHeight: 1.08,
-    letterSpacing: '-0.04em',
-    fontWeight: 950,
-    color: '#0f172a',
-  },
-  subtitle: {
-    margin: '14px 0 0',
-    maxWidth: '720px',
-    color: '#64748b',
-    fontSize: '16px',
-    lineHeight: 1.7,
-  },
-  contentGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(0,1fr) 340px',
-    gap: '24px',
-    alignItems: 'start',
-  },
-  answerList: {
-    display: 'grid',
-    gap: '16px',
-  },
-  answerCard: {
-    background: 'rgba(255,255,255,0.92)',
-    border: '1px solid #e2e8f0',
-    borderRadius: '28px',
-    padding: '22px',
-    boxShadow: '0 20px 50px rgba(15,23,42,0.05)',
-  },
-  questionTop: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '12px',
-    marginBottom: '16px',
-    flexWrap: 'wrap' as const,
-  },
-  tags: {
-    display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap' as const,
-  },
-  tag: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '7px 10px',
-    borderRadius: '999px',
-    fontSize: '12px',
-    fontWeight: 900,
-  },
-  questionText: {
-    margin: 0,
-    color: '#0f172a',
-    fontSize: '18px',
-    lineHeight: 1.65,
-    fontWeight: 900,
-  },
-  answerBox: {
-    marginTop: '16px',
-    padding: '18px',
-    borderRadius: '18px',
-    background: '#f8fafc',
-    border: '1px solid #e2e8f0',
-  },
-  answerLabel: {
-    marginBottom: '8px',
-    fontSize: '12px',
-    fontWeight: 900,
-    color: '#64748b',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.04em',
-  },
-  answerText: {
-    color: '#0f172a',
-    lineHeight: 1.7,
-    fontSize: '15px',
-    whiteSpace: 'pre-wrap' as const,
-    fontWeight: 700,
-  },
-  gradingSection: {
-    marginTop: '18px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    flexWrap: 'wrap' as const,
-    padding: '18px',
-    borderRadius: '20px',
-    background: '#fffaf0',
-    border: '1px solid #fed7aa',
-  },
-  gradingInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    flex: 1,
-    minWidth: '200px',
-  },
-  scoreInput: {
-    width: '100px',
-    border: '1px solid #cbd5e1',
-    background: '#ffffff',
-    borderRadius: '14px',
-    padding: '12px',
-    fontSize: '18px',
-    fontWeight: 900,
-    textAlign: 'center' as const,
-    color: '#0f172a',
-    outline: 'none',
-  },
-  saveButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    border: '1px solid #bfdbfe',
-    borderRadius: '16px',
-    padding: '12px 16px',
-    cursor: 'pointer',
-    color: '#1d4ed8',
-    fontWeight: 900,
-    background: 'linear-gradient(135deg, #eff6ff, #ffffff)',
-  },
-  savedBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '7px',
-    padding: '12px 14px',
-    borderRadius: '16px',
-    background: '#ecfdf5',
-    color: '#15803d',
-    border: '1px solid #bbf7d0',
-    fontWeight: 900,
-  },
-  summaryCard: {
-    position: 'sticky' as const,
-    top: '24px',
-    background: 'rgba(255,255,255,0.92)',
-    border: '1px solid #e2e8f0',
-    borderRadius: '28px',
-    overflow: 'hidden',
-    boxShadow: '0 20px 50px rgba(15,23,42,0.05)',
-  },
-  summaryTop: {
-    padding: '24px',
-    background: 'linear-gradient(135deg, rgba(238,242,255,0.95), rgba(240,249,255,0.9))',
-    borderBottom: '1px solid #e2e8f0',
-  },
-  summaryTitle: {
-    margin: 0,
-    fontSize: '22px',
-    fontWeight: 950,
-    color: '#0f172a',
-  },
-  summaryBody: {
-    padding: '22px',
-  },
-  summaryItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '14px 0',
-    borderBottom: '1px solid #f1f5f9',
-    fontSize: '14px',
-    fontWeight: 800,
-    color: '#334155',
-  },
-  totalScore: {
-    padding: '26px 0 12px',
-    textAlign: 'center' as const,
-  },
-  scoreValue: {
-    fontSize: '54px',
-    lineHeight: 1,
-    fontWeight: 950,
-    color: '#4f46e5',
-    marginBottom: '8px',
-  },
-  scoreLabel: {
-    color: '#64748b',
-    fontWeight: 800,
-    fontSize: '13px',
-  },
-  emptyState: {
-    padding: '54px 24px',
-    textAlign: 'center' as const,
-    background: 'rgba(255,255,255,0.92)',
-    border: '1px solid #e2e8f0',
-    borderRadius: '28px',
-  },
-  emptyIcon: {
-    width: '76px',
-    height: '76px',
-    borderRadius: '25px',
-    background: '#eef2ff',
-    color: '#4f46e5',
-    display: 'grid',
-    placeItems: 'center',
-    margin: '0 auto 18px',
-  },
-  loading: {
-    minHeight: '100vh',
-    display: 'grid',
-    placeItems: 'center',
-    background: '#f8fafc',
-    color: '#64748b',
-    fontFamily: 'Inter, sans-serif',
-    fontWeight: 800,
-  },
-};
+import {
+  tokens, PageShell, Crumbs, Kicker, HeroTitle, SectionHeader, Btn, CodeTag,
+} from '../components/academic-ui';
 
 export default function ManualGrading() {
   const { studentExamId } = useParams();
   const navigate = useNavigate();
-  const { result, grades, savedAnswers, handleGradeChange, handleSaveGrade, manualAnswers, totalPossiblePoints } =
-    useManualGrading(studentExamId);
+  const {
+    result, grades, savedAnswers,
+    handleGradeChange, handleSaveGrade,
+    manualAnswers, totalPossiblePoints,
+  } = useManualGrading(studentExamId);
 
-  if (!result) return <div style={styles.loading}>Manuel puanlama yükleniyor...</div>;
+  if (!result) {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'grid', placeItems: 'center',
+        background: tokens.bg, fontFamily: tokens.sans, color: tokens.muted,
+      }}>Manuel puanlama yükleniyor…</div>
+    );
+  }
 
   return (
-    <main style={styles.page}>
-      <div style={styles.container}>
-        <div style={styles.topbar}>
-          <button onClick={() => navigate(-1)} style={styles.backButton}>
-            <ArrowLeft size={18} />
-            Geri Dön
-          </button>
+    <PageShell>
+      <Crumbs items={['Eğitmen', 'Sınav', 'Manuel puanlama']} />
 
-          <span style={styles.topBadge}>
-            <Shield size={15} />
-            Eğitmen değerlendirmesi
-          </span>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        alignItems: 'flex-start', gap: 24, marginBottom: 32, flexWrap: 'wrap' as const,
+      }}>
+        <div>
+          <Kicker>Manuel değerlendirme</Kicker>
+          <div style={{ marginTop: 8 }}>
+            <HeroTitle>Kısa Cevap Puanlama</HeroTitle>
+          </div>
+          <p style={{
+            margin: '14px 0 0', maxWidth: 580, color: tokens.muted,
+            fontSize: 15.5, lineHeight: 1.6,
+          }}>
+            Öğrencinin kısa cevaplarını incele ve her birine 0 ile maksimum puan
+            arasında değerlendirme ver.
+          </p>
         </div>
 
-        <section style={styles.heroCard}>
-          <div style={styles.heroTop}>
-            <div style={styles.eyebrow}>
-              <Sparkles size={16} />
-              Manuel değerlendirme
-            </div>
+        <Btn icon={<ArrowLeft size={14} />} onClick={() => navigate(-1)}>Geri Dön</Btn>
+      </div>
 
-            <h1 style={styles.title}>Kısa Cevap Puanlama</h1>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32, alignItems: 'start' }}>
+        <div>
+          <SectionHeader
+            kicker="Cevaplar"
+            title="Değerlendirilecek"
+            count={manualAnswers.length}
+          />
 
-            <p style={styles.subtitle}>
-              Öğrenci cevaplarını detaylı şekilde inceleyip manuel puanlama yapabilirsiniz.
-            </p>
-          </div>
-        </section>
-
-        <div style={styles.contentGrid}>
-          <div>
-            {manualAnswers.length === 0 ? (
-              <div style={styles.emptyState}>
-                <div style={styles.emptyIcon}>
-                  <CircleHelp size={36} />
-                </div>
-                <h3 style={{ margin: '0 0 8px', fontSize: '22px' }}>
-                  Manuel puanlama gerekmiyor
-                </h3>
-                <p
-                  style={{
-                    margin: '0 auto',
-                    maxWidth: '460px',
-                    color: '#64748b',
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Tüm sorular otomatik değerlendirildi veya kısa cevap sorusu bulunmuyor.
-                </p>
+          {manualAnswers.length === 0 ? (
+            <div style={{
+              padding: '48px 24px', textAlign: 'center' as const,
+              background: '#fff', border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+            }}>
+              <div style={{ fontFamily: tokens.serif, fontSize: 22, color: tokens.muted, marginBottom: 8 }}>
+                Manuel puanlama gerekmiyor
               </div>
-            ) : (
-              <div style={styles.answerList}>
-                {manualAnswers.map((answer, index) => (
-                  <article key={answer.id} style={styles.answerCard}>
-                    <div style={styles.questionTop}>
-                      <div style={styles.tags}>
-                        <span
-                          style={{
-                            ...styles.tag,
-                            background: '#eff6ff',
-                            color: '#1d4ed8',
-                            border: '1px solid #bfdbfe',
-                          }}
-                        >
-                          <BookOpen size={13} />
-                          Kısa Cevap
-                        </span>
-
-                        <span
-                          style={{
-                            ...styles.tag,
-                            background: '#fff7ed',
-                            color: '#c2410c',
-                            border: '1px solid #fed7aa',
-                          }}
-                        >
-                          Maksimum {answer.question.points} puan
-                        </span>
-                      </div>
-
-                      <span style={styles.topBadge}>#{index + 1}</span>
+              <div style={{ fontSize: 13.5, color: tokens.subtle, maxWidth: 460, margin: '0 auto' }}>
+                Tüm sorular otomatik değerlendirildi veya kısa cevap sorusu bulunmuyor.
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: 14 }}>
+              {manualAnswers.map((answer, idx) => {
+                const isSaved = savedAnswers.has(answer.id);
+                return (
+                  <article key={answer.id} style={{
+                    padding: 22, background: '#fff',
+                    border: `1px solid ${tokens.hairline}`, borderRadius: 12,
+                  }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
+                    }}>
+                      <span style={{
+                        width: 28, height: 28, borderRadius: 6,
+                        background: tokens.ink, color: '#fff',
+                        display: 'grid', placeItems: 'center',
+                        fontFamily: tokens.mono, fontSize: 12, fontWeight: 600,
+                      }}>{String(idx + 1).padStart(2, '0')}</span>
+                      <CodeTag tone="slate">Kısa Cevap</CodeTag>
+                      <span style={{ fontSize: 12, color: tokens.subtle }}>
+                        max {answer.question.points} puan
+                      </span>
                     </div>
 
-                    <p style={styles.questionText}>{answer.question.questionText}</p>
+                    <p style={{
+                      margin: 0, fontFamily: tokens.serif,
+                      fontSize: 17, lineHeight: 1.45, color: tokens.ink, fontWeight: 400,
+                    }}>{answer.question.questionText}</p>
 
-                    <div style={styles.answerBox}>
-                      <div style={styles.answerLabel}>Öğrenci cevabı</div>
-                      <div style={styles.answerText}>
-                        {answer.answerText || '(Boş bırakılmış)'}
-                      </div>
+                    <div style={{ marginTop: 14 }}>
+                      <Kicker>Öğrencinin Cevabı</Kicker>
+                      <div style={{
+                        marginTop: 8, padding: '12px 14px',
+                        background: tokens.ivory, border: `1px solid ${tokens.hairline}`,
+                        borderRadius: 8, fontFamily: tokens.mono,
+                        fontSize: 13.5, color: tokens.ink, lineHeight: 1.6,
+                        whiteSpace: 'pre-wrap' as const,
+                      }}>{answer.answerText || '(Boş bırakılmış)'}</div>
                     </div>
 
                     {answer.question.correctAnswer && (
-                      <div
-                        style={{
-                          ...styles.answerBox,
-                          background: '#f0fdf4',
-                          borderColor: '#bbf7d0',
-                        }}
-                      >
-                        <div style={styles.answerLabel}>Örnek cevap / açıklama</div>
-                        <div style={styles.answerText}>{answer.question.correctAnswer}</div>
+                      <div style={{ marginTop: 12 }}>
+                        <Kicker>Örnek / Beklenen</Kicker>
+                        <div style={{
+                          marginTop: 8, padding: '12px 14px',
+                          background: '#ecfdf5', border: '1px solid #bbf7d0',
+                          borderRadius: 8, fontFamily: tokens.mono,
+                          fontSize: 13.5, color: tokens.good, lineHeight: 1.6,
+                          whiteSpace: 'pre-wrap' as const,
+                        }}>{answer.question.correctAnswer}</div>
                       </div>
                     )}
 
-                    <div style={styles.gradingSection}>
-                      <div style={styles.gradingInfo}>
-                        <AlertCircle size={22} color="#c2410c" />
-                        <div>
-                          <div style={{ fontWeight: 900, color: '#0f172a' }}>Puan Ver</div>
-                          <div style={{ fontSize: '13px', color: '#64748b' }}>
-                            0 - {answer.question.points} arası
-                          </div>
+                    <div style={{
+                      marginTop: 18, paddingTop: 16,
+                      borderTop: `1px solid ${tokens.hairlineSoft}`,
+                      display: 'flex', alignItems: 'center', gap: 12,
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <Kicker>Puan</Kicker>
+                        <div style={{ fontSize: 12, color: tokens.subtle, marginTop: 4 }}>
+                          0 — {answer.question.points} arası
                         </div>
                       </div>
-
                       <input
                         type="number"
-                        min="0"
+                        min={0}
                         max={answer.question.points}
-                        step="1"
+                        step={1}
                         value={grades[answer.id] ?? ''}
-                        onChange={(e) => handleGradeChange(answer.id, e.target.value)}
+                        onChange={e => handleGradeChange(answer.id, e.target.value)}
                         placeholder="0"
-                        style={styles.scoreInput}
+                        style={{
+                          width: 90, padding: '10px 12px',
+                          background: '#fff', border: `1px solid ${tokens.hairline}`,
+                          borderRadius: 8, fontFamily: tokens.mono,
+                          fontSize: 16, fontWeight: 600,
+                          color: tokens.ink, textAlign: 'center' as const,
+                          outline: 'none',
+                        }}
                       />
-
-                      {savedAnswers.has(answer.id) ? (
-                        <div style={styles.savedBadge}>
-                          <CheckCircle2 size={17} />
-                          Kaydedildi
-                        </div>
+                      {isSaved ? (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '8px 14px', borderRadius: 8,
+                          background: '#ecfdf5', color: tokens.good,
+                          border: '1px solid #bbf7d0',
+                          fontSize: 13, fontWeight: 600,
+                        }}>
+                          <Check size={14} /> Kaydedildi
+                        </span>
                       ) : (
-                        <button
+                        <Btn variant="primary"
                           onClick={() => handleSaveGrade(answer.id, answer.question.points)}
-                          style={styles.saveButton}
-                        >
-                          <Save size={17} />
-                          Kaydet
-                        </button>
+                          icon={<Save size={14} />}>Kaydet</Btn>
                       )}
                     </div>
                   </article>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <aside style={styles.summaryCard}>
-            <div style={styles.summaryTop}>
-              <h3 style={styles.summaryTitle}>Değerlendirme Özeti</h3>
+                );
+              })}
             </div>
-
-            <div style={styles.summaryBody}>
-              <div style={styles.summaryItem}>
-                <span>Toplam Soru</span>
-                <strong>{result.answers.length}</strong>
-              </div>
-
-              <div style={styles.summaryItem}>
-                <span>Manuel Değerlendirme</span>
-                <strong>{manualAnswers.length}</strong>
-              </div>
-
-              <div style={styles.summaryItem}>
-                <span>Kaydedilen</span>
-                <strong>{savedAnswers.size}</strong>
-              </div>
-
-              <div style={styles.totalScore}>
-                <div style={styles.scoreValue}>{result.studentExam.score}</div>
-                <div style={styles.scoreLabel}>/{totalPossiblePoints} puan</div>
-              </div>
-
-              <div
-                style={{
-                  marginTop: '18px',
-                  padding: '16px',
-                  borderRadius: '20px',
-                  background: '#eef2ff',
-                  border: '1px solid #c7d2fe',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                }}
-              >
-                <Trophy size={22} color="#4f46e5" />
-                <div>
-                  <div style={{ fontWeight: 900, color: '#0f172a' }}>Anlık Skor</div>
-                  <div style={{ fontSize: '13px', color: '#64748b' }}>
-                    Güncel toplam puan görüntüleniyor.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </aside>
+          )}
         </div>
+
+        <aside style={{ position: 'sticky', top: 24 }}>
+          <div style={{
+            padding: 24, background: '#fff',
+            border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+          }}>
+            <Kicker>Değerlendirme özeti</Kicker>
+
+            <div style={{ marginTop: 18 }}>
+              <div style={{
+                fontFamily: tokens.serif, fontSize: 48, lineHeight: 1,
+                color: tokens.ink, letterSpacing: '-0.025em',
+              }}>
+                {result.studentExam.score}
+                <span style={{ fontSize: 20, color: tokens.subtle }}> / {totalPossiblePoints}</span>
+              </div>
+              <div style={{ fontSize: 12, color: tokens.subtle, marginTop: 6 }}>
+                anlık toplam puan
+              </div>
+            </div>
+
+            <hr style={{ border: 'none', borderTop: `1px solid ${tokens.hairline}`, margin: '20px 0' }} />
+
+            <div style={{ display: 'grid', gap: 10 }}>
+              {[
+                ['Toplam soru', result.answers.length],
+                ['Manuel', manualAnswers.length],
+                ['Kaydedilen', savedAnswers.size],
+              ].map(([k, v]) => (
+                <div key={k as string} style={{
+                  display: 'flex', justifyContent: 'space-between', fontSize: 13,
+                  paddingBottom: 8, borderBottom: `1px solid ${tokens.hairlineSoft}`,
+                }}>
+                  <span style={{ color: tokens.subtle }}>{k}</span>
+                  <span style={{
+                    color: tokens.ink, fontWeight: 600, fontFamily: tokens.mono,
+                  }}>{v as number}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{
+              marginTop: 18, padding: 12,
+              background: tokens.indigoSoft,
+              border: `1px solid ${tokens.indigoBorder}`,
+              borderRadius: 10, fontSize: 12.5, color: '#3730a3', lineHeight: 1.55,
+            }}>
+              Her puanlamayı kaydettikçe öğrencinin toplam skoru otomatik olarak güncellenir.
+            </div>
+          </div>
+        </aside>
       </div>
-    </main>
+    </PageShell>
   );
 }

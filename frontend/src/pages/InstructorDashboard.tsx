@@ -1,408 +1,207 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  BookOpen,
-  CalendarDays,
-  CheckCircle2,
-  Clock3,
-  FileText,
-  FolderOpen,
-  Layers,
-  Plus,
-  Search,
-  Sparkles,
-} from 'lucide-react';
+import { ArrowRight, FolderOpen, Plus, FileText, Search } from 'lucide-react';
 import api from '../api/axios';
 import type { Exam } from '../types';
-
-const styles: Record<string, CSSProperties> = {
-  page: {
-    minHeight: '100vh',
-    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    background:
-      'radial-gradient(circle at 12% 8%, rgba(99,102,241,0.10), transparent 26%), radial-gradient(circle at 90% 12%, rgba(14,165,233,0.10), transparent 24%), #f8fafc',
-    color: '#0f172a',
-    padding: '32px',
-    boxSizing: 'border-box',
-  },
-  container: {
-    maxWidth: '1180px',
-    margin: '0 auto',
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '20px',
-    marginBottom: '28px',
-  },
-  eyebrow: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '9px 13px',
-    borderRadius: '999px',
-    background: '#eef2ff',
-    border: '1px solid #c7d2fe',
-    color: '#4f46e5',
-    fontSize: '14px',
-    fontWeight: 800,
-    marginBottom: '12px',
-  },
-  title: {
-    margin: 0,
-    fontSize: '44px',
-    lineHeight: 1.05,
-    letterSpacing: '-0.04em',
-    fontWeight: 950,
-    color: '#0f172a',
-  },
-  subtitle: {
-    margin: '12px 0 0',
-    color: '#64748b',
-    fontSize: '16px',
-    lineHeight: 1.65,
-    maxWidth: '620px',
-  },
-  createButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '9px',
-    border: '1px solid #bfdbfe',
-    borderRadius: '16px',
-    padding: '14px 20px',
-    cursor: 'pointer',
-    color: '#1d4ed8',
-    fontWeight: 900,
-    fontSize: '15px',
-    background: 'linear-gradient(135deg, #eff6ff, #ffffff)',
-    boxShadow: '0 16px 34px rgba(37,99,235,0.10)',
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-    gap: '18px',
-    marginBottom: '26px',
-  },
-  statCard: {
-    background: 'rgba(255,255,255,0.88)',
-    border: '1px solid #e2e8f0',
-    borderRadius: '24px',
-    padding: '22px',
-    boxShadow: '0 18px 45px rgba(15,23,42,0.055)',
-  },
-  statIcon: {
-    width: '44px',
-    height: '44px',
-    borderRadius: '15px',
-    display: 'grid',
-    placeItems: 'center',
-    marginBottom: '16px',
-  },
-  statValue: {
-    margin: 0,
-    fontSize: '34px',
-    fontWeight: 950,
-    letterSpacing: '-0.03em',
-  },
-  statLabel: {
-    margin: '5px 0 0',
-    color: '#64748b',
-    fontSize: '14px',
-    fontWeight: 700,
-  },
-  panel: {
-    background: 'rgba(255,255,255,0.9)',
-    border: '1px solid #e2e8f0',
-    borderRadius: '28px',
-    boxShadow: '0 24px 70px rgba(15,23,42,0.07)',
-    overflow: 'hidden',
-  },
-  panelHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '18px',
-    padding: '24px 26px',
-    borderBottom: '1px solid #eef2f7',
-    background: 'linear-gradient(135deg, rgba(248,250,252,0.92), rgba(239,246,255,0.78))',
-  },
-  panelTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    margin: 0,
-    fontSize: '22px',
-  },
-  searchBox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    minWidth: '250px',
-    border: '1px solid #e2e8f0',
-    background: '#ffffff',
-    color: '#94a3b8',
-    borderRadius: '14px',
-    padding: '11px 13px',
-    fontSize: '14px',
-  },
-  examsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-    gap: '18px',
-    padding: '24px',
-  },
-  examCard: {
-    position: 'relative' as const,
-    background: '#ffffff',
-    border: '1px solid #e2e8f0',
-    borderRadius: '22px',
-    padding: '22px',
-    boxShadow: '0 14px 32px rgba(15,23,42,0.045)',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-  },
-  examTop: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: '14px',
-    marginBottom: '14px',
-  },
-  examIcon: {
-    width: '46px',
-    height: '46px',
-    borderRadius: '16px',
-    display: 'grid',
-    placeItems: 'center',
-    background: '#f0f9ff',
-    color: '#0284c7',
-    flexShrink: 0,
-  },
-  status: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '7px 10px',
-    borderRadius: '999px',
-    fontSize: '12px',
-    fontWeight: 900,
-    whiteSpace: 'nowrap',
-  },
-  examTitle: {
-    margin: '0 0 8px',
-    color: '#0f172a',
-    fontSize: '20px',
-    lineHeight: 1.25,
-    fontWeight: 900,
-  },
-  examDesc: {
-    margin: 0,
-    color: '#64748b',
-    fontSize: '14px',
-    lineHeight: 1.6,
-    minHeight: '44px',
-  },
-  metaRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    marginTop: '18px',
-    paddingTop: '16px',
-    borderTop: '1px solid #eef2f7',
-    color: '#64748b',
-    fontSize: '13px',
-    fontWeight: 700,
-  },
-  emptyState: {
-    padding: '52px 24px',
-    textAlign: 'center',
-  },
-  emptyIcon: {
-    width: '72px',
-    height: '72px',
-    borderRadius: '24px',
-    background: '#eef2ff',
-    color: '#4f46e5',
-    display: 'grid',
-    placeItems: 'center',
-    margin: '0 auto 18px',
-  },
-};
+import {
+  tokens, PageShell, Kicker, HeroTitle, Stat, SectionHeader, Btn, CodeTag,
+} from '../components/academic-ui';
 
 export default function InstructorDashboard() {
   const navigate = useNavigate();
   const [exams, setExams] = useState<Exam[]>([]);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    api.get('/exams').then((res) => setExams(res.data));
+    api.get('/exams').then(res => setExams(res.data));
   }, []);
 
-  const stats = useMemo(() => {
-    const published = exams.filter((exam) => exam.published).length;
-    const drafts = exams.length - published;
+  const published = useMemo(() => exams.filter(e => e.published).length, [exams]);
+  const drafts = exams.length - published;
 
-    return [
-      {
-        label: 'Toplam Sınav',
-        value: exams.length,
-        icon: Layers,
-        bg: '#eef2ff',
-        color: '#4f46e5',
-      },
-      {
-        label: 'Yayındaki Sınav',
-        value: published,
-        icon: CheckCircle2,
-        bg: '#ecfdf5',
-        color: '#16a34a',
-      },
-      {
-        label: 'Taslak Sınav',
-        value: drafts,
-        icon: FileText,
-        bg: '#f0f9ff',
-        color: '#0284c7',
-      },
-    ];
-  }, [exams]);
+  const filtered = useMemo(
+    () => exams.filter(e =>
+      `${e.title} ${e.description ?? ''}`.toLowerCase().includes(search.toLowerCase())
+    ),
+    [exams, search]
+  );
 
   return (
-    <main style={styles.page}>
-      <div style={styles.container}>
-        <header style={styles.header}>
+    <PageShell>
+      <section style={{ marginBottom: 32 }}>
+        <Kicker>Eğitmen çalışma alanı</Kicker>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between',
+          alignItems: 'flex-end', gap: 24, marginTop: 8, flexWrap: 'wrap' as const,
+        }}>
           <div>
-            <div style={styles.eyebrow}>
-              <Sparkles size={16} />
-              Eğitmen çalışma alanı
-            </div>
-            <h1 style={styles.title}>Eğitmen Paneli</h1>
-            <p style={styles.subtitle}>
-              Sınavlarını yönet, yeni değerlendirmeler oluştur ve yayın durumlarını tek ekrandan takip et.
+            <HeroTitle>Eğitmen Paneli</HeroTitle>
+            <p style={{
+              margin: '14px 0 0', maxWidth: 580, color: tokens.muted,
+              fontSize: 15.5, lineHeight: 1.6,
+            }}>
+              Sınavlarını yönet, yeni değerlendirmeler oluştur ve yayın
+              durumlarını tek ekrandan takip et.
             </p>
           </div>
 
-          <button onClick={() => navigate('/instructor/create-exam')} style={styles.createButton}>
-            <Plus size={18} />
-            Yeni Sınav Oluştur
-          </button>
-          <button 
-            onClick={() => navigate('/instructor/questions')} 
-            style={{ 
-              ...styles.createButton, 
-              background: 'linear-gradient(135deg, #f0f9ff, #ffffff)',
-              color: '#0284c7',
-              borderColor: '#bae6fd'
-            }}
-          >
-            <FileText size={18} />
-            Soru Bankası
-          </button>
-          <button 
-            onClick={() => navigate('/instructor/categories')} 
-            style={{ 
-              ...styles.createButton, 
-              background: 'linear-gradient(135deg, #fef3c7, #ffffff)',
-              color: '#d97706',
-              borderColor: '#fde68a'
-            }}
-          >
-            <FolderOpen size={18} />
-            Kategoriler
-          </button>
-        </header>
-
-        <section style={styles.statsGrid}>
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <article key={stat.label} style={styles.statCard}>
-                <div style={{ ...styles.statIcon, background: stat.bg, color: stat.color }}>
-                  <Icon size={23} />
-                </div>
-                <h2 style={styles.statValue}>{stat.value}</h2>
-                <p style={styles.statLabel}>{stat.label}</p>
-              </article>
-            );
-          })}
-        </section>
-
-        <section style={styles.panel}>
-          <div style={styles.panelHeader}>
-            <h2 style={styles.panelTitle}>
-              <BookOpen size={24} color="#2563eb" />
-              Sınavlarım
-            </h2>
-            <div style={styles.searchBox}>
-              <Search size={16} />
-              Sınav listesi
-            </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
+            <Btn variant="primary" onClick={() => navigate('/instructor/create-exam')} icon={<Plus size={14} />}>
+              Yeni Sınav
+            </Btn>
+            <Btn onClick={() => navigate('/instructor/questions')} icon={<FileText size={14} />}>
+              Soru Bankası
+            </Btn>
+            <Btn onClick={() => navigate('/instructor/categories')} icon={<FolderOpen size={14} />}>
+              Kategoriler
+            </Btn>
           </div>
+        </div>
+      </section>
 
-          {exams.length === 0 ? (
-            <div style={styles.emptyState}>
-              <div style={styles.emptyIcon}>
-                <BookOpen size={34} />
-              </div>
-              <h3 style={{ margin: '0 0 8px', fontSize: '22px' }}>Henüz sınav oluşturmadın</h3>
-              <p style={{ margin: '0 auto 22px', maxWidth: '420px', color: '#64748b', lineHeight: 1.6 }}>
-                İlk sınavını oluşturarak öğrencilerin için değerlendirme sürecini başlatabilirsin.
-              </p>
-              <button onClick={() => navigate('/instructor/create-exam')} style={styles.createButton}>
-                <Plus size={18} />
-                İlk Sınavı Oluştur
-              </button>
+      <section style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 48,
+      }}>
+        <Stat label="Toplam Sınav" value={String(exams.length).padStart(2, '0')} accent={tokens.indigo} />
+        <Stat label="Yayında" value={String(published).padStart(2, '0')} sub="Aktif olarak öğrencilere açık" />
+        <Stat label="Taslak" value={String(drafts).padStart(2, '0')} sub="Henüz yayınlanmadı" />
+      </section>
+
+      <section>
+        <SectionHeader
+          kicker="Sınavlarım"
+          title="Tüm sınavlar"
+          count={filtered.length}
+          action={
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 12px', background: '#fff',
+              border: `1px solid ${tokens.hairline}`, borderRadius: 10,
+              color: tokens.subtle, minWidth: 260,
+            }}>
+              <Search size={15} />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Sınav ara…"
+                style={{
+                  border: 'none', outline: 'none', background: 'transparent',
+                  flex: 1, color: tokens.ink, fontFamily: 'inherit', fontSize: 13,
+                }}
+              />
             </div>
-          ) : (
-            <div style={styles.examsGrid}>
-              {exams.map((exam) => (
-                <article 
-                  key={exam.id} 
-                  style={styles.examCard}
-                  onClick={() => {
-                    console.log('Navigating to exam:', exam.id);
-                    navigate(`/instructor/exam/${exam.id}`);
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 20px 40px rgba(15,23,42,0.08)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 14px 32px rgba(15,23,42,0.045)';
-                  }}
-                >
-                  <div style={styles.examTop}>
-                    <div style={styles.examIcon}>
-                      <BookOpen size={22} />
+          }
+        />
+
+        {filtered.length === 0 ? (
+          <div style={{
+            padding: '48px 24px', textAlign: 'center' as const,
+            background: '#fff', border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+          }}>
+            <div style={{ fontFamily: tokens.serif, fontSize: 22, color: tokens.muted, marginBottom: 8 }}>
+              {exams.length === 0 ? 'Henüz sınav oluşturmadın' : 'Sınav bulunamadı'}
+            </div>
+            <div style={{ fontSize: 13.5, color: tokens.subtle, marginBottom: 18 }}>
+              {exams.length === 0
+                ? 'İlk sınavını oluşturarak öğrencilerin için değerlendirme sürecini başlatabilirsin.'
+                : 'Farklı bir arama terimi deneyin.'}
+            </div>
+            {exams.length === 0 && (
+              <Btn variant="primary" onClick={() => navigate('/instructor/create-exam')}
+                icon={<Plus size={14} />}>İlk Sınavı Oluştur</Btn>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            {filtered.map(exam => (
+              <article
+                key={exam.id}
+                onClick={() => navigate(`/instructor/exam/${exam.id}`)}
+                style={{
+                  background: tokens.card,
+                  border: `1px solid ${tokens.hairline}`,
+                  borderRadius: 14, padding: 22,
+                  display: 'flex', flexDirection: 'column', gap: 14,
+                  cursor: 'pointer', position: 'relative',
+                  transition: 'transform .15s, box-shadow .15s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 14px 32px rgba(15,23,42,0.06)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <header style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  alignItems: 'flex-start', gap: 12,
+                }}>
+                  <CodeTag tone={exam.published ? 'indigo' : 'slate'}>
+                    {exam.published ? 'YAYINDA' : 'TASLAK'}
+                  </CodeTag>
+                  <span style={{
+                    fontFamily: tokens.mono, fontSize: 11, color: tokens.subtle,
+                    letterSpacing: '0.06em',
+                  }}>#{String(exam.id).padStart(3, '0')}</span>
+                </header>
+
+                <h3 style={{
+                  margin: 0, fontFamily: tokens.serif,
+                  fontSize: 20, lineHeight: 1.25, color: tokens.ink,
+                  fontWeight: 400, letterSpacing: '-0.01em',
+                }}>{exam.title}</h3>
+
+                {exam.description && (
+                  <p style={{
+                    margin: 0, fontSize: 13, color: tokens.muted,
+                    lineHeight: 1.55,
+                    overflow: 'hidden', display: '-webkit-box',
+                    WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+                  }}>{exam.description}</p>
+                )}
+
+                <div style={{
+                  display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
+                  borderTop: `1px solid ${tokens.hairlineSoft}`,
+                  padding: '12px 0 0',
+                  marginTop: 'auto',
+                }}>
+                  {[
+                    ['Süre', `${exam.duration} dk`],
+                    ['Durum', exam.published ? 'Aktif' : 'Hazırlanıyor'],
+                  ].map(([k, v], i) => (
+                    <div key={k} style={{
+                      padding: '0 14px',
+                      borderLeft: i === 0 ? 'none' : `1px solid ${tokens.hairlineSoft}`,
+                    }}>
+                      <div style={{
+                        fontFamily: tokens.mono, fontSize: 10, color: tokens.subtle,
+                        textTransform: 'uppercase' as const, letterSpacing: '0.08em',
+                      }}>{k}</div>
+                      <div style={{ fontSize: 14, color: '#2a2a36', fontWeight: 500, marginTop: 3 }}>
+                        {v}
+                      </div>
                     </div>
-                    <span
-                      style={{
-                        ...styles.status,
-                        background: exam.published ? '#ecfdf5' : '#f8fafc',
-                        color: exam.published ? '#15803d' : '#64748b',
-                        border: exam.published ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
-                      }}
-                    >
-                      {exam.published ? <CheckCircle2 size={14} /> : <Clock3 size={14} />}
-                      {exam.published ? 'Yayında' : 'Taslak'}
-                    </span>
-                  </div>
+                  ))}
+                </div>
 
-                  <h3 style={styles.examTitle}>{exam.title}</h3>
-                  <p style={styles.examDesc}>{exam.description || 'Bu sınav için henüz açıklama eklenmemiş.'}</p>
-
-                  <div style={styles.metaRow}>
-                    <CalendarDays size={16} />
-                    Yönetilebilir sınav kaydı
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  marginTop: 4,
+                }}>
+                  <span style={{
+                    fontFamily: tokens.mono, fontSize: 11, color: tokens.indigo,
+                    letterSpacing: '0.06em', fontWeight: 600,
+                  }}>YÖNET</span>
+                  <ArrowRight size={14} style={{ color: tokens.indigo }} />
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </PageShell>
   );
 }
