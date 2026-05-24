@@ -13,6 +13,11 @@ interface StudentExam {
   score: number | null;
   startedAt: string;
   submittedAt: string | null;
+  student?: {
+    id: number;
+    fullName?: string;
+    email?: string;
+  } | null;
 }
 
 function statusMeta(status: string) {
@@ -142,11 +147,23 @@ export default function ExamResults() {
                             width: 28, height: 28, borderRadius: '50%',
                             background: tokens.indigoSoft, color: tokens.indigo,
                             display: 'grid', placeItems: 'center',
-                            fontFamily: tokens.mono, fontSize: 11, fontWeight: 600,
-                          }}>{String(idx + 1).padStart(2, '0')}</div>
-                          <span style={{ color: tokens.ink, fontWeight: 500 }}>
-                            Öğrenci #{r.id}
-                          </span>
+                            fontFamily: tokens.serif, fontSize: 12, fontWeight: 400,
+                          }}>
+                            {(r.student?.fullName || `O${r.id}`)
+                              .split(/[\s.]+/).filter(Boolean).slice(0, 2)
+                              .map(s => s[0]?.toUpperCase()).join('') || '?'}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ color: tokens.ink, fontWeight: 500 }}>
+                              {r.student?.fullName || `Öğrenci #${r.id}`}
+                            </div>
+                            {r.student?.email && (
+                              <div style={{
+                                fontSize: 11.5, color: tokens.subtle,
+                                fontFamily: tokens.mono, marginTop: 2,
+                              }}>{r.student.email}</div>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td style={{ padding: '14px 18px' }}>

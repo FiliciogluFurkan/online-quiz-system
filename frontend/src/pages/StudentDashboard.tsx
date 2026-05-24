@@ -63,11 +63,24 @@ function AvailableCard({ exam, onStart }: { exam: Exam; onStart: () => void }) {
       )}
 
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <h3 style={{
-          margin: 0, fontFamily: tokens.serif,
-          fontSize: 20, lineHeight: 1.25, color: tokens.ink, fontWeight: 400,
-          letterSpacing: '-0.01em', flex: 1,
-        }}>{exam.title}</h3>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={{
+            margin: 0, fontFamily: tokens.serif,
+            fontSize: 20, lineHeight: 1.25, color: tokens.ink, fontWeight: 400,
+            letterSpacing: '-0.01em',
+          }}>{exam.title}</h3>
+          {exam.instructor?.fullName && (
+            <div style={{
+              marginTop: 6, fontSize: 12, color: tokens.subtle,
+              display: 'flex', alignItems: 'center', gap: 5,
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
+                <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-7 8-7s8 3 8 7" />
+              </svg>
+              {exam.instructor.fullName}
+            </div>
+          )}
+        </div>
 
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
