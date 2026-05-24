@@ -4,6 +4,7 @@ import cse.quiz.system.entity.StudentExam;
 import cse.quiz.system.repository.StudentExamRepository;
 import cse.quiz.system.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,22 +22,36 @@ public class StudentExamController {
     }
 
    @GetMapping("/check/{examId}")
-public StudentExam checkExamStatus(@PathVariable Long examId) {
+public ResponseEntity<?> checkExamStatus(@PathVariable Long examId) {
     String currentUserId = SecurityUtils.getCurrentUserId();
     
-    if (currentUserId != null) {
-        List<StudentExam> results = studentExamRepository
-            .findByKeycloakUserIdAndExamId(currentUserId, examId);
-        
-        // SUBMITTED veya GRADED olanı öncelikle döndür
-        return results.stream()
-            .filter(se -> se.getStatus() == StudentExam.ExamStatus.SUBMITTED || 
-                         se.getStatus() == StudentExam.ExamStatus.GRADED)
-            .findFirst()
-            .orElse(results.stream().findFirst().orElse(null));
+    System.out.println("🔍 Checking exam status - Exam ID: " + examId + ", User ID: " + currentUserId);
+    
+    if (currentUserId == null) {
+        System.out.println("❌ Current user ID is null");
+        return ResponseEntity.ok(java.util.Map.of("status", "NOT_FOUND"));
     }
     
-    return null;
+    List<StudentExam> results = studentExamRepository
+        .findByKeycloakUserIdAndExamId(currentUserId, examId);
+    
+    System.out.println("📊 Found " + results.size() + " records");
+    results.forEach(se -> System.out.println("   - Status: " + se.getStatus() + ", ID: " + se.getId()));
+    
+    // SUBMITTED veya GRADED olanı öncelikle döndür
+    StudentExam result = results.stream()
+        .filter(se -> se.getStatus() == StudentExam.ExamStatus.SUBMITTED || 
+                     se.getStatus() == StudentExam.ExamStatus.GRADED)
+        .findFirst()
+        .orElse(results.stream().findFirst().orElse(null));
+    
+    if (result != null) {
+        System.out.println("✅ Returning: StudentExam ID " + result.getId() + " with status " + result.getStatus());
+        return ResponseEntity.ok(result);
+    } else {
+        System.out.println("⏳ No record found, returning NOT_FOUND");
+        return ResponseEntity.ok(java.util.Map.of("status", "NOT_FOUND"));
+    }
 }
 
     @PostMapping

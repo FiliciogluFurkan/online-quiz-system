@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   BookOpenCheck,
@@ -12,6 +12,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 import type { Exam } from '../types';
 
 const styles = {
@@ -274,46 +275,41 @@ function formatDate(value?: string) {
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { isLoading, isAuthenticated } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
   const [search, setSearch] = useState('');
   const [completedExams, setCompletedExams] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    loadExams();
-  }, [location.search]); // URL query parametresi değiştiğinde yenile
+    // Keycloak hazır olana kadar bekle
+    if (!isLoading && isAuthenticated) {
+      loadExams();
+    }
+  }, [isLoading, isAuthenticated]);
 
   const loadExams = async () => {
     try {
-      console.log('🔄 Loading exams...');
-      // Öğrenciler için sadece yayınlanmış sınavları getir
       const examsRes = await api.get('/exams/published');
-      console.log('📚 Exams loaded:', examsRes.data);
       setExams(examsRes.data);
       
-      // Backend'den tamamlanan sınavları kontrol et (Keycloak user ID ile)
+      // Backend'den tamamlanan sınavları kontrol et
       const completed = new Set<number>();
       
       for (const exam of examsRes.data) {
         try {
-          console.log(`🔍 Checking exam ${exam.id} status...`);
           const statusRes = await api.get(`/student-exams/check/${exam.id}`);
-          console.log(`📊 Exam ${exam.id} response:`, statusRes.data);
           
-          // Backend null dönebilir, kontrol et
-          if (statusRes.data !== null && statusRes.data.status && 
-              ['SUBMITTED', 'GRADED'].includes(statusRes.data.status)) {
-            console.log(`✅ Exam ${exam.id} is completed!`);
-            completed.add(exam.id);
-          } else {
-            console.log(`⏳ Exam ${exam.id} status:`, statusRes.data?.status || 'null response');
+          // Backend ya StudentExam objesi ya da {status: "NOT_FOUND"} döner
+          if (statusRes.data && statusRes.data.status) {
+            if (statusRes.data.status === 'SUBMITTED' || statusRes.data.status === 'GRADED') {
+              completed.add(exam.id);
+            }
           }
-        } catch (err) {
-          console.log(`❌ No record for exam ${exam.id}`, err);
+        } catch (err: any) {
+          console.log(`Error checking exam ${exam.id}:`, err.message);
         }
       }
       
-      console.log('✨ Completed exams:', Array.from(completed));
       setCompletedExams(completed);
     } catch (error) {
       console.error('Error loading exams:', error);
@@ -325,6 +321,19 @@ export default function StudentDashboard() {
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+
+  // Keycloak yükleniyorsa loading göster
+  if (isLoading) {
+    return (
+      <main style={styles.page}>
+        <div style={styles.container}>
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <p style={{ fontSize: '18px', color: '#64748b' }}>Yükleniyor...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main style={styles.page}>

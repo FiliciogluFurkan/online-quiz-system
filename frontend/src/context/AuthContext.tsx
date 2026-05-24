@@ -3,6 +3,7 @@ import keycloak from '../keycloak';
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  isLoading: boolean;
   user: {
     username: string;
     email: string;
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<AuthContextType['user']>(null);
   const [token, setToken] = useState<string | null>(null);
   const isInitialized = useRef(false);
@@ -33,10 +35,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .init({
         onLoad: 'check-sso',
         silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+        checkLoginIframe: false, // Disable iframe check to prevent issues
       })
       .then((authenticated) => {
         console.log('Keycloak init success! Authenticated:', authenticated);
         setIsAuthenticated(authenticated);
+        
+        // Keycloak callback parametrelerini URL'den temizle
+        if (window.location.hash.includes('state=') || window.location.hash.includes('session_state=')) {
+          const cleanUrl = window.location.pathname + window.location.search;
+          window.history.replaceState({}, '', cleanUrl);
+        }
         
         if (authenticated && keycloak.tokenParsed) {
           console.log('Token parsed:', keycloak.tokenParsed);
@@ -49,12 +58,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log('User data:', userData);
           setUser(userData);
           setToken(keycloak.token || null);
+          
+          // Token'ı periyodik olarak yenile (her 30 saniyede bir kontrol et)
+          setInterval(() => {
+            keycloak.updateToken(70).then((refreshed) => {
+              if (refreshed) {
+                console.log('Token refreshed automatically');
+                setToken(keycloak.token || null);
+              }
+            }).catch(() => {
+              console.error('Failed to refresh token');
+            });
+          }, 30000);
         } else {
           console.log('Not authenticated, no token');
         }
+        
+        // Keycloak hazır, loading'i kapat
+        setIsLoading(false);
       })
       .catch((error) => {
         console.error('Keycloak init error:', error);
+        setIsLoading(false);
       });
 
     // Token yenileme
@@ -80,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout, hasRole }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, token, login, logout, hasRole }}>
       {children}
     </AuthContext.Provider>
   );

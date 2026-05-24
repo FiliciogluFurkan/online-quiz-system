@@ -161,7 +161,7 @@ export default function ExamResult() {
               if (isInstructor) {
                 navigate(-1); // Instructor için geri git
               } else {
-                navigate('/student?refresh=' + Date.now());
+                navigate('/student');
               }
             }} 
             style={mainButton}

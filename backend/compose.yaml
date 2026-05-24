@@ -9,7 +9,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Volume kaldırıldı - her restart'ta temiz DB
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     networks:
       - quiz-network
@@ -35,9 +35,6 @@ services:
       - postgres
     networks:
       - quiz-network
-
-volumes:
-  postgres_data:
 
 networks:
   quiz-network:

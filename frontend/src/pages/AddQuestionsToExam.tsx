@@ -267,10 +267,12 @@ export default function AddQuestionsToExam() {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
+  const [exam, setExam] = useState<any>(null);
 
   useEffect(() => {
     api.get('/questions').then((res) => setQuestions(res.data));
-  }, []);
+    api.get(`/exams/${id}`).then((res) => setExam(res.data));
+  }, [id]);
 
   const toggleQuestion = (questionId: number) => {
     if (selectedQuestions.includes(questionId)) {
@@ -288,14 +290,24 @@ export default function AddQuestionsToExam() {
 
   const handleAddQuestions = async () => {
     try {
-      for (const questionId of selectedQuestions) {
-        await api.post('/exam-questions', {
-          exam: { id: parseInt(id!) },
-          question: { id: questionId },
-          orderIndex: 0,
+      // Soru havuzu modu kontrolü
+      if (exam?.questionPoolEnabled) {
+        // Havuza toplu ekle
+        await api.post(`/question-pool/exam/${id}`, {
+          questionIds: selectedQuestions
         });
+        alert(`${selectedQuestions.length} soru havuza eklendi!`);
+      } else {
+        // Normal mod - tek tek ekle
+        for (const questionId of selectedQuestions) {
+          await api.post('/exam-questions', {
+            exam: { id: parseInt(id!) },
+            question: { id: questionId },
+            orderIndex: 0,
+          });
+        }
+        alert(`${selectedQuestions.length} soru eklendi!`);
       }
-      alert(`${selectedQuestions.length} soru eklendi!`);
       navigate(`/instructor/exam/${id}`);
     } catch (error) {
       alert('Hata oluştu!');
@@ -314,7 +326,13 @@ export default function AddQuestionsToExam() {
             </div>
             <h1 style={styles.title}>Sınava Soru Ekle</h1>
             <p style={styles.subtitle}>
-              Soru bankasından sınava eklemek istediğin soruları seç. Seçilen sorular sınav detayına kaydedilir.
+              {exam?.questionPoolEnabled ? (
+                <>
+                  🎲 <strong>Soru Havuzu Modu:</strong> Havuz boyutu {exam.poolSize}, her öğrenciye {exam.questionsPerStudent} soru gösterilecek.
+                </>
+              ) : (
+                'Soru bankasından sınava eklemek istediğin soruları seç. Seçilen sorular sınav detayına kaydedilir.'
+              )}
             </p>
           </div>
 

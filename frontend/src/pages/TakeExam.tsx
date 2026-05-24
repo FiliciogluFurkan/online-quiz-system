@@ -71,9 +71,6 @@ export default function TakeExam() {
       const examRes = await api.get(`/exams/${id}`);
       setExam(examRes.data);
       
-      const questionsRes = await api.get(`/exam-questions/exam/${id}`);
-      setQuestions(questionsRes.data);
-      
       // Backend'den kontrol et (artık Keycloak user ID ile)
       try {
         const existingExamRes = await api.get(`/student-exams/check/${id}`);
@@ -88,6 +85,34 @@ export default function TakeExam() {
         if (existingExamRes.data && existingExamRes.data.status === 'IN_PROGRESS') {
           setStudentExamId(existingExamRes.data.id);
           setTimeRemaining(examRes.data.duration * 60);
+          
+          // Soru havuzu moduysa atanmış soruları çek
+          if (examRes.data.questionPoolEnabled) {
+            const poolQuestionsRes = await api.get(`/question-pool/student-exam/${existingExamRes.data.id}`);
+            const poolQuestions = poolQuestionsRes.data.map((q: any, idx: number) => ({
+              id: idx,
+              question: q,
+              orderIndex: idx
+            }));
+            setQuestions(poolQuestions);
+            
+            // Cevapları initialize et
+            const initialAnswers = poolQuestions.map((eq: any) => ({
+              questionId: eq.question.id,
+              answerText: ''
+            }));
+            setAnswers(initialAnswers);
+          } else {
+            const questionsRes = await api.get(`/exam-questions/exam/${id}`);
+            setQuestions(questionsRes.data);
+            
+            // Cevapları initialize et
+            const initialAnswers = questionsRes.data.map((eq: ExamQuestion) => ({
+              questionId: eq.question.id,
+              answerText: ''
+            }));
+            setAnswers(initialAnswers);
+          }
         } else {
           // Yeni sınav oturumu başlat
           const studentExamRes = await api.post('/student-exams', {
@@ -96,6 +121,34 @@ export default function TakeExam() {
           });
           setStudentExamId(studentExamRes.data.id);
           setTimeRemaining(examRes.data.duration * 60);
+          
+          // Soru havuzu moduysa rastgele sorular ata
+          if (examRes.data.questionPoolEnabled) {
+            const assignRes = await api.post(`/question-pool/student-exam/${studentExamRes.data.id}/assign`);
+            const poolQuestions = assignRes.data.map((q: any, idx: number) => ({
+              id: idx,
+              question: q,
+              orderIndex: idx
+            }));
+            setQuestions(poolQuestions);
+            
+            // Cevapları initialize et
+            const initialAnswers = poolQuestions.map((eq: any) => ({
+              questionId: eq.question.id,
+              answerText: ''
+            }));
+            setAnswers(initialAnswers);
+          } else {
+            const questionsRes = await api.get(`/exam-questions/exam/${id}`);
+            setQuestions(questionsRes.data);
+            
+            // Cevapları initialize et
+            const initialAnswers = questionsRes.data.map((eq: ExamQuestion) => ({
+              questionId: eq.question.id,
+              answerText: ''
+            }));
+            setAnswers(initialAnswers);
+          }
         }
       } catch (err) {
         // Sınav kaydı yoksa yeni oluştur
@@ -105,14 +158,35 @@ export default function TakeExam() {
         });
         setStudentExamId(studentExamRes.data.id);
         setTimeRemaining(examRes.data.duration * 60);
+        
+        // Soru havuzu moduysa rastgele sorular ata
+        if (examRes.data.questionPoolEnabled) {
+          const assignRes = await api.post(`/question-pool/student-exam/${studentExamRes.data.id}/assign`);
+          const poolQuestions = assignRes.data.map((q: any, idx: number) => ({
+            id: idx,
+            question: q,
+            orderIndex: idx
+          }));
+          setQuestions(poolQuestions);
+          
+          // Cevapları initialize et
+          const initialAnswers = poolQuestions.map((eq: any) => ({
+            questionId: eq.question.id,
+            answerText: ''
+          }));
+          setAnswers(initialAnswers);
+        } else {
+          const questionsRes = await api.get(`/exam-questions/exam/${id}`);
+          setQuestions(questionsRes.data);
+          
+          // Cevapları initialize et
+          const initialAnswers = questionsRes.data.map((eq: ExamQuestion) => ({
+            questionId: eq.question.id,
+            answerText: ''
+          }));
+          setAnswers(initialAnswers);
+        }
       }
-      
-      // Cevapları initialize et
-      const initialAnswers = questionsRes.data.map((eq: ExamQuestion) => ({
-        questionId: eq.question.id,
-        answerText: ''
-      }));
-      setAnswers(initialAnswers);
     } catch (error) {
       console.error('Error loading exam:', error);
       alert('Sınav yüklenirken hata oluştu!');
