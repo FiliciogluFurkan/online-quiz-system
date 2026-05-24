@@ -6,14 +6,19 @@ interface Question {
   questionText: string;
   points: number;
   type: string;
+  correctAnswer?: string;
+  options?: string;
 }
 
-interface QuestionStat {
+export interface QuestionStat {
   question: Question;
   totalAnswers: number;
   correctAnswers: number;
   incorrectAnswers: number;
   successRate: number;
+  discriminationIndex?: number;
+  difficultyIndex?: number;
+  optionDistribution?: Record<string, number>;
 }
 
 export interface Statistics {
