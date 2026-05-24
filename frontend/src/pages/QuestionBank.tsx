@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -17,7 +17,7 @@ import {
 import api from '../api/axios';
 import type { Question } from '../types';
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   page: {
     minHeight: '100vh',
     fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -234,7 +234,7 @@ export default function QuestionBank() {
                     <textarea
                       value={formData.options}
                       onChange={(e) => setFormData({ ...formData, options: e.target.value })}
-                      placeholder="Her satıra bir seçenek"
+                      placeholder={"A) İstanbul\nB) Ankara\nC) İzmir\nD) Bursa"}
                       style={styles.textarea}
                     />
                   </div>
@@ -242,11 +242,19 @@ export default function QuestionBank() {
 
                 <div style={styles.gridTwo}>
                   <div style={styles.field}>
-                    <label style={styles.label}>Doğru Cevap</label>
+                    <label style={styles.label}>
+                      Doğru Cevap
+                      {formData.type === 'MULTIPLE_CHOICE' && (
+                        <span style={{ fontWeight: 400, color: '#64748b', marginLeft: '6px', fontSize: '11px' }}>
+                          (A, B, C veya D)
+                        </span>
+                      )}
+                    </label>
                     <input
                       type="text"
                       value={formData.correctAnswer}
-                      onChange={(e) => setFormData({ ...formData, correctAnswer: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, correctAnswer: e.target.value.toUpperCase() })}
+                      placeholder={formData.type === 'MULTIPLE_CHOICE' ? 'A' : ''}
                       required
                       style={styles.input}
                     />
