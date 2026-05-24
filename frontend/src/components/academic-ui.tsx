@@ -63,7 +63,6 @@ const NAV_BY_ROLE: Record<'STUDENT' | 'INSTRUCTOR' | 'ADMIN',
   ],
   INSTRUCTOR: [
     { label: 'Sınavlar', href: '/instructor' },
-    { label: 'Sonuçlar', href: '/instructor?view=results' },
     { label: 'Soru Bankası', href: '/instructor/questions' },
     { label: 'Kategoriler', href: '/instructor/categories' },
     { label: 'Bildirimler', href: '/notifications' },
