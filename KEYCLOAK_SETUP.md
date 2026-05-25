@@ -67,8 +67,17 @@ keycloak.client-secret=BURAYA_KOPYALADIGIN_SECRET
 
 | Kullanıcı | Şifre | Rol |
 |-----------|-------|-----|
+| admin | admin123 | ADMIN |
 | student | student123 | STUDENT |
 | instructor | instructor123 | INSTRUCTOR |
+
+Tüm test kullanıcılarını oluşturmak veya eksikleri tamamlamak için:
+
+```bash
+cd backend
+chmod +x scripts/seed-keycloak-users.sh
+./scripts/seed-keycloak-users.sh
+```
 
 ---
 
@@ -215,6 +224,7 @@ Backend için:
 
 | Kullanıcı | Şifre | Rol |
 |-----------|-------|-----|
+| admin | admin123 | ADMIN |
 | student | student123 | STUDENT |
 | instructor | instructor123 | INSTRUCTOR |
 
