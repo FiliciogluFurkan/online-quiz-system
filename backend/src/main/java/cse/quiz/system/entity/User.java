@@ -12,6 +12,9 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "keycloak_user_id", unique = true)
+    private String keycloakUserId;
+
     @Column(unique = true, nullable = false)
     private String email;
 
@@ -27,6 +30,9 @@ public class User {
 
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
 
     public enum UserRole {
         STUDENT, INSTRUCTOR, ADMIN

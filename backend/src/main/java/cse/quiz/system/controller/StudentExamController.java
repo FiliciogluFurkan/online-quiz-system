@@ -5,6 +5,7 @@ import cse.quiz.system.exception.ConflictException;
 import cse.quiz.system.exception.NotFoundException;
 import cse.quiz.system.exception.UnauthorizedException;
 import cse.quiz.system.repository.StudentExamRepository;
+import cse.quiz.system.repository.UserRepository;
 import cse.quiz.system.service.ExamSubmissionService;
 import cse.quiz.system.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import java.util.Optional;
 public class StudentExamController {
     private final StudentExamRepository studentExamRepository;
     private final ExamSubmissionService examSubmissionService;
+    private final UserRepository userRepository;
 
     @GetMapping("/student/{studentId}")
     @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
@@ -68,8 +70,9 @@ public StudentExam startExam(@RequestBody StudentExam studentExam) {
         if (inProgress.isPresent()) return inProgress.get();
         
         studentExam.setKeycloakUserId(currentUserId);
+        userRepository.findByKeycloakUserId(currentUserId).ifPresent(studentExam::setStudent);
     }
-    
+
     studentExam.setStartedAt(LocalDateTime.now());
     studentExam.setStatus(StudentExam.ExamStatus.IN_PROGRESS);
     return studentExamRepository.save(studentExam);

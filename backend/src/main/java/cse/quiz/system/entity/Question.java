@@ -1,6 +1,6 @@
 package cse.quiz.system.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -30,7 +30,7 @@ public class Question {
     @Column(columnDefinition = "TEXT")
     private String options; // JSON format for multiple choice
 
-    @JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(columnDefinition = "TEXT")
     private String correctAnswer;
 
