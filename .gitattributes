@@ -1,0 +1,8 @@
+# Tüm metin dosyaları depoda ve checkout'ta LF (platform fark etmez)
+* text=auto eol=lf
+
+# Binary dosyalara dokunma
+*.pdf binary
+*.png binary
+*.jpg binary
+*.ico binary
