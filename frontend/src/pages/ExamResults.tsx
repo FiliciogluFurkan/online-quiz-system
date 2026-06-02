@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, Edit3 } from 'lucide-react';
 import api from '../api/axios';
 import {
-  tokens, PageShell, Crumbs, Kicker, HeroTitle, Stat, SectionHeader, Btn, CodeTag,
+  tokens, PageShell, Crumbs, Kicker, HeroTitle, Stat, SectionHeader, Btn,
   formatTrDate, scoreLabel,
 } from '../components/academic-ui';
 

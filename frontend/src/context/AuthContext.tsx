@@ -28,9 +28,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .init({
         onLoad: 'check-sso',
         silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+        checkLoginIframe: false,
       })
       .then((authenticated) => {
         setIsAuthenticated(authenticated);
+
+        // Keycloak callback parametrelerini URL'den temizle
+        if (window.location.hash.includes('state=') || window.location.hash.includes('session_state=')) {
+          const cleanUrl = window.location.pathname + window.location.search;
+          window.history.replaceState({}, '', cleanUrl);
+        }
+
         if (authenticated && keycloak.tokenParsed) {
           const p = keycloak.tokenParsed as Record<string, unknown>;
           setUser({
@@ -39,6 +47,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             roles: ((p.realm_access as Record<string, string[]>)?.roles) || [],
           });
           setToken(keycloak.token || null);
+
+          // Token'ı periyodik olarak yenile (her 30 saniyede bir kontrol et)
+          setInterval(() => {
+            keycloak.updateToken(70).then((refreshed) => {
+              if (refreshed) {
+                setToken(keycloak.token || null);
+              }
+            }).catch(() => {
+              console.error('Failed to refresh token');
+            });
+          }, 30000);
         }
       })
       .catch((err) => console.error('Keycloak init error:', err))

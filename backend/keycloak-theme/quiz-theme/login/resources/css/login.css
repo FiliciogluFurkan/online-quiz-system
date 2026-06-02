@@ -540,3 +540,84 @@ input[type="submit"]:active{
   font-weight:900 !important;
   letter-spacing:-2px !important;
 }
+
+/* Password input görünürlük fix */
+input[type="password"],
+input[type="text"],
+#password,
+#username {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff !important;
+}
+
+/* Chrome autofill siyah/beyaz override fix */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff !important;
+  box-shadow: 0 0 0 1000px rgba(255,255,255,.04) inset !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Invalid / error state override */
+input:invalid,
+input[aria-invalid="true"],
+.has-error input {
+  background-image: none !important;
+  background: rgba(255, 255, 255, .04) !important;
+  border-color: rgba(248, 113, 113, .55) !important;
+  box-shadow:
+    0 0 0 4px rgba(239, 68, 68, .08),
+    0 0 25px rgba(239, 68, 68, .12) !important;
+}
+
+/* Chrome'un kendi validation ikonunu kaldır */
+input::-webkit-validation-bubble,
+input::-webkit-validation-bubble-message {
+  display: none !important;
+}
+
+input[type="password"] {
+  background: rgba(255, 255, 255, .04) !important;
+  background-color: rgba(255, 255, 255, .04) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+
+/* Chrome autofill beyaz arka plan fix */
+input[type="password"]:-webkit-autofill,
+input[type="password"]:-webkit-autofill:hover,
+input[type="password"]:-webkit-autofill:focus,
+input[type="password"]:-webkit-autofill:active {
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff !important;
+  box-shadow: 0 0 0 1000px rgba(10, 10, 14, .86) inset !important;
+  background-color: transparent !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* PatternFly pf-c-form-control override */
+.pf-c-form-control,
+.pf-c-form-control[aria-invalid],
+.pf-c-form-control[aria-invalid=""],
+.pf-c-form-control[aria-invalid="true"] {
+  background: rgba(255, 255, 255, .04) !important;
+  background-color: rgba(255, 255, 255, .04) !important;
+  background-image: none !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  border-color: rgba(248, 113, 113, .55) !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, .08) !important;
+}
+
+/* PatternFly'ın ::before / ::after pseudo-elementlerini de sıfırla */
+.pf-c-form-control::before,
+.pf-c-form-control::after {
+  display: none !important;
+}
+.pf-c-input-group {
+  background: rgba(255, 255, 255, .04) !important;
+  background-color: rgba(255, 255, 255, .04) !important;
+}

@@ -4,7 +4,7 @@ import { ArrowRight, Search, SlidersHorizontal } from 'lucide-react';
 import api from '../api/axios';
 import type { Exam } from '../types';
 import {
-  tokens, PageShell, LiveDot, Stat, SectionHeader, Btn, HeroTitle, Kicker,
+  tokens, PageShell, LiveDot, Stat, SectionHeader, Btn, Kicker,
   scoreLabel, formatTrDateShort,
 } from '../components/academic-ui';
 

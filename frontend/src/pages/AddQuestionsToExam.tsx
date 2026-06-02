@@ -13,6 +13,12 @@ function getQuestionTypeLabel(type: string): string {
   return 'Kısa Cevap';
 }
 
+type ExamPoolInfo = {
+  questionPoolEnabled?: boolean;
+  poolSize?: number;
+  questionsPerStudent?: number;
+};
+
 export default function AddQuestionsToExam() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -20,10 +26,12 @@ export default function AddQuestionsToExam() {
   const [selected, setSelected] = useState<number[]>([]);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [exam, setExam] = useState<ExamPoolInfo | null>(null);
 
   useEffect(() => {
     api.get('/questions').then(res => setQuestions(res.data));
-  }, []);
+    api.get(`/exams/${id}`).then(res => setExam(res.data));
+  }, [id]);
 
   const toggle = (qid: number) => {
     setSelected(prev => prev.includes(qid) ? prev.filter(x => x !== qid) : [...prev, qid]);
@@ -44,14 +52,19 @@ export default function AddQuestionsToExam() {
 
   const handleAdd = async () => {
     try {
-      for (const qid of selected) {
-        await api.post('/exam-questions', {
-          exam: { id: parseInt(id!) },
-          question: { id: qid },
-          orderIndex: 0,
-        });
+      if (exam?.questionPoolEnabled) {
+        await api.post(`/question-pool/exam/${id}`, { questionIds: selected });
+        alert(`${selected.length} soru havuza eklendi!`);
+      } else {
+        for (const qid of selected) {
+          await api.post('/exam-questions', {
+            exam: { id: parseInt(id!) },
+            question: { id: qid },
+            orderIndex: 0,
+          });
+        }
+        alert(`${selected.length} soru eklendi!`);
       }
-      alert(`${selected.length} soru eklendi!`);
       navigate(`/instructor/exam/${id}`);
     } catch (error) {
       alert('Hata oluştu!');
@@ -76,8 +89,15 @@ export default function AddQuestionsToExam() {
             margin: '14px 0 0', maxWidth: 580, color: tokens.muted,
             fontSize: 15.5, lineHeight: 1.6,
           }}>
-            Soru bankasından sınava eklemek istediğin soruları seç.
-            Birden fazla seçim yapabilirsin.
+            {exam?.questionPoolEnabled ? (
+              <>
+                <strong>Soru havuzu modu:</strong> Havuz boyutu {exam.poolSize ?? '—'},
+                her öğrenciye {exam.questionsPerStudent ?? '—'} soru gösterilir.
+                Seçilen sorular havuza eklenir.
+              </>
+            ) : (
+              <>Soru bankasından sınava eklemek istediğin soruları seç. Birden fazla seçim yapabilirsin.</>
+            )}
           </p>
         </div>
 

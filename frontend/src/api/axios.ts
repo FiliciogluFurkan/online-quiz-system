@@ -29,13 +29,20 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && originalRequest && !originalRequest._retried) {
       originalRequest._retried = true;
       try {
-        await keycloak.updateToken(30);
-        originalRequest.headers.Authorization = `Bearer ${keycloak.token}`;
-        return api.request(originalRequest); // use api, not axios
+        const refreshed = await keycloak.updateToken(30);
+        if (refreshed) {
+          originalRequest.headers.Authorization = `Bearer ${keycloak.token}`;
+          return api.request(originalRequest);
+        }
+        // Token hala geçerli ama 401 aldık — clock skew / key rotation: login'e yönlendir
+        keycloak.login();
+        return Promise.reject(error);
       } catch {
         keycloak.login();
+        return Promise.reject(error);
       }
     }
+    
     return Promise.reject(error);
   }
 );

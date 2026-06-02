@@ -1,4 +1,4 @@
-import { CSSProperties, ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Bell, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
