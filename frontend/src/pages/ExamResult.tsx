@@ -32,6 +32,21 @@ interface ResultData {
   totalQuestions: number;
 }
 
+interface InstructorInfo {
+  email?: string;
+  fullName?: string;
+}
+
+function displayAnswer(questionType: string, value: string | null | undefined): string {
+  if (!value) return 'Boş';
+  if (questionType === 'TRUE_FALSE') {
+    const v = value.trim().toLowerCase();
+    if (v === 'true' || v === 'd' || v === 'doğru') return 'Doğru';
+    if (v === 'false' || v === 'y' || v === 'yanlış') return 'Yanlış';
+  }
+  return value;
+}
+
 export default function ExamResult() {
   const { studentExamId } = useParams();
   const navigate = useNavigate();
@@ -39,6 +54,7 @@ export default function ExamResult() {
   const [result, setResult] = useState<ResultData | null>(null);
   const [topics, setTopics] = useState<CategoryBreakdown[]>([]);
   const [aggregate, setAggregate] = useState<ExamAggregate | null>(null);
+  const [instructor, setInstructor] = useState<InstructorInfo | null>(null);
 
   const isInstructor = location.pathname.includes('/instructor/');
 
@@ -56,10 +72,29 @@ export default function ExamResult() {
           api.get(`/results/exam/${examId}/aggregate`)
             .then(r => setAggregate(r.data))
             .catch(() => setAggregate(null));
+          api.get(`/exams/${examId}`)
+            .then(r => setInstructor(r.data?.instructor || null))
+            .catch(() => setInstructor(null));
         }
       })
       .catch(() => alert('Sonuç yüklenemedi'));
   }, [studentExamId]);
+
+  const handleAskInstructor = () => {
+    const examTitle = result?.studentExam.exam?.title || 'Sınav';
+    const email = instructor?.email;
+    if (!email) {
+      alert('Eğitmen iletişim bilgisi mevcut değil.');
+      return;
+    }
+    const subject = encodeURIComponent(`[${examTitle}] Sınav hakkında soru`);
+    const body = encodeURIComponent(
+      `Merhaba ${instructor?.fullName || ''},\n\n` +
+      `${examTitle} sınavıyla ilgili bir sorum var:\n\n\n\n` +
+      `Teşekkürler.`
+    );
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+  };
 
   if (!result) {
     return (
@@ -228,14 +263,22 @@ export default function ExamResult() {
               kicker="Cevap Anahtarı"
               title="Soru bazında"
               count={total}
-              action={<Btn icon={<Download size={13} />}>PDF olarak indir</Btn>}
+              action={
+                <Btn
+                  icon={<Download size={13} />}
+                  onClick={() => window.print()}
+                >PDF olarak indir</Btn>
+              }
             />
             <div style={{ display: 'grid', gap: 10 }}>
               {result.answers.map((a, i) => {
+                const isShortAnswerPending = a.question.type === 'SHORT_ANSWER' && a.isCorrect === null;
                 const tone = a.isCorrect === true
                   ? { fg: tokens.good, bg: '#ecfdf5', br: '#bbf7d0', lbl: '✓ Doğru' }
                   : a.isCorrect === false
                   ? { fg: tokens.bad, bg: '#fef2f2', br: '#fecaca', lbl: '✗ Yanlış' }
+                  : isShortAnswerPending
+                  ? { fg: '#9a3412', bg: '#fff7ed', br: '#fed7aa', lbl: '⋯ Eğitmen değerlendirmesi bekleniyor' }
                   : { fg: '#9a3412', bg: '#fff7ed', br: '#fed7aa', lbl: '⋯ Değerlendiriliyor' };
 
                 return (
@@ -272,7 +315,7 @@ export default function ExamResult() {
                       fontFamily: tokens.mono,
                     }}>
                       <span style={{ color: tokens.subtle }}>Cevabın: </span>
-                      {a.answerText || 'Boş'}
+                      {displayAnswer(a.question.type, a.answerText)}
                     </div>
                     {a.isCorrect === false && a.question.correctAnswer && (
                       <div style={{
@@ -282,7 +325,18 @@ export default function ExamResult() {
                         fontFamily: tokens.mono,
                       }}>
                         <span style={{ color: '#16a34a' }}>Doğru cevap: </span>
-                        {a.question.correctAnswer}
+                        {displayAnswer(a.question.type, a.question.correctAnswer)}
+                      </div>
+                    )}
+                    {isShortAnswerPending && (
+                      <div style={{
+                        marginTop: 6, padding: '8px 12px',
+                        background: '#fff7ed', border: '1px solid #fed7aa',
+                        borderRadius: 6, fontSize: 12.5, color: '#9a3412',
+                        lineHeight: 1.5,
+                      }}>
+                        Kısa cevap soruları eğitmen tarafından manuel değerlendirilir.
+                        Toplam puanın değerlendirme tamamlandıktan sonra güncellenecek.
                       </div>
                     )}
                     {a.feedback && (
@@ -331,8 +385,9 @@ export default function ExamResult() {
               icon={<ArrowLeft size={14} />}
               style={{ width: '100%', justifyContent: 'center' }}
             >{isInstructor ? 'Geri Dön' : 'Sınavlarıma Dön'}</Btn>
-            {!isInstructor && (
+            {!isInstructor && instructor?.email && (
               <Btn variant="ghost" icon={<Send size={14} />}
+                onClick={handleAskInstructor}
                 style={{ width: '100%', justifyContent: 'center' }}>
                 Eğitmene Soru Sor
               </Btn>
@@ -386,7 +441,10 @@ function SummaryCard({ score, total, status, correct, wrong, empty }: {
 
 function ClassComparisonCard({ agg }: { agg: ExamAggregate }) {
   const pct = Math.max(0, Math.min(100, agg.yourPercentile));
-  const topLabel = pct >= 50 ? `Üst %${(100 - pct).toFixed(0)}` : `Alt %${pct.toFixed(0)}`;
+  const topLabel = `%${pct.toFixed(0)} yüzdelik dilim`;
+  const subLabel = pct >= 50
+    ? `Sınıfın %${pct.toFixed(0)}'inden yüksek puan`
+    : `Sınıfın %${(100 - pct).toFixed(0)}'i senden daha yüksek`;
 
   const bins = agg.histogram?.bins ?? [];
   const counts = agg.histogram?.counts ?? [];
@@ -414,8 +472,11 @@ function ClassComparisonCard({ agg }: { agg: ExamAggregate }) {
 
       <div style={{ marginTop: 14, marginBottom: 18 }}>
         <span style={{
-          fontFamily: tokens.serif, fontSize: 36, color: tokens.ink, lineHeight: 1,
+          fontFamily: tokens.serif, fontSize: 32, color: tokens.ink, lineHeight: 1.1,
         }}>{topLabel}</span>
+        <div style={{ fontSize: 12.5, color: tokens.muted, marginTop: 6 }}>
+          {subLabel}
+        </div>
         <div style={{ fontSize: 11.5, color: tokens.subtle, marginTop: 4 }}>
           {agg.classSize} öğrencilik sınıfta · {agg.completedCount} tamamlandı
         </div>

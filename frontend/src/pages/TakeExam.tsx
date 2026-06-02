@@ -42,10 +42,23 @@ export default function TakeExam() {
   const [showWarning1Min, setShowWarning1Min] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'warning' | 'critical'>('warning');
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const storageKey = id ? `quiz-answers-${id}` : null;
 
   useEffect(() => {
     loadExam();
   }, [id]);
+
+  useEffect(() => {
+    if (!storageKey || answers.length === 0) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(answers));
+    } catch (err) {
+      console.warn('Auto-save failed:', err);
+    }
+  }, [answers, storageKey]);
 
   useEffect(() => {
     if (timeRemaining > 0) {
@@ -108,9 +121,24 @@ export default function TakeExam() {
         setTimeRemaining(examRes.data.duration * 60);
       }
 
-      setAnswers(questionsRes.data.map((eq: ExamQuestion) => ({
+      let initialAnswers: Answer[] = questionsRes.data.map((eq: ExamQuestion) => ({
         questionId: eq.question.id, answerText: '',
-      })));
+      }));
+      if (storageKey) {
+        try {
+          const raw = localStorage.getItem(storageKey);
+          if (raw) {
+            const saved: Answer[] = JSON.parse(raw);
+            initialAnswers = initialAnswers.map(a => {
+              const s = saved.find(x => x.questionId === a.questionId);
+              return s ? { ...a, answerText: s.answerText } : a;
+            });
+          }
+        } catch (err) {
+          console.warn('Failed to restore saved answers:', err);
+        }
+      }
+      setAnswers(initialAnswers);
     } catch (error) {
       console.error('Error loading exam:', error);
       alert('Sınav yüklenirken hata oluştu!');
@@ -123,18 +151,31 @@ export default function TakeExam() {
     );
   };
 
-  const handleSubmit = async () => {
-    if (!studentExamId) return;
+  const submitNow = async () => {
+    if (!studentExamId || submitting) return;
+    setSubmitting(true);
     try {
       const answersMap: Record<string, string> = {};
       answers.forEach(a => {
         if (a.answerText) answersMap[String(a.questionId)] = a.answerText;
       });
       const res = await api.post(`/student-exams/${studentExamId}/submit`, answersMap);
+      if (storageKey) {
+        try { localStorage.removeItem(storageKey); } catch {/* ignore */}
+      }
       navigate(`/student/result/${res.data.studentExamId}`);
     } catch (error) {
       console.error('Error submitting exam:', error);
       alert('Sınav teslim edilirken hata oluştu!');
+      setSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (timeRemaining <= 0) {
+      submitNow();
+    } else {
+      setConfirmSubmit(true);
     }
   };
 
@@ -447,6 +488,51 @@ export default function TakeExam() {
 
       {toastMessage && (
         <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage(null)} />
+      )}
+
+      {confirmSubmit && (
+        <div
+          onClick={() => !submitting && setConfirmSubmit(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 50,
+            background: 'rgba(15,18,28,0.55)',
+            display: 'grid', placeItems: 'center', padding: 20,
+          }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            maxWidth: 460, width: '100%', background: '#fff',
+            border: `1px solid ${tokens.hairline}`, borderRadius: 16,
+            padding: 28, boxShadow: '0 18px 48px rgba(15,18,28,0.18)',
+          }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 10,
+              fontFamily: tokens.mono, fontSize: 10.5, color: tokens.subtle,
+              letterSpacing: '0.1em', textTransform: 'uppercase' as const,
+            }}>
+              <AlertTriangle size={14} style={{ color: '#dc2626' }} />
+              Onay gerekli
+            </div>
+            <h2 style={{
+              margin: '10px 0 0', fontFamily: tokens.serif,
+              fontSize: 24, fontWeight: 400, letterSpacing: '-0.015em', color: tokens.ink,
+            }}>Sınavı teslim et?</h2>
+            <p style={{
+              margin: '12px 0 0', color: tokens.muted, lineHeight: 1.6, fontSize: 14,
+            }}>
+              {answeredCount} soruyu cevapladın, <strong>{questions.length - answeredCount}</strong> soru hâlâ boş.
+              Teslim ettikten sonra cevaplarını değiştiremezsin.
+            </p>
+            <div style={{
+              marginTop: 22, display: 'flex', justifyContent: 'flex-end', gap: 10,
+            }}>
+              <Btn type="button" onClick={() => setConfirmSubmit(false)} disabled={submitting}>
+                Geri Dön
+              </Btn>
+              <Btn variant="dark" onClick={submitNow} disabled={submitting} icon={<Send size={14} />}>
+                {submitting ? 'Teslim ediliyor…' : 'Evet, teslim et'}
+              </Btn>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

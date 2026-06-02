@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Save, Upload, X, Search } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Upload, X, Search, Pencil, Trash2 } from 'lucide-react';
 import api from '../api/axios';
 import type { Question } from '../types';
 import {
@@ -36,10 +36,26 @@ const labelStyle = {
   marginBottom: 8,
 };
 
+const initialFormState = {
+  questionText: '',
+  type: 'MULTIPLE_CHOICE' as 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER',
+  options: '',
+  correctAnswer: '',
+  points: 1,
+  categoryId: null as number | null,
+};
+
 function typeLabel(type: string): string {
   if (type === 'MULTIPLE_CHOICE') return 'Çoktan Seçmeli';
   if (type === 'TRUE_FALSE') return 'Doğru / Yanlış';
   return 'Kısa Cevap';
+}
+
+function tfDisplay(value: string): string {
+  const v = (value || '').trim().toLowerCase();
+  if (v === 'true' || v === 'doğru' || v === 'd') return 'Doğru';
+  if (v === 'false' || v === 'yanlış' || v === 'y') return 'Yanlış';
+  return value;
 }
 
 export default function QuestionBank() {
@@ -49,14 +65,9 @@ export default function QuestionBank() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    questionText: '',
-    type: 'MULTIPLE_CHOICE' as 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER',
-    options: '',
-    correctAnswer: '',
-    points: 1,
-    categoryId: null as number | null,
-  });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState(initialFormState);
 
   useEffect(() => {
     loadQuestions();
@@ -81,24 +92,79 @@ export default function QuestionBank() {
     });
   }, [questions, selectedCategory, search]);
 
+  const resetForm = () => {
+    setFormData(initialFormState);
+    setEditingId(null);
+  };
+
+  const startCreate = () => {
+    if (showForm) {
+      setShowForm(false);
+      resetForm();
+    } else {
+      resetForm();
+      setShowForm(true);
+    }
+  };
+
+  const startEdit = (q: Question) => {
+    setEditingId(q.id);
+    setFormData({
+      questionText: q.questionText,
+      type: q.type as typeof formData.type,
+      options: q.options || '',
+      correctAnswer: q.correctAnswer || '',
+      points: q.points ?? 1,
+      categoryId: q.category?.id ?? null,
+    });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (q: Question) => {
+    if (!window.confirm(`"${q.questionText}" sorusunu silmek istediğinden emin misin?`)) return;
+    try {
+      await api.delete(`/questions/${q.id}`);
+      loadQuestions();
+    } catch (error) {
+      alert('Soru silinemedi. Bu soru bir sınavda kullanılıyor olabilir.');
+      console.error(error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.categoryId) {
+      alert('Lütfen bir kategori seç. Kategori zorunlu.');
+      return;
+    }
+    if (formData.type === 'MULTIPLE_CHOICE' && !formData.options.trim()) {
+      alert('Çoktan seçmeli sorular için seçenekler zorunludur.');
+      return;
+    }
+    if (!formData.correctAnswer.trim()) {
+      alert('Doğru cevap boş bırakılamaz.');
+      return;
+    }
+    setSaving(true);
     try {
       const payload = {
         ...formData,
-        category: formData.categoryId ? { id: formData.categoryId } : null,
+        category: { id: formData.categoryId },
       };
-      await api.post('/questions', payload);
-      alert('Soru eklendi!');
+      if (editingId) {
+        await api.put(`/questions/${editingId}`, payload);
+      } else {
+        await api.post('/questions', payload);
+      }
       setShowForm(false);
-      setFormData({
-        questionText: '', type: 'MULTIPLE_CHOICE', options: '',
-        correctAnswer: '', points: 1, categoryId: null,
-      });
+      resetForm();
       loadQuestions();
     } catch (error) {
-      alert('Hata oluştu!');
+      alert('Hata oluştu! Form veriniz korundu, tekrar deneyebilirsiniz.');
       console.error(error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -128,7 +194,7 @@ export default function QuestionBank() {
           <Btn onClick={() => navigate('/instructor/bulk-import')} icon={<Upload size={14} />}>
             Toplu İçe Aktar
           </Btn>
-          <Btn variant="primary" onClick={() => setShowForm(v => !v)}
+          <Btn variant="primary" onClick={startCreate}
             icon={showForm ? <X size={14} /> : <Plus size={14} />}>
             {showForm ? 'Formu Kapat' : 'Yeni Soru'}
           </Btn>
@@ -149,7 +215,10 @@ export default function QuestionBank() {
           marginBottom: 32, padding: 24,
           background: '#fff', border: `1px solid ${tokens.hairline}`, borderRadius: 14,
         }}>
-          <SectionHeader kicker="Yeni soru" title="Soru oluştur" />
+          <SectionHeader
+            kicker={editingId ? 'Soru düzenle' : 'Yeni soru'}
+            title={editingId ? 'Soruyu güncelle' : 'Soru oluştur'}
+          />
 
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gap: 16 }}>
@@ -158,7 +227,12 @@ export default function QuestionBank() {
                   <label style={labelStyle}>Soru Tipi</label>
                   <select
                     value={formData.type}
-                    onChange={e => setFormData({ ...formData, type: e.target.value as typeof formData.type })}
+                    onChange={e => setFormData({
+                      ...formData,
+                      type: e.target.value as typeof formData.type,
+                      correctAnswer: '',
+                      options: '',
+                    })}
                     style={{ ...inputStyle, cursor: 'pointer' }}>
                     <option value="MULTIPLE_CHOICE">Çoktan Seçmeli</option>
                     <option value="TRUE_FALSE">Doğru / Yanlış</option>
@@ -166,8 +240,9 @@ export default function QuestionBank() {
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>Kategori</label>
+                  <label style={labelStyle}>Kategori *</label>
                   <select
+                    required
                     value={formData.categoryId || ''}
                     onChange={e => setFormData({
                       ...formData,
@@ -195,7 +270,7 @@ export default function QuestionBank() {
 
               {formData.type === 'MULTIPLE_CHOICE' && (
                 <div>
-                  <label style={labelStyle}>Seçenekler</label>
+                  <label style={labelStyle}>Seçenekler *</label>
                   <textarea
                     rows={4}
                     value={formData.options}
@@ -209,25 +284,45 @@ export default function QuestionBank() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div>
                   <label style={labelStyle}>
-                    Doğru Cevap
+                    Doğru Cevap *
                     {formData.type === 'MULTIPLE_CHOICE' && (
                       <span style={{ fontFamily: tokens.sans, color: tokens.subtle, marginLeft: 6, textTransform: 'none' }}>(A, B, C, D)</span>
                     )}
                   </label>
-                  <input
-                    type="text" required
-                    value={formData.correctAnswer}
-                    onChange={e => setFormData({ ...formData, correctAnswer: e.target.value.toUpperCase() })}
-                    placeholder={formData.type === 'MULTIPLE_CHOICE' ? 'A' : ''}
-                    style={{ ...inputStyle, fontFamily: tokens.mono }}
-                  />
+                  {formData.type === 'TRUE_FALSE' ? (
+                    <select
+                      required
+                      value={formData.correctAnswer}
+                      onChange={e => setFormData({ ...formData, correctAnswer: e.target.value })}
+                      style={{ ...inputStyle, cursor: 'pointer' }}>
+                      <option value="">Seçiniz</option>
+                      <option value="true">Doğru</option>
+                      <option value="false">Yanlış</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text" required
+                      value={formData.correctAnswer}
+                      onChange={e => setFormData({
+                        ...formData,
+                        correctAnswer: formData.type === 'MULTIPLE_CHOICE'
+                          ? e.target.value.toUpperCase()
+                          : e.target.value,
+                      })}
+                      placeholder={formData.type === 'MULTIPLE_CHOICE' ? 'A' : ''}
+                      style={{ ...inputStyle, fontFamily: tokens.mono }}
+                    />
+                  )}
                 </div>
                 <div>
-                  <label style={labelStyle}>Puan</label>
+                  <label style={labelStyle}>Puan *</label>
                   <input
                     type="number" min={1} required
-                    value={formData.points}
-                    onChange={e => setFormData({ ...formData, points: parseInt(e.target.value || '1') })}
+                    value={formData.points === 0 ? '' : formData.points}
+                    onChange={e => {
+                      const v = e.target.value;
+                      setFormData({ ...formData, points: v === '' ? 0 : parseInt(v) });
+                    }}
                     style={{ ...inputStyle, fontFamily: tokens.mono }}
                   />
                 </div>
@@ -239,8 +334,10 @@ export default function QuestionBank() {
               marginTop: 20, paddingTop: 16,
               borderTop: `1px solid ${tokens.hairlineSoft}`,
             }}>
-              <Btn type="button" onClick={() => setShowForm(false)} icon={<X size={14} />}>İptal</Btn>
-              <Btn type="submit" variant="primary" icon={<Save size={14} />}>Kaydet</Btn>
+              <Btn type="button" onClick={() => { setShowForm(false); resetForm(); }} icon={<X size={14} />}>İptal</Btn>
+              <Btn type="submit" variant="primary" disabled={saving} icon={<Save size={14} />}>
+                {saving ? 'Kaydediliyor…' : (editingId ? 'Güncelle' : 'Kaydet')}
+              </Btn>
             </div>
           </form>
         </section>
@@ -308,6 +405,7 @@ export default function QuestionBank() {
               <article key={q.id} style={{
                 padding: 20, background: '#fff',
                 border: `1px solid ${tokens.hairline}`, borderRadius: 12,
+                position: 'relative' as const,
               }}>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
@@ -326,6 +424,34 @@ export default function QuestionBank() {
                       <span style={{ fontSize: 12, color: tokens.subtle }}>{q.category.name}</span>
                     </>
                   )}
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => startEdit(q)}
+                      title="Düzenle"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 10px', fontSize: 12,
+                        background: '#fff', border: `1px solid ${tokens.hairline}`,
+                        borderRadius: 8, color: tokens.ink, cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}>
+                      <Pencil size={13} /> Düzenle
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(q)}
+                      title="Sil"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 10px', fontSize: 12,
+                        background: '#fff', border: '1px solid #fecaca',
+                        borderRadius: 8, color: tokens.bad, cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}>
+                      <Trash2 size={13} /> Sil
+                    </button>
+                  </div>
                 </div>
 
                 <p style={{
@@ -351,7 +477,7 @@ export default function QuestionBank() {
                     color: tokens.good, fontSize: 12.5,
                     fontFamily: tokens.mono, fontWeight: 600,
                   }}>
-                    ✓ Doğru cevap: {q.correctAnswer}
+                    ✓ Doğru cevap: {q.type === 'TRUE_FALSE' ? tfDisplay(q.correctAnswer) : q.correctAnswer}
                   </div>
                 )}
               </article>

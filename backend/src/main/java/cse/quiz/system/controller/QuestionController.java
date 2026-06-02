@@ -2,6 +2,8 @@ package cse.quiz.system.controller;
 
 import cse.quiz.system.entity.Category;
 import cse.quiz.system.entity.Question;
+import cse.quiz.system.exception.NotFoundException;
+import cse.quiz.system.exception.UnauthorizedException;
 import cse.quiz.system.repository.CategoryRepository;
 import cse.quiz.system.repository.QuestionRepository;
 import cse.quiz.system.util.SecurityUtils;
@@ -46,6 +48,44 @@ public class QuestionController {
             question.setKeycloakCreatorId(currentUserId);
         }
         return questionRepository.save(question);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
+    public Question updateQuestion(@PathVariable Long id, @RequestBody Question incoming) {
+        Question existing = questionRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Soru bulunamadı"));
+
+        String currentUserId = SecurityUtils.getCurrentUserId();
+        boolean isAdmin = SecurityUtils.hasAnyRole("ADMIN");
+        if (!isAdmin && (currentUserId == null
+                || !currentUserId.equals(existing.getKeycloakCreatorId()))) {
+            throw new UnauthorizedException("Bu soruyu düzenleme yetkiniz yok");
+        }
+
+        existing.setQuestionText(incoming.getQuestionText());
+        existing.setType(incoming.getType());
+        existing.setOptions(incoming.getOptions());
+        existing.setCorrectAnswer(incoming.getCorrectAnswer());
+        existing.setPoints(incoming.getPoints());
+        existing.setCategory(incoming.getCategory());
+        return questionRepository.save(existing);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
+    public void deleteQuestion(@PathVariable Long id) {
+        Question existing = questionRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Soru bulunamadı"));
+
+        String currentUserId = SecurityUtils.getCurrentUserId();
+        boolean isAdmin = SecurityUtils.hasAnyRole("ADMIN");
+        if (!isAdmin && (currentUserId == null
+                || !currentUserId.equals(existing.getKeycloakCreatorId()))) {
+            throw new UnauthorizedException("Bu soruyu silme yetkiniz yok");
+        }
+
+        questionRepository.delete(existing);
     }
     
     @GetMapping("/{id}/full")
@@ -92,7 +132,7 @@ public class QuestionController {
                     Question question = new Question();
                     question.setQuestionText(parts[0].replace("\"", "").trim());
                     question.setType(Question.QuestionType.valueOf(parts[1].trim()));
-                    question.setOptions(parts.length > 2 && !parts[2].trim().isEmpty() ? parts[2].replace("\"", "").trim() : null);
+                    question.setOptions(parts.length > 2 && !parts[2].trim().isEmpty() ? parts[2].replace("\"", "").trim().replace("\\n", "\n") : null);
                     question.setCorrectAnswer(parts[3].replace("\"", "").trim());
                     question.setPoints(parts.length > 4 && !parts[4].trim().isEmpty() ? Integer.parseInt(parts[4].trim()) : 1);
                     

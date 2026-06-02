@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Eye, BarChart3, FileText, Send, ToggleLeft } from 'lucide-react';
+import { ArrowLeft, Plus, Eye, BarChart3, FileText, Send, ToggleLeft, Pencil } from 'lucide-react';
 import api from '../api/axios';
 import type { Exam, Question } from '../types';
 import {
@@ -42,27 +42,40 @@ export default function ExamDetail() {
     [examQuestions]
   );
 
+  const [busy, setBusy] = useState(false);
+
   const handlePublish = async () => {
-    if (!exam) return;
+    if (!exam || busy) return;
+    if (examQuestions.length === 0) {
+      alert('Sorusu olmayan sınav yayınlanamaz. Önce soru ekle.');
+      return;
+    }
+    if (!window.confirm('Sınavı yayınlamak istediğine emin misin? Yayınladıktan sonra öğrenciler katılabilir.')) return;
+    setBusy(true);
     try {
       await api.put(`/exams/${id}`, { ...exam, published: true });
-      alert('Sınav yayınlandı!');
       navigate('/instructor');
     } catch (error) {
-      alert('Hata oluştu!');
+      const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message
+        || 'Sınav yayınlanırken hata oluştu.';
+      alert(msg);
       console.error(error);
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleUnpublish = async () => {
-    if (!exam) return;
+    if (!exam || busy) return;
+    setBusy(true);
     try {
       await api.put(`/exams/${id}`, { ...exam, published: false });
-      alert('Sınav yayından kaldırıldı!');
       setExam({ ...exam, published: false });
     } catch (error) {
-      alert('Hata oluştu!');
+      alert('Yayından kaldırılırken hata oluştu.');
       console.error(error);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -89,10 +102,22 @@ export default function ExamDetail() {
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
           {!exam.published ? (
-            <Btn variant="primary" onClick={handlePublish} icon={<Send size={14} />}>Yayınla</Btn>
+            <Btn
+              variant="primary"
+              onClick={handlePublish}
+              disabled={busy || examQuestions.length === 0}
+              title={examQuestions.length === 0 ? 'Önce soru ekle' : undefined}
+              icon={<Send size={14} />}>
+              {busy ? 'Yayınlanıyor…' : 'Yayınla'}
+            </Btn>
           ) : (
-            <Btn onClick={handleUnpublish} icon={<ToggleLeft size={14} />}>Yayından Kaldır</Btn>
+            <Btn onClick={handleUnpublish} disabled={busy} icon={<ToggleLeft size={14} />}>
+              {busy ? 'İşleniyor…' : 'Yayından Kaldır'}
+            </Btn>
           )}
+          <Btn onClick={() => navigate(`/instructor/exam/${id}/edit`)} icon={<Pencil size={14} />}>
+            Düzenle
+          </Btn>
           <Btn onClick={() => navigate(`/instructor/exam/${id}/add-questions`)} icon={<Plus size={14} />}>
             Soru Ekle
           </Btn>

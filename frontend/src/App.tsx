@@ -42,6 +42,7 @@ function App() {
           {/* Instructor routes */}
           <Route path="/instructor" element={<ProtectedRoute roles={['INSTRUCTOR']}><InstructorDashboard /></ProtectedRoute>} />
           <Route path="/instructor/create-exam" element={<ProtectedRoute roles={['INSTRUCTOR']}><CreateExam /></ProtectedRoute>} />
+          <Route path="/instructor/exam/:id/edit" element={<ProtectedRoute roles={['INSTRUCTOR']}><CreateExam /></ProtectedRoute>} />
           <Route path="/instructor/exam/:id" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamDetail /></ProtectedRoute>} />
           <Route path="/instructor/exam/:id/preview" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamPreview /></ProtectedRoute>} />
           <Route path="/instructor/exam/:id/results" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamResults /></ProtectedRoute>} />

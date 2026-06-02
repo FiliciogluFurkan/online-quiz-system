@@ -1,9 +1,11 @@
 package cse.quiz.system.controller;
 
+import cse.quiz.system.entity.Exam;
 import cse.quiz.system.entity.StudentExam;
 import cse.quiz.system.exception.ConflictException;
 import cse.quiz.system.exception.NotFoundException;
 import cse.quiz.system.exception.UnauthorizedException;
+import cse.quiz.system.repository.ExamRepository;
 import cse.quiz.system.repository.StudentExamRepository;
 import cse.quiz.system.repository.UserRepository;
 import cse.quiz.system.service.ExamSubmissionService;
@@ -24,6 +26,7 @@ public class StudentExamController {
     private final StudentExamRepository studentExamRepository;
     private final ExamSubmissionService examSubmissionService;
     private final UserRepository userRepository;
+    private final ExamRepository examRepository;
 
     @GetMapping("/student/{studentId}")
     @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
@@ -65,25 +68,45 @@ public ResponseEntity<?> checkExamStatus(@PathVariable Long examId) {
 }
 
     @PostMapping
+    @PreAuthorize("hasRole('STUDENT')")
 public StudentExam startExam(@RequestBody StudentExam studentExam) {
     String currentUserId = SecurityUtils.getCurrentUserId();
-    
+
+    if (studentExam.getExam() == null || studentExam.getExam().getId() == null) {
+        throw new NotFoundException("Sınav bilgisi eksik");
+    }
+
+    Exam exam = examRepository.findById(studentExam.getExam().getId())
+            .orElseThrow(() -> new NotFoundException("Sınav bulunamadı"));
+
+    if (!Boolean.TRUE.equals(exam.getPublished())) {
+        throw new ConflictException("Bu sınav henüz yayında değil");
+    }
+
+    LocalDateTime now = LocalDateTime.now();
+    if (exam.getStartTime() != null && now.isBefore(exam.getStartTime())) {
+        throw new ConflictException("Sınav henüz başlamadı");
+    }
+    if (exam.getEndTime() != null && now.isAfter(exam.getEndTime())) {
+        throw new ConflictException("Sınavın süresi doldu");
+    }
+
     if (currentUserId != null) {
         List<StudentExam> existing = studentExamRepository
             .findByKeycloakUserIdAndExamId(currentUserId, studentExam.getExam().getId());
-        
+
         // SUBMITTED/GRADED varsa engelle
         boolean alreadyDone = existing.stream()
-            .anyMatch(se -> se.getStatus() == StudentExam.ExamStatus.SUBMITTED || 
+            .anyMatch(se -> se.getStatus() == StudentExam.ExamStatus.SUBMITTED ||
                            se.getStatus() == StudentExam.ExamStatus.GRADED);
         if (alreadyDone) throw new ConflictException("Bu sınavı zaten tamamladınız!");
-        
+
         // IN_PROGRESS varsa onu döndür
         Optional<StudentExam> inProgress = existing.stream()
             .filter(se -> se.getStatus() == StudentExam.ExamStatus.IN_PROGRESS)
             .findFirst();
         if (inProgress.isPresent()) return inProgress.get();
-        
+
         studentExam.setKeycloakUserId(currentUserId);
         userRepository.findByKeycloakUserId(currentUserId).ifPresent(studentExam::setStudent);
     }

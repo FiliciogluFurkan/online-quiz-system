@@ -26,3 +26,26 @@ body {
   70%  { transform: scale(2.6); opacity: 0; }
   100% { transform: scale(2.6); opacity: 0; }
 }
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+  nav,
+  header[role="banner"],
+  .no-print,
+  [data-no-print] {
+    display: none !important;
+  }
+  button {
+    display: none !important;
+  }
+  article {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  a {
+    color: #213547 !important;
+    text-decoration: none !important;
+  }
+}

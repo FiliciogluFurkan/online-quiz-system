@@ -39,6 +39,30 @@ public class ExamSubmissionService {
             throw new ConflictException("Exam is not in progress");
         }
 
+        if (existing.getExam() != null) {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime startedAt = existing.getStartedAt();
+            Integer durationMin = existing.getExam().getDuration();
+            if (startedAt != null && durationMin != null) {
+                LocalDateTime hardDeadline = startedAt.plusMinutes(durationMin).plusSeconds(30);
+                if (now.isAfter(hardDeadline)) {
+                    existing.setStatus(StudentExam.ExamStatus.SUBMITTED);
+                    existing.setSubmittedAt(now);
+                    studentExamRepository.save(existing);
+                    gradingService.gradeExam(studentExamId);
+                    throw new ConflictException("Sınav süresi doldu, yeni cevap alınamaz");
+                }
+            }
+            LocalDateTime examEnd = existing.getExam().getEndTime();
+            if (examEnd != null && now.isAfter(examEnd.plusSeconds(30))) {
+                existing.setStatus(StudentExam.ExamStatus.SUBMITTED);
+                existing.setSubmittedAt(now);
+                studentExamRepository.save(existing);
+                gradingService.gradeExam(studentExamId);
+                throw new ConflictException("Sınav süresi doldu, yeni cevap alınamaz");
+            }
+        }
+
         answers.forEach((questionIdStr, answerText) -> {
             if (answerText != null && !answerText.isBlank()) {
                 Long questionId;
