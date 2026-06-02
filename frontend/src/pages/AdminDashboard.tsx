@@ -353,8 +353,8 @@ export default function AdminDashboard() {
                         <td style={{ ...tdStyle, color: tokens.ink, fontWeight: 500 }}>
                           {item.exam?.title || '—'}
                         </td>
-                        <td style={{ ...tdStyle, fontFamily: tokens.mono, color: tokens.muted, fontSize: 12 }}>
-                          {item.keycloakUserId?.substring(0, 12) ?? '—'}…
+                        <td style={{ ...tdStyle, color: tokens.muted, fontSize: 13 }}>
+                          {item.student?.fullName || item.student?.username || item.student?.email || '—'}
                         </td>
                         <td style={tdStyle}>
                           <span style={{

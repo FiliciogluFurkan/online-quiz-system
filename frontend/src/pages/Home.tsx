@@ -1,10 +1,23 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { ArrowRight, LogIn, LogOut, GraduationCap, BookOpen, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { tokens, Kicker, Btn, CodeTag } from '../components/academic-ui';
 
 export default function Home() {
   const { isAuthenticated, user, login, logout, hasRole } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    const roles = ['ADMIN', 'INSTRUCTOR', 'STUDENT'].filter(r => hasRole(r));
+    if (roles.length === 1) {
+      const target = roles[0] === 'ADMIN' ? '/admin'
+        : roles[0] === 'INSTRUCTOR' ? '/instructor'
+        : '/student';
+      navigate(target, { replace: true });
+    }
+  }, [isAuthenticated, user, hasRole, navigate]);
 
   return (
     <main style={{
@@ -69,7 +82,7 @@ export default function Home() {
               {
                 num: '01',
                 title: 'Güvenli Giriş',
-                desc: 'Keycloak tabanlı kimlik doğrulama ile hesabına güvenli erişim.',
+                desc: 'Akademik hesabınla doğrulanmış, hızlı ve güvenli oturum.',
                 icon: ShieldCheck,
               },
               {
@@ -147,7 +160,7 @@ export default function Home() {
                 background: tokens.ivory, border: `1px solid ${tokens.hairlineSoft}`,
                 borderRadius: 10, fontSize: 12, color: tokens.subtle, lineHeight: 1.55,
               }}>
-                Keycloak ile yönlendirileceksin. Geri dönüşte rolüne göre paneline ileteceğiz.
+                Giriş sayfasına yönlendirileceksin. Doğrulama sonrası rolüne uygun panel otomatik açılır.
               </div>
             </>
           ) : (

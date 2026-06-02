@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useCreateExam } from '../hooks/useCreateExam';
 import {
@@ -31,28 +31,58 @@ const labelStyle = {
 
 export default function CreateExam() {
   const navigate = useNavigate();
-  const { formData, setFormData, computedEndTime, examSummary, handleSubmit } = useCreateExam(navigate);
+  const { id } = useParams();
+  const {
+    formData, setFormData, computedEndTime, examSummary, handleSubmit, saving, loading, isEditMode,
+  } = useCreateExam(navigate, id);
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'grid', placeItems: 'center',
+        background: tokens.bg, fontFamily: tokens.sans, color: tokens.muted,
+      }}>Yükleniyor…</div>
+    );
+  }
+
+  const backTo = isEditMode ? `/instructor/exam/${id}` : '/instructor';
+  const backLabel = isEditMode ? 'Sınav Detayına Dön' : 'Eğitmen Paneli';
 
   return (
     <PageShell>
-      <Crumbs items={['Eğitmen', 'Sınavlar', 'Yeni sınav']} />
+      <Crumbs items={
+        isEditMode
+          ? ['Eğitmen', 'Sınavlar', formData.title || 'Sınav', 'Düzenle']
+          : ['Eğitmen', 'Sınavlar', 'Yeni sınav']
+      } />
 
-      <Btn icon={<ArrowLeft size={14} />} onClick={() => navigate('/instructor')}>
-        Eğitmen Paneli
+      <Btn icon={<ArrowLeft size={14} />} onClick={() => navigate(backTo)}>
+        {backLabel}
       </Btn>
 
       <section style={{ marginTop: 24, marginBottom: 36 }}>
-        <Kicker>Yeni sınav</Kicker>
+        <Kicker>{isEditMode ? 'Sınav düzenle' : 'Yeni sınav'}</Kicker>
         <div style={{ marginTop: 8 }}>
-          <HeroTitle>Sınav Oluştur</HeroTitle>
+          <HeroTitle>{isEditMode ? 'Sınavı Düzenle' : 'Sınav Oluştur'}</HeroTitle>
         </div>
         <p style={{
           margin: '14px 0 0', maxWidth: 620, color: tokens.muted,
           fontSize: 15.5, lineHeight: 1.65,
         }}>
-          Sınavın temel bilgilerini gir, süre ve zaman aralığını belirle.
-          Soru ekleme adımı kaydetmeden sonra gelir.
+          {isEditMode
+            ? 'Sınavın temel bilgilerini güncelle. Öğrenciler katılmaya başladıktan sonra süre ve takvim değiştirilemez.'
+            : 'Sınavın temel bilgilerini gir, süre ve zaman aralığını belirle. Soru ekleme adımı kaydetmeden sonra gelir.'}
         </p>
+        {isEditMode && formData.published && (
+          <div style={{
+            marginTop: 18, padding: '12px 16px',
+            background: '#fff7ed', border: '1px solid #fed7aa',
+            borderRadius: 10, fontSize: 13.5, color: '#9a3412', lineHeight: 1.55,
+          }}>
+            Bu sınav <strong>yayında</strong>. Öğrenciler katılmaya başladıysa süre ve takvim
+            değişiklikleri sistem tarafından göz ardı edilir; sadece başlık ve açıklama güncellenir.
+          </div>
+        )}
       </section>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 32, alignItems: 'start' }}>
@@ -95,8 +125,8 @@ export default function CreateExam() {
                 <label style={labelStyle} htmlFor="duration">Süre (dakika) *</label>
                 <input
                   id="duration" type="number" required min={1}
-                  value={formData.duration}
-                  onChange={e => setFormData({ ...formData, duration: parseInt(e.target.value || '0') })}
+                  value={formData.duration === 0 ? '' : formData.duration}
+                  onChange={e => setFormData({ ...formData, duration: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                   style={inputStyle}
                 />
               </div>
@@ -157,19 +187,24 @@ export default function CreateExam() {
                   <label style={labelStyle} htmlFor="pool-size">Havuz boyutu</label>
                   <input
                     id="pool-size" type="number" min={1}
-                    value={formData.poolSize}
-                    onChange={e => setFormData({ ...formData, poolSize: parseInt(e.target.value || '0') })}
+                    value={formData.poolSize === 0 ? '' : formData.poolSize}
+                    onChange={e => setFormData({ ...formData, poolSize: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                     style={inputStyle}
                   />
                 </div>
                 <div>
                   <label style={labelStyle} htmlFor="qps">Öğrenci başına soru</label>
                   <input
-                    id="qps" type="number" min={1} max={formData.poolSize}
-                    value={formData.questionsPerStudent}
-                    onChange={e => setFormData({ ...formData, questionsPerStudent: parseInt(e.target.value || '0') })}
+                    id="qps" type="number" min={1} max={formData.poolSize || undefined}
+                    value={formData.questionsPerStudent === 0 ? '' : formData.questionsPerStudent}
+                    onChange={e => setFormData({ ...formData, questionsPerStudent: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                     style={inputStyle}
                   />
+                  {formData.questionsPerStudent > formData.poolSize && formData.poolSize > 0 && (
+                    <p style={{ margin: '6px 0 0', fontSize: 12, color: tokens.bad }}>
+                      Öğrenci başına soru sayısı havuz boyutundan büyük olamaz.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -179,9 +214,11 @@ export default function CreateExam() {
             display: 'flex', justifyContent: 'flex-end', gap: 10,
             paddingTop: 20, borderTop: `1px solid ${tokens.hairline}`,
           }}>
-            <Btn type="button" onClick={() => navigate('/instructor')}>İptal</Btn>
-            <Btn type="submit" variant="primary" icon={<Save size={14} />}>
-              Taslak olarak kaydet
+            <Btn type="button" onClick={() => navigate(backTo)}>İptal</Btn>
+            <Btn type="submit" variant="primary" disabled={saving} icon={<Save size={14} />}>
+              {saving
+                ? 'Kaydediliyor…'
+                : isEditMode ? 'Değişiklikleri Kaydet' : 'Taslak olarak kaydet'}
             </Btn>
           </div>
         </form>

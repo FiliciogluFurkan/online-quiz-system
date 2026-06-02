@@ -22,6 +22,7 @@ interface StudentExam {
   id: number;
   exam: Exam;
   keycloakUserId: string;
+  student?: { username?: string; email?: string; fullName?: string } | null;
   status: string;
   score: number;
   startedAt: string;
@@ -102,11 +103,12 @@ export function useAdminDashboard() {
   }, [questions, search]);
 
   const filteredStudentExams = useMemo(() => {
-    return studentExams.filter((item) =>
-      `${item.exam?.title || ''} ${item.keycloakUserId || ''} ${item.status || ''}`
+    return studentExams.filter((item) => {
+      const name = item.student?.fullName || item.student?.username || item.student?.email || '';
+      return `${item.exam?.title || ''} ${name} ${item.status || ''}`
         .toLowerCase()
-        .includes(search.toLowerCase())
-    );
+        .includes(search.toLowerCase());
+    });
   }, [studentExams, search]);
 
   return {

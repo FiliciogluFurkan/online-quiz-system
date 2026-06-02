@@ -2,7 +2,10 @@ package cse.quiz.system.controller;
 
 import cse.quiz.system.entity.Exam;
 import cse.quiz.system.entity.StudentExam;
+import cse.quiz.system.exception.ConflictException;
 import cse.quiz.system.exception.NotFoundException;
+import cse.quiz.system.exception.UnauthorizedException;
+import cse.quiz.system.repository.ExamQuestionRepository;
 import cse.quiz.system.repository.ExamRepository;
 import cse.quiz.system.repository.StudentExamRepository;
 import cse.quiz.system.repository.UserRepository;
@@ -26,6 +29,7 @@ public class ExamController {
     private final NotificationService notificationService;
     private final UserRepository userRepository;
     private final StudentExamRepository studentExamRepository;
+    private final ExamQuestionRepository examQuestionRepository;
     private final AuditLogService auditLogService;
 
     @GetMapping
@@ -110,15 +114,49 @@ public class ExamController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('INSTRUCTOR')")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
     public Exam updateExam(@PathVariable Long id, @RequestBody Exam exam) {
-        Exam existingExam = examRepository.findById(id).orElseThrow(() -> new NotFoundException("Exam not found"));
+        Exam existingExam = examRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Sınav bulunamadı"));
+
+        String currentUserId = SecurityUtils.getCurrentUserId();
+        boolean isAdmin = SecurityUtils.hasAnyRole("ADMIN");
+        if (!isAdmin && (currentUserId == null
+                || !currentUserId.equals(existingExam.getKeycloakInstructorId()))) {
+            throw new UnauthorizedException("Bu sınavı düzenleme yetkiniz yok");
+        }
+
         boolean wasUnpublished = !existingExam.getPublished();
+        boolean willPublish = wasUnpublished && Boolean.TRUE.equals(exam.getPublished());
 
-        exam.setId(id);
-        Exam savedExam = examRepository.save(exam);
+        if (willPublish) {
+            long questionCount = examQuestionRepository.findByExamId(id).size();
+            if (questionCount == 0) {
+                throw new ConflictException("Sorusu olmayan sınav yayınlanamaz");
+            }
+        }
 
-        if (wasUnpublished && savedExam.getPublished()) {
+        boolean hasParticipants = !studentExamRepository.findByExamId(id).isEmpty();
+        if (hasParticipants && !wasUnpublished) {
+            existingExam.setTitle(exam.getTitle());
+            existingExam.setDescription(exam.getDescription());
+            existingExam.setPublished(exam.getPublished());
+        } else {
+            existingExam.setTitle(exam.getTitle());
+            existingExam.setDescription(exam.getDescription());
+            existingExam.setDuration(exam.getDuration());
+            existingExam.setStartTime(exam.getStartTime());
+            existingExam.setEndTime(exam.getEndTime());
+            existingExam.setRandomizeQuestions(exam.getRandomizeQuestions());
+            existingExam.setPublished(exam.getPublished());
+            existingExam.setQuestionPoolEnabled(exam.getQuestionPoolEnabled());
+            existingExam.setPoolSize(exam.getPoolSize());
+            existingExam.setQuestionsPerStudent(exam.getQuestionsPerStudent());
+        }
+
+        Exam savedExam = examRepository.save(existingExam);
+
+        if (willPublish) {
             notificationService.notifyNewExamPublished(savedExam.getId());
             auditLogService.record("Exam", savedExam.getId(), "PUBLISH", "title=" + savedExam.getTitle());
         } else {
@@ -126,5 +164,26 @@ public class ExamController {
         }
 
         return savedExam;
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
+    public void deleteExam(@PathVariable Long id) {
+        Exam existing = examRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Sınav bulunamadı"));
+
+        String currentUserId = SecurityUtils.getCurrentUserId();
+        boolean isAdmin = SecurityUtils.hasAnyRole("ADMIN");
+        if (!isAdmin && (currentUserId == null
+                || !currentUserId.equals(existing.getKeycloakInstructorId()))) {
+            throw new UnauthorizedException("Bu sınavı silme yetkiniz yok");
+        }
+
+        if (!studentExamRepository.findByExamId(id).isEmpty()) {
+            throw new ConflictException("Öğrencilerin girdiği sınavlar silinemez");
+        }
+
+        examRepository.delete(existing);
+        auditLogService.record("Exam", id, "DELETE", "title=" + existing.getTitle());
     }
 }

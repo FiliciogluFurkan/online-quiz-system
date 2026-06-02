@@ -1,0 +1,11 @@
+Soru Metni,Tip,Seçenekler,Doğru Cevap,Puan,Kategori ID
+"Aşağıdakilerden hangisi bir programlama dilidir?",MULTIPLE_CHOICE,"A) HTML\nB) CSS\nC) Python\nD) JSON",C,2,
+"HTTP protokolü durumsuz (stateless) bir protokoldür.",TRUE_FALSE,,true,1,
+"Java'da bir sınıf tanımlamak için kullanılan anahtar kelime nedir?",SHORT_ANSWER,,class,3,
+"2 + 2 * 2 işleminin sonucu nedir?",MULTIPLE_CHOICE,"A) 8\nB) 6\nC) 4\nD) 2",B,1,
+"İnternet'te verilerin şifreli iletilmesi için kullanılan protokol HTTPS'dir.",TRUE_FALSE,,true,1,
+"SQL'de tüm kayıtları silmek için kullanılan komut nedir?",SHORT_ANSWER,,DELETE,2,
+"Aşağıdakilerden hangisi bir veritabanı yönetim sistemi değildir?",MULTIPLE_CHOICE,"A) MySQL\nB) PostgreSQL\nC) Apache\nD) MongoDB",C,2,
+"Python büyük-küçük harf duyarlı (case-sensitive) bir dildir.",TRUE_FALSE,,true,1,
+"HTML'de link oluşturmak için kullanılan etiket nedir?",SHORT_ANSWER,,a,1,
+"Aşağıdakilerden hangisi nesne yönelimli programlama kavramı değildir?",MULTIPLE_CHOICE,"A) Kalıtım\nB) Kapsülleme\nC) Derleme\nD) Çok biçimlilik",C,3,
