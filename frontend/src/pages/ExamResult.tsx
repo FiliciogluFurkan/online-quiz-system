@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { ArrowLeft, Download, Send } from 'lucide-react';
 import api from '../api/axios';
-import type { Question } from '../types';
+import type { Question, CategoryBreakdown, ExamAggregate } from '../types';
+import {
+  tokens, PageShell, Crumbs, HeroTitle, Kicker, SectionHeader, Btn, CodeTag,
+  scoreLabel, formatTrDate,
+} from '../components/academic-ui';
 
 interface Answer {
   id: number;
@@ -10,6 +14,7 @@ interface Answer {
   answerText: string;
   isCorrect: boolean | null;
   pointsEarned: number | null;
+  feedback?: string | null;
 }
 
 interface ResultData {
@@ -18,6 +23,7 @@ interface ResultData {
     score: number;
     status: string;
     submittedAt: string;
+    exam?: { id: number; title?: string };
   };
   answers: Answer[];
   correctCount: number;
@@ -30,368 +36,453 @@ export default function ExamResult() {
   const { studentExamId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { hasRole } = useAuth();
   const [result, setResult] = useState<ResultData | null>(null);
+  const [topics, setTopics] = useState<CategoryBreakdown[]>([]);
+  const [aggregate, setAggregate] = useState<ExamAggregate | null>(null);
 
-  // URL'den role belirle
   const isInstructor = location.pathname.includes('/instructor/');
-  const isStudent = location.pathname.includes('/student/');
 
   useEffect(() => {
-    loadResult();
+    if (!studentExamId) return;
+    api.get(`/results/student-exam/${studentExamId}`)
+      .then(res => {
+        setResult(res.data);
+        const examId = res.data.studentExam?.exam?.id;
+        // Fetch enrichment endpoints in parallel — failures are non-fatal
+        api.get(`/results/student-exam/${studentExamId}/by-category`)
+          .then(r => setTopics(r.data || []))
+          .catch(() => setTopics([]));
+        if (examId) {
+          api.get(`/results/exam/${examId}/aggregate`)
+            .then(r => setAggregate(r.data))
+            .catch(() => setAggregate(null));
+        }
+      })
+      .catch(() => alert('Sonuç yüklenemedi'));
   }, [studentExamId]);
 
-  const loadResult = async () => {
-    try {
-      const res = await api.get(`/results/student-exam/${studentExamId}`);
-      setResult(res.data);
-    } catch (error) {
-      alert('Sonuç yüklenemedi');
-    }
-  };
+  if (!result) {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'grid', placeItems: 'center',
+        background: tokens.bg, fontFamily: tokens.sans, color: tokens.muted,
+      }}>Yükleniyor…</div>
+    );
+  }
 
-  if (!result) return <div style={{ padding: 40 }}>Yükleniyor...</div>;
-
-  const totalPoints = result.answers.reduce(
-    (sum, a) => sum + (a.question.points || 0),
-    0
-  );
-
-  const percentage =
-    totalPoints > 0 ? (result.studentExam.score / totalPoints) * 100 : 0;
-
+  const totalPoints = result.answers.reduce((sum, a) => sum + (a.question.points || 0), 0);
+  const percentage = totalPoints > 0 ? (result.studentExam.score / totalPoints) * 100 : 0;
   const correct = result.correctCount;
   const wrong = result.incorrectCount;
   const empty = result.unansweredCount;
   const total = result.totalQuestions;
+  const perf = scoreLabel(percentage);
+
+  const correctPct = total > 0 ? (correct / total) * 100 : 0;
+  const wrongPct = total > 0 ? (wrong / total) * 100 : 0;
 
   return (
-    <div style={page}>
-      <div style={container}>
-        {/* HEADER */}
-        <div style={headerCard}>
-          <h1 style={title}>Sınav Tamamlandı 🎉</h1>
+    <PageShell>
+      <Crumbs items={isInstructor ? ['Eğitmen', 'Sınav Sonucu'] : ['Sınavlarım', 'Sonuç']} />
 
-          <p style={subtitle}>
-            {new Date(result.studentExam.submittedAt).toLocaleString('tr-TR')}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 32, alignItems: 'start' }}>
+        <div>
+          <Kicker>Sınav sonucu</Kicker>
+          <div style={{ marginTop: 8 }}>
+            <HeroTitle>Sınav Tamamlandı</HeroTitle>
+          </div>
+          <p style={{ margin: '14px 0 0', color: tokens.muted, fontSize: 15.5 }}>
+            {formatTrDate(result.studentExam.submittedAt)} — Teslim alındı.
+            {result.studentExam.status === 'GRADED'
+              ? ' Tüm sorular değerlendirildi.'
+              : ' Otomatik puanlanan sorular hemen, kısa cevaplar 48 saat içinde değerlendirilecek.'}
           </p>
 
-          {/* SCORE */}
-          <div style={scoreRow}>
-            <div style={scoreBox}>
-              <div style={scoreBig}>{result.studentExam.score}</div>
-              <span style={muted}>Puan</span>
+          {/* Big score panel */}
+          <div style={{
+            marginTop: 36, padding: '32px 0',
+            borderTop: `1px solid ${tokens.hairline}`, borderBottom: `1px solid ${tokens.hairline}`,
+            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 24, alignItems: 'center',
+          }}>
+            <div>
+              <Kicker>Puanın</Kicker>
+              <div style={{
+                fontFamily: tokens.serif, fontSize: 72, lineHeight: 0.95,
+                color: tokens.ink, letterSpacing: '-0.03em', marginTop: 6,
+              }}>
+                {result.studentExam.score}
+                <span style={{ fontSize: 24, color: tokens.subtle }}> / {totalPoints}</span>
+              </div>
+              <div style={{
+                fontFamily: tokens.mono, fontSize: 11,
+                color: perf.color, marginTop: 6, fontWeight: 600, letterSpacing: '0.04em',
+              }}>{perf.text} · %{percentage.toFixed(0)} BAŞARI</div>
             </div>
 
-            <div style={scoreBox}>
-              <div style={scoreBig}>%{percentage.toFixed(0)}</div>
-              <span style={muted}>Başarı</span>
-            </div>
-          </div>
-
-          {/* PROGRESS BAR */}
-          <div style={progressWrapper}>
-            <div
-              style={{
-                ...progressBar,
-                width: `${percentage}%`,
-              }}
-            />
-          </div>
-        </div>
-
-        {/* CHART + STATS */}
-        <div style={grid}>
-          {/* DONUT */}
-          <div style={cardCenter}>
-            <DonutChart correct={correct} wrong={wrong} empty={empty} total={total} />
-          </div>
-
-          {/* STATS */}
-          <div style={card}>
-            <h3 style={sectionTitle}>Özet</h3>
-
-            <Stat label="Doğru" value={correct} color="#16a34a" bg="#f0fdf4" />
-            <Stat label="Yanlış" value={wrong} color="#dc2626" bg="#fef2f2" />
-            <Stat label="Boş" value={empty} color="#64748b" bg="#f8fafc" />
-          </div>
-        </div>
-
-        {/* ANSWERS */}
-        <div style={card}>
-          <h3 style={sectionTitle}>Cevaplar</h3>
-
-          {result.answers.map((a, i) => (
-            <div key={a.id} style={answerCard}>
-              <div style={badgeRow}>
-                <span style={badge(a.isCorrect)}>
-                  {a.isCorrect === null
-                    ? 'Manuel'
-                    : a.isCorrect
-                    ? '✓ Doğru'
-                    : '✗ Yanlış'}
-                </span>
-
-                <span style={pointsBadge}>
-                  {a.pointsEarned ?? 0}/{a.question.points}
-                </span>
-              </div>
-
-              <p style={question}>
-                {i + 1}. {a.question.questionText}
-              </p>
-
-              <div style={answerText}>
-                <strong>Cevabın:</strong> {a.answerText || 'Boş'}
-              </div>
-
-              {a.isCorrect === false && (
-                <div style={correctAnswer}>
-                  <strong>Doğru:</strong> {a.question.correctAnswer}
+            {/* Donut */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 130, height: 130, borderRadius: '50%',
+                background: `conic-gradient(${tokens.indigo} 0% ${correctPct}%, #dc2626 ${correctPct}% ${correctPct + wrongPct}%, #e2e3eb ${correctPct + wrongPct}% 100%)`,
+                display: 'grid', placeItems: 'center',
+              }}>
+                <div style={{
+                  width: 96, height: 96, borderRadius: '50%', background: tokens.bg,
+                  display: 'grid', placeItems: 'center',
+                }}>
+                  <div>
+                    <div style={{
+                      fontFamily: tokens.serif, fontSize: 32, color: tokens.ink, lineHeight: 1,
+                    }}>{total}</div>
+                    <div style={{
+                      fontSize: 10, color: tokens.subtle,
+                      textTransform: 'uppercase' as const, letterSpacing: '0.1em',
+                    }}>soru</div>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
-          ))}
+
+            {[
+              ['Doğru', correct, tokens.indigo],
+              ['Yanlış', wrong, '#dc2626'],
+            ].map(([k, v, c]) => (
+              <div key={k as string}>
+                <Kicker>{k as string}</Kicker>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 6 }}>
+                  <span style={{
+                    fontFamily: tokens.serif, fontSize: 44, color: c as string,
+                    lineHeight: 1, letterSpacing: '-0.02em',
+                  }}>{v as number}</span>
+                  <span style={{ fontSize: 13, color: tokens.subtle }}>/ {total}</span>
+                </div>
+                <div style={{
+                  marginTop: 8, height: 4, background: tokens.hairlineSoft,
+                  borderRadius: 2, overflow: 'hidden',
+                }}>
+                  <div style={{
+                    width: total > 0 ? `${((v as number) / total) * 100}%` : '0%',
+                    height: '100%', background: c as string,
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {empty > 0 && (
+            <div style={{
+              marginTop: 16, padding: '12px 16px',
+              background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10,
+              color: '#9a3412', fontSize: 13,
+            }}>
+              <strong>{empty}</strong> soru boş bırakıldı.
+            </div>
+          )}
+
+          {/* Topic breakdown */}
+          {topics.length > 0 && (
+            <section style={{ marginTop: 40 }}>
+              <SectionHeader
+                kicker="Performans"
+                title="Konu bazında"
+                sub="Hangi konuda nerede güçlüsün?"
+              />
+              <div style={{ display: 'grid', gap: 12 }}>
+                {topics.map((t, idx) => {
+                  const pct = t.successRate * 100;
+                  const color = pct >= 70 ? tokens.indigo : pct >= 40 ? '#b45309' : tokens.bad;
+                  return (
+                    <div key={idx} style={{
+                      display: 'grid', gridTemplateColumns: '220px 1fr 80px',
+                      gap: 16, alignItems: 'center',
+                    }}>
+                      <span style={{ fontSize: 13.5, color: tokens.text }}>
+                        {t.category?.name || 'Diğer'}
+                        <span style={{ fontSize: 11, color: tokens.subtle, marginLeft: 6 }}>
+                          ({t.questionCount} soru)
+                        </span>
+                      </span>
+                      <div style={{
+                        height: 6, background: tokens.hairlineSoft,
+                        borderRadius: 3, overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          width: `${pct}%`, height: '100%', background: color,
+                          transition: 'width .35s',
+                        }} />
+                      </div>
+                      <span style={{
+                        fontFamily: tokens.mono, fontSize: 12,
+                        color: tokens.ink, fontWeight: 500, textAlign: 'right' as const,
+                      }}>{Math.round(t.earned)}/{Math.round(t.total)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Answers list */}
+          <section style={{ marginTop: 40 }}>
+            <SectionHeader
+              kicker="Cevap Anahtarı"
+              title="Soru bazında"
+              count={total}
+              action={<Btn icon={<Download size={13} />}>PDF olarak indir</Btn>}
+            />
+            <div style={{ display: 'grid', gap: 10 }}>
+              {result.answers.map((a, i) => {
+                const tone = a.isCorrect === true
+                  ? { fg: tokens.good, bg: '#ecfdf5', br: '#bbf7d0', lbl: '✓ Doğru' }
+                  : a.isCorrect === false
+                  ? { fg: tokens.bad, bg: '#fef2f2', br: '#fecaca', lbl: '✗ Yanlış' }
+                  : { fg: '#9a3412', bg: '#fff7ed', br: '#fed7aa', lbl: '⋯ Değerlendiriliyor' };
+
+                return (
+                  <article key={a.id} style={{
+                    padding: 18, background: '#fff',
+                    border: `1px solid ${tokens.hairline}`, borderRadius: 12,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                      <span style={{
+                        width: 24, height: 24, borderRadius: 5,
+                        background: tokens.ink, color: '#fff',
+                        display: 'grid', placeItems: 'center',
+                        fontFamily: tokens.mono, fontSize: 11, fontWeight: 600,
+                      }}>{String(i + 1).padStart(2, '0')}</span>
+                      <span style={{
+                        padding: '3px 8px', borderRadius: 4,
+                        background: tone.bg, color: tone.fg, border: `1px solid ${tone.br}`,
+                        fontSize: 11, fontWeight: 600,
+                      }}>{tone.lbl}</span>
+                      <span style={{ flex: 1 }} />
+                      <span style={{
+                        fontFamily: tokens.mono, fontSize: 12,
+                        color: tokens.ink, fontWeight: 500,
+                      }}>{a.pointsEarned ?? '—'} / {a.question.points}</span>
+                    </div>
+                    <p style={{
+                      margin: 0, fontSize: 15, color: tokens.ink, lineHeight: 1.5,
+                      fontFamily: tokens.serif, fontWeight: 400,
+                    }}>{a.question.questionText}</p>
+                    <div style={{
+                      marginTop: 10, padding: '8px 12px',
+                      background: '#fafafb', border: `1px solid ${tokens.hairlineSoft}`,
+                      borderRadius: 6, fontSize: 12.5, color: tokens.text,
+                      fontFamily: tokens.mono,
+                    }}>
+                      <span style={{ color: tokens.subtle }}>Cevabın: </span>
+                      {a.answerText || 'Boş'}
+                    </div>
+                    {a.isCorrect === false && a.question.correctAnswer && (
+                      <div style={{
+                        marginTop: 6, padding: '8px 12px',
+                        background: '#ecfdf5', border: '1px solid #bbf7d0',
+                        borderRadius: 6, fontSize: 12.5, color: tokens.good,
+                        fontFamily: tokens.mono,
+                      }}>
+                        <span style={{ color: '#16a34a' }}>Doğru cevap: </span>
+                        {a.question.correctAnswer}
+                      </div>
+                    )}
+                    {a.feedback && (
+                      <div style={{
+                        marginTop: 8, padding: '10px 12px',
+                        background: tokens.indigoSoft,
+                        border: `1px solid ${tokens.indigoBorder}`,
+                        borderRadius: 6, fontSize: 13, color: '#3730a3',
+                        lineHeight: 1.55,
+                      }}>
+                        <div style={{
+                          fontFamily: tokens.mono, fontSize: 10.5,
+                          color: tokens.indigo, letterSpacing: '0.1em',
+                          textTransform: 'uppercase' as const, fontWeight: 600,
+                          marginBottom: 4,
+                        }}>Eğitmen notu</div>
+                        {a.feedback}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
         </div>
 
-        {/* BUTTON */}
-        <div style={{ textAlign: 'center' }}>
-          <button 
-            onClick={() => {
-              if (isInstructor) {
-                navigate(-1); // Instructor için geri git
-              } else {
-                navigate('/student');
-              }
-            }} 
-            style={mainButton}
-          >
-            {isInstructor ? 'Geri Dön' : 'Öğrenci Paneline Dön'}
-          </button>
+        {/* Sidebar */}
+        <aside style={{ position: 'sticky', top: 24 }}>
+          {aggregate ? (
+            <ClassComparisonCard agg={aggregate} />
+          ) : (
+            <SummaryCard
+              score={result.studentExam.score}
+              total={totalPoints}
+              status={result.studentExam.status}
+              correct={correct}
+              wrong={wrong}
+              empty={empty}
+            />
+          )}
+
+          <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+            <Btn
+              variant="outline"
+              onClick={() => isInstructor ? navigate(-1) : navigate('/student?refresh=' + Date.now())}
+              icon={<ArrowLeft size={14} />}
+              style={{ width: '100%', justifyContent: 'center' }}
+            >{isInstructor ? 'Geri Dön' : 'Sınavlarıma Dön'}</Btn>
+            {!isInstructor && (
+              <Btn variant="ghost" icon={<Send size={14} />}
+                style={{ width: '100%', justifyContent: 'center' }}>
+                Eğitmene Soru Sor
+              </Btn>
+            )}
+          </div>
+        </aside>
+      </div>
+    </PageShell>
+  );
+}
+
+function SummaryCard({ score, total, status, correct, wrong, empty }: {
+  score: number; total: number; status: string;
+  correct: number; wrong: number; empty: number;
+}) {
+  return (
+    <div style={{
+      padding: 24, background: '#fff',
+      border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+    }}>
+      <Kicker>Özet</Kicker>
+      <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+        {[
+          ['Doğru', correct, tokens.good],
+          ['Yanlış', wrong, tokens.bad],
+          ['Boş', empty, tokens.muted],
+          ['Toplam puan', `${score} / ${total}`, tokens.ink],
+        ].map(([k, v, c]) => (
+          <div key={k as string} style={{
+            display: 'flex', justifyContent: 'space-between', fontSize: 13,
+            paddingBottom: 8, borderBottom: `1px solid ${tokens.hairlineSoft}`,
+          }}>
+            <span style={{ color: tokens.subtle }}>{k}</span>
+            <span style={{
+              color: c as string, fontWeight: 600, fontFamily: tokens.mono,
+            }}>{v as string | number}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 18 }}>
+        <Kicker>Durum</Kicker>
+        <div style={{ marginTop: 8 }}>
+          <CodeTag tone={status === 'GRADED' ? 'indigo' : 'slate'}>
+            {status === 'GRADED' ? 'DEĞERLENDİRİLDİ' : 'TESLİM EDİLDİ'}
+          </CodeTag>
         </div>
       </div>
     </div>
   );
 }
 
-/* ================= UI ================= */
+function ClassComparisonCard({ agg }: { agg: ExamAggregate }) {
+  const pct = Math.max(0, Math.min(100, agg.yourPercentile));
+  const topLabel = pct >= 50 ? `Üst %${(100 - pct).toFixed(0)}` : `Alt %${pct.toFixed(0)}`;
 
-function Stat({ label, value, color, bg }: any) {
-  return (
-    <div style={{ ...miniStat, background: bg }}>
-      <b style={{ color }}>{value}</b>
-      <span>{label}</span>
-    </div>
-  );
-}
+  const bins = agg.histogram?.bins ?? [];
+  const counts = agg.histogram?.counts ?? [];
+  const maxCount = counts.length > 0 ? Math.max(...counts, 1) : 1;
 
-/* 🎯 DONUT CHART */
-function DonutChart({ correct, wrong, empty, total }: any) {
-  const c = (correct / total) * 100;
-  const w = (wrong / total) * 100;
-  const e = (empty / total) * 100;
-
-  const gradient = `
-    conic-gradient(
-      #16a34a 0% ${c}%,
-      #dc2626 ${c}% ${c + w}%,
-      #cbd5f5 ${c + w}% 100%
-    )
-  `;
+  // Find which bin the student is in
+  let userBin = -1;
+  if (bins.length >= 2 && agg.yourScore != null) {
+    for (let i = 0; i < counts.length; i++) {
+      const lo = bins[i];
+      const hi = bins[i + 1] ?? bins[i];
+      if (agg.yourScore >= lo && agg.yourScore <= hi) {
+        userBin = i;
+        break;
+      }
+    }
+  }
 
   return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ ...donut, background: gradient }}>
-        <div style={donutInner}>{total}</div>
+    <div style={{
+      padding: 24, background: '#fff',
+      border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+    }}>
+      <Kicker>Sınıf karşılaştırması</Kicker>
+
+      <div style={{ marginTop: 14, marginBottom: 18 }}>
+        <span style={{
+          fontFamily: tokens.serif, fontSize: 36, color: tokens.ink, lineHeight: 1,
+        }}>{topLabel}</span>
+        <div style={{ fontSize: 11.5, color: tokens.subtle, marginTop: 4 }}>
+          {agg.classSize} öğrencilik sınıfta · {agg.completedCount} tamamlandı
+        </div>
       </div>
-      <p style={{ marginTop: 12, color: '#64748b' }}>Toplam Soru</p>
+
+      {counts.length > 0 && (
+        <>
+          <div style={{
+            display: 'flex', alignItems: 'flex-end', gap: 3,
+            height: 60, marginBottom: 6,
+          }}>
+            {counts.map((c, i) => {
+              const h = (c / maxCount) * 100;
+              const isUser = i === userBin;
+              return (
+                <div key={i} style={{
+                  flex: 1, height: `${h}%`,
+                  background: isUser ? tokens.indigo : '#e2e3eb',
+                  borderRadius: '2px 2px 0 0',
+                  position: 'relative' as const,
+                  minHeight: c > 0 ? 2 : 0,
+                }}>
+                  {isUser && (
+                    <span style={{
+                      position: 'absolute' as const, bottom: '100%',
+                      left: '50%', transform: 'translateX(-50%)',
+                      marginBottom: 4,
+                      fontFamily: tokens.mono, fontSize: 10, color: tokens.indigo,
+                      fontWeight: 600, whiteSpace: 'nowrap' as const,
+                    }}>SEN ↓</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between',
+            fontFamily: tokens.mono, fontSize: 9.5, color: tokens.subtle,
+          }}>
+            <span>{Math.round(bins[0] ?? 0)}</span>
+            <span>{Math.round(bins[Math.floor(bins.length / 2)] ?? 50)}</span>
+            <span>{Math.round(bins[bins.length - 1] ?? 100)}</span>
+          </div>
+        </>
+      )}
+
+      <hr style={{ border: 'none', borderTop: `1px solid ${tokens.hairline}`, margin: '18px 0' }} />
+
+      <div style={{ display: 'grid', gap: 10 }}>
+        {[
+          ['Senin puanın', agg.yourScore?.toFixed(0) ?? '—'],
+          ['Sınıf ortalaması', agg.average.toFixed(1)],
+          ['Medyan', agg.median.toFixed(0)],
+          ['En yüksek', agg.max.toFixed(0)],
+          ['En düşük', agg.min.toFixed(0)],
+          ['Std. sapma', agg.stdDev.toFixed(1)],
+        ].map(([k, v]) => (
+          <div key={k as string} style={{
+            display: 'flex', justifyContent: 'space-between', fontSize: 12.5,
+          }}>
+            <span style={{ color: tokens.subtle }}>{k}</span>
+            <span style={{
+              color: tokens.ink, fontWeight: 500, fontFamily: tokens.mono,
+            }}>{v as string}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
-
-/* ================= STYLES ================= */
-
-const page = {
-  minHeight: '100vh',
-  background:
-    'radial-gradient(circle at 10% 10%, rgba(99,102,241,0.08), transparent 30%), #f8fafc',
-  padding: '40px 20px',
-};
-
-const container = {
-  maxWidth: '1000px',
-  margin: '0 auto',
-};
-
-const headerCard = {
-  padding: '40px',
-  borderRadius: '28px',
-  background: 'rgba(255,255,255,0.9)',
-  border: '1px solid #e2e8f0',
-  boxShadow: '0 30px 80px rgba(15,23,42,0.08)',
-  textAlign: 'center' as const,
-  marginBottom: '24px',
-};
-
-const title = {
-  fontSize: '32px',
-  fontWeight: 900,
-  margin: 0,
-};
-
-const subtitle = {
-  color: '#64748b',
-  marginTop: '8px',
-};
-
-const scoreRow = {
-  display: 'flex',
-  justifyContent: 'center',
-  gap: '16px',
-  marginTop: '24px',
-};
-
-const scoreBox = {
-  padding: '20px 30px',
-  borderRadius: '20px',
-  background: '#fff',
-  border: '1px solid #e2e8f0',
-};
-
-const scoreBig = {
-  fontSize: '40px',
-  fontWeight: 900,
-};
-
-const muted = {
-  color: '#64748b',
-};
-
-const progressWrapper = {
-  marginTop: '24px',
-  height: '10px',
-  background: '#e2e8f0',
-  borderRadius: '999px',
-  overflow: 'hidden',
-};
-
-const progressBar = {
-  height: '100%',
-  background: 'linear-gradient(90deg, #6366f1, #22c55e)',
-  borderRadius: '999px',
-  transition: 'width 0.8s ease',
-};
-
-const grid = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: '20px',
-};
-
-const card = {
-  padding: '24px',
-  borderRadius: '24px',
-  background: 'rgba(255,255,255,0.9)',
-  border: '1px solid #e2e8f0',
-  boxShadow: '0 20px 50px rgba(15,23,42,0.06)',
-};
-
-const cardCenter = {
-  ...card,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const sectionTitle = {
-  marginBottom: '16px',
-  fontWeight: 800,
-};
-
-const miniStat = {
-  padding: '14px',
-  borderRadius: '14px',
-  marginBottom: '10px',
-  display: 'flex',
-  justifyContent: 'space-between',
-};
-
-const answerCard = {
-  padding: '18px',
-  borderRadius: '18px',
-  marginBottom: '12px',
-  border: '1px solid #e2e8f0',
-  background: '#fff',
-};
-
-const badgeRow = {
-  display: 'flex',
-  gap: '8px',
-};
-
-const badge = (c: any) => ({
-  padding: '4px 10px',
-  borderRadius: '999px',
-  fontSize: '12px',
-  fontWeight: 700,
-  background:
-    c === null ? '#f1f5f9' : c ? '#dcfce7' : '#fee2e2',
-  color:
-    c === null ? '#64748b' : c ? '#16a34a' : '#dc2626',
-});
-
-const pointsBadge = {
-  padding: '4px 10px',
-  borderRadius: '999px',
-  fontSize: '12px',
-  fontWeight: 700,
-  background: '#eef2ff',
-  color: '#4f46e5',
-};
-
-const question = {
-  marginTop: '10px',
-  fontWeight: 600,
-};
-
-const answerText = {
-  marginTop: '6px',
-  color: '#64748b',
-};
-
-const correctAnswer = {
-  marginTop: '4px',
-  color: '#16a34a',
-};
-
-const mainButton = {
-  marginTop: '20px',
-  padding: '14px 28px',
-  borderRadius: '14px',
-  border: '1px solid #c7d2fe',
-  background: 'linear-gradient(135deg, #eef2ff, #fff)',
-  color: '#4f46e5',
-  fontWeight: 800,
-  cursor: 'pointer',
-};
-
-/* DONUT */
-const donut = {
-  width: '140px',
-  height: '140px',
-  borderRadius: '50%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const donutInner = {
-  width: '90px',
-  height: '90px',
-  borderRadius: '50%',
-  background: '#fff',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontWeight: 900,
-};

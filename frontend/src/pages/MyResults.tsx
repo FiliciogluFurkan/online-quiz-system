@@ -1,19 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ArrowRight,
-  Award,
-  Calendar,
-  CheckCircle2,
-  Clock3,
-  FileText,
-  Shield,
-  Sparkles,
-  Star,
-  TrendingUp,
-  Trophy,
-} from 'lucide-react';
+import { ArrowRight, ArrowLeft } from 'lucide-react';
 import api from '../api/axios';
+import {
+  tokens, PageShell, Crumbs, HeroTitle, Kicker, Stat, SectionHeader, Btn,
+  scoreLabel, formatTrDateShort,
+} from '../components/academic-ui';
 
 interface Exam {
   id: number;
@@ -26,523 +18,214 @@ interface StudentExam {
   id: number;
   exam: Exam;
   score: number;
+  maxScore?: number;
   status: string;
   startedAt: string;
   submittedAt: string;
 }
 
-const styles = {
-  page: {
-    minHeight: '100vh',
-    fontFamily:
-      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    background:
-      'radial-gradient(circle at 10% 8%, rgba(99,102,241,0.10), transparent 26%), radial-gradient(circle at 88% 12%, rgba(14,165,233,0.10), transparent 24%), #f8fafc',
-    color: '#0f172a',
-    padding: '32px',
-    boxSizing: 'border-box' as const,
-  },
-  container: {
-    maxWidth: '1180px',
-    margin: '0 auto',
-  },
-  heroCard: {
-    overflow: 'hidden',
-    borderRadius: '30px',
-    background: 'rgba(255,255,255,0.92)',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 24px 70px rgba(15,23,42,0.075)',
-    marginBottom: '26px',
-  },
-  heroTop: {
-    padding: '30px',
-    background: 'linear-gradient(135deg, rgba(238,242,255,0.95), rgba(240,249,255,0.9))',
-    borderBottom: '1px solid #e2e8f0',
-  },
-  eyebrow: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '9px 13px',
-    borderRadius: '999px',
-    background: '#ffffff',
-    border: '1px solid #c7d2fe',
-    color: '#4f46e5',
-    fontSize: '14px',
-    fontWeight: 850,
-    marginBottom: '16px',
-  },
-  heroRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: '24px',
-    flexWrap: 'wrap' as const,
-  },
-  title: {
-    margin: 0,
-    fontSize: '44px',
-    lineHeight: 1.05,
-    letterSpacing: '-0.04em',
-    fontWeight: 950,
-    color: '#0f172a',
-  },
-  subtitle: {
-    margin: '14px 0 0',
-    maxWidth: '720px',
-    color: '#64748b',
-    fontSize: '16px',
-    lineHeight: 1.7,
-  },
-  topBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '7px',
-    padding: '10px 13px',
-    borderRadius: '999px',
-    fontSize: '13px',
-    fontWeight: 950,
-    background: '#ffffff',
-    border: '1px solid #e2e8f0',
-    color: '#475569',
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
-    gap: '16px',
-    padding: '24px 30px 30px',
-  },
-  statCard: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '15px',
-    padding: '20px',
-    borderRadius: '22px',
-    background: '#ffffff',
-    border: '1px solid #eef2f7',
-    boxShadow: '0 12px 30px rgba(15,23,42,0.04)',
-  },
-  statIcon: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '16px',
-    display: 'grid',
-    placeItems: 'center',
-    flexShrink: 0,
-  },
-  statLabel: {
-    margin: 0,
-    color: '#94a3b8',
-    fontSize: '12px',
-    fontWeight: 850,
-  },
-  statValue: {
-    margin: '4px 0 0',
-    color: '#0f172a',
-    fontWeight: 950,
-    fontSize: '28px',
-  },
-  sectionHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '16px',
-    marginBottom: '18px',
-    flexWrap: 'wrap' as const,
-  },
-  sectionTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    margin: 0,
-    fontSize: '24px',
-    fontWeight: 950,
-  },
-  sectionBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '9px 13px',
-    borderRadius: '999px',
-    background: '#ffffff',
-    border: '1px solid #e2e8f0',
-    color: '#64748b',
-    fontSize: '13px',
-    fontWeight: 900,
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-    gap: '18px',
-  },
-  card: {
-    position: 'relative' as const,
-    overflow: 'hidden',
-    background: 'rgba(255,255,255,0.92)',
-    border: '1px solid #e2e8f0',
-    borderRadius: '28px',
-    padding: '22px',
-    boxShadow: '0 20px 50px rgba(15,23,42,0.05)',
-    transition: 'all 0.18s ease',
-  },
-  cardAccent: {
-    position: 'absolute' as const,
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '5px',
-    background: 'linear-gradient(90deg, rgba(99,102,241,0.65), rgba(14,165,233,0.45))',
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: '14px',
-    marginBottom: '16px',
-  },
-  iconBox: {
-    width: '52px',
-    height: '52px',
-    borderRadius: '18px',
-    background: '#eef2ff',
-    color: '#4f46e5',
-    display: 'grid',
-    placeItems: 'center',
-    border: '1px solid #c7d2fe',
-  },
-  scoreBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '8px 12px',
-    borderRadius: '999px',
-    background: '#eff6ff',
-    color: '#1d4ed8',
-    border: '1px solid #bfdbfe',
-    fontSize: '14px',
-    fontWeight: 900,
-  },
-  examTitle: {
-    margin: 0,
-    fontSize: '21px',
-    lineHeight: 1.35,
-    fontWeight: 950,
-    color: '#0f172a',
-  },
-  description: {
-    margin: '10px 0 18px',
-    color: '#64748b',
-    fontSize: '14px',
-    lineHeight: 1.7,
-  },
-  metaGrid: {
-    display: 'grid',
-    gap: '10px',
-    marginBottom: '18px',
-  },
-  metaItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    padding: '12px 13px',
-    borderRadius: '16px',
-    background: '#f8fafc',
-    border: '1px solid #eef2f7',
-    color: '#64748b',
-    fontSize: '13px',
-    fontWeight: 800,
-  },
-  footer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '14px',
-    paddingTop: '16px',
-    borderTop: '1px solid #f1f5f9',
-    flexWrap: 'wrap' as const,
-  },
-  statusBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '7px',
-    padding: '8px 12px',
-    borderRadius: '999px',
-    fontSize: '12px',
-    fontWeight: 900,
-  },
-  viewButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    padding: '12px 15px',
-    borderRadius: '16px',
-    border: '1px solid #bfdbfe',
-    background: 'linear-gradient(135deg, #eff6ff, #ffffff)',
-    color: '#2563eb',
-    fontSize: '14px',
-    fontWeight: 900,
-    cursor: 'pointer',
-  },
-  empty: {
-    padding: '60px 24px',
-    textAlign: 'center' as const,
-    background: 'rgba(255,255,255,0.92)',
-    border: '1px solid #e2e8f0',
-    borderRadius: '28px',
-    boxShadow: '0 20px 50px rgba(15,23,42,0.05)',
-  },
-  emptyIcon: {
-    width: '78px',
-    height: '78px',
-    borderRadius: '26px',
-    background: '#eef2ff',
-    color: '#4f46e5',
-    display: 'grid',
-    placeItems: 'center',
-    margin: '0 auto 18px',
-  },
-};
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleString('tr-TR');
-}
+type FilterKey = 'all' | 'graded' | 'submitted';
 
 export default function MyResults() {
   const navigate = useNavigate();
   const [results, setResults] = useState<StudentExam[]>([]);
+  const [filter, setFilter] = useState<FilterKey>('all');
 
   useEffect(() => {
-    loadResults();
+    api.get('/results/my-results')
+      .then(res => {
+        const completed = res.data.filter(
+          (r: StudentExam) => r.status === 'GRADED' || r.status === 'SUBMITTED'
+        );
+        setResults(completed);
+      })
+      .catch(err => {
+        console.error('Error loading results:', err);
+        alert('Sonuçlar yüklenirken hata oluştu!');
+      });
   }, []);
 
-  const loadResults = async () => {
-    try {
-      const res = await api.get('/results/my-results');
-      // Sadece tamamlanmış sınavları göster (SUBMITTED veya GRADED)
-      const completedResults = res.data.filter(
-        (r: StudentExam) => r.status === 'GRADED' || r.status === 'SUBMITTED'
-      );
-      setResults(completedResults);
-    } catch (error) {
-      console.error('Error loading results:', error);
-      alert('Sonuçlar yüklenirken hata oluştu!');
-    }
-  };
+  const graded = useMemo(() => results.filter(r => r.status === 'GRADED'), [results]);
+  const pending = useMemo(() => results.filter(r => r.status === 'SUBMITTED'), [results]);
 
-  const completedResults = useMemo(() => {
-    return results.filter((r) => r.status === 'GRADED');
-  }, [results]);
+  const avg = useMemo(() => {
+    if (graded.length === 0) return null;
+    return Math.round(graded.reduce((s, r) => s + r.score, 0) / graded.length);
+  }, [graded]);
 
-  const totalScore = useMemo(() => {
-    return completedResults.reduce((sum, r) => sum + r.score, 0);
-  }, [completedResults]);
+  const best = useMemo(() => {
+    if (graded.length === 0) return null;
+    return Math.max(...graded.map(r => r.score));
+  }, [graded]);
 
-  const averageScore = useMemo(() => {
-    return completedResults.length > 0
-      ? totalScore / completedResults.length
-      : 0;
-  }, [completedResults, totalScore]);
+  const visible = useMemo(() => {
+    if (filter === 'graded') return graded;
+    if (filter === 'submitted') return pending;
+    return results;
+  }, [filter, results, graded, pending]);
 
   return (
-    <main style={styles.page}>
-      <div style={styles.container}>
-        <section style={styles.heroCard}>
-          <div style={styles.heroTop}>
-            <div style={styles.eyebrow}>
-              <Sparkles size={16} />
-              Öğrenci paneli
-            </div>
+    <PageShell>
+      <Crumbs items={['Sınavlarım', 'Geçmiş', 'Tüm Sonuçlar']} />
 
-            <div style={styles.heroRow}>
-              <div>
-                <h1 style={styles.title}>Sınav Geçmişim</h1>
-
-                <p style={styles.subtitle}>
-                  Tamamladığın sınavları, puanlarını ve detaylı sonuçlarını tek ekrandan takip edebilirsin.
-                </p>
-              </div>
-
-              <span style={styles.topBadge}>
-                <Shield size={15} />
-                Sonuç merkezi
-              </span>
-            </div>
-          </div>
-
-          <div style={styles.statsGrid}>
-            <div style={styles.statCard}>
-              <div
-                style={{
-                  ...styles.statIcon,
-                  background: '#eef2ff',
-                  color: '#4f46e5',
-                }}
-              >
-                <FileText size={22} />
-              </div>
-
-              <div>
-                <p style={styles.statLabel}>Toplam Sınav</p>
-                <p style={styles.statValue}>{results.length}</p>
-              </div>
-            </div>
-
-            <div style={styles.statCard}>
-              <div
-                style={{
-                  ...styles.statIcon,
-                  background: '#ecfdf5',
-                  color: '#16a34a',
-                }}
-              >
-                <CheckCircle2 size={22} />
-              </div>
-
-              <div>
-                <p style={styles.statLabel}>Tamamlanan</p>
-                <p style={styles.statValue}>{completedResults.length}</p>
-              </div>
-            </div>
-
-            <div style={styles.statCard}>
-              <div
-                style={{
-                  ...styles.statIcon,
-                  background: '#fff7ed',
-                  color: '#c2410c',
-                }}
-              >
-                <Trophy size={22} />
-              </div>
-
-              <div>
-                <p style={styles.statLabel}>Toplam Puan</p>
-                <p style={styles.statValue}>{totalScore.toFixed(0)}</p>
-              </div>
-            </div>
-
-            <div style={styles.statCard}>
-              <div
-                style={{
-                  ...styles.statIcon,
-                  background: '#f5f3ff',
-                  color: '#7c3aed',
-                }}
-              >
-                <TrendingUp size={22} />
-              </div>
-
-              <div>
-                <p style={styles.statLabel}>Ortalama</p>
-                <p style={styles.statValue}>{averageScore.toFixed(1)}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div style={styles.sectionHeader}>
-          <h2 style={styles.sectionTitle}>
-            <Award size={24} color="#2563eb" />
-            Sınav Sonuçlarım
-          </h2>
-
-          <span style={styles.sectionBadge}>
-            <Star size={14} />
-            {results.length} sonuç bulundu
-          </span>
+      <section style={{ marginBottom: 36 }}>
+        <Kicker>Tüm dönemler</Kicker>
+        <div style={{ marginTop: 8 }}>
+          <HeroTitle>Sınav Geçmişim</HeroTitle>
         </div>
+        <p style={{
+          margin: '14px 0 0', maxWidth: 620, color: tokens.muted,
+          fontSize: 15.5, lineHeight: 1.6,
+        }}>
+          Tamamladığın tüm sınavlar, puanların ve değerlendirme durumları tek bir akışta.
+        </p>
+      </section>
 
-        {results.length === 0 ? (
-          <div style={styles.empty}>
-            <div style={styles.emptyIcon}>
-              <FileText size={38} />
+      <section style={{
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 48,
+      }}>
+        <Stat label="Toplam" value={String(results.length).padStart(2, '0')} accent={tokens.indigo} />
+        <Stat label="Değerlendirilen" value={String(graded.length).padStart(2, '0')} sub={`${pending.length} beklemede`} />
+        <Stat label="Ortalama" value={avg != null ? String(avg) : '—'} sub={avg != null ? '/ 100' : 'henüz yok'} />
+        <Stat label="En iyi" value={best != null ? String(best) : '—'} sub={best != null ? '/ 100 · en yüksek puan' : 'henüz yok'} />
+      </section>
+
+      <section>
+        <SectionHeader
+          kicker="Sonuçlar"
+          title="Tüm sınavlar"
+          count={visible.length}
+          action={
+            <div style={{ display: 'flex', gap: 6 }}>
+              {([
+                ['all', 'Hepsi', results.length],
+                ['graded', 'Değerlendirilen', graded.length],
+                ['submitted', 'Beklemede', pending.length],
+              ] as [FilterKey, string, number][]).map(([k, lbl, n]) => (
+                <button
+                  key={k}
+                  onClick={() => setFilter(k)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    padding: '8px 12px', borderRadius: 999,
+                    background: filter === k ? tokens.ink : '#fff',
+                    color: filter === k ? '#fff' : tokens.text,
+                    border: `1px solid ${filter === k ? tokens.ink : tokens.hairline}`,
+                    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 500,
+                    cursor: 'pointer',
+                  }}>
+                  {lbl}
+                  <span style={{
+                    fontFamily: tokens.mono, fontSize: 10.5,
+                    color: filter === k ? '#9a9aa6' : tokens.subtle,
+                    fontWeight: 500,
+                  }}>{String(n).padStart(2, '0')}</span>
+                </button>
+              ))}
             </div>
+          }
+        />
 
-            <h3 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: 950 }}>
-              Henüz sınav yok
-            </h3>
-
-            <p
-              style={{
-                margin: 0,
-                color: '#64748b',
-                lineHeight: 1.7,
-                maxWidth: '520px',
-                marginInline: 'auto',
-              }}
-            >
-              İlk sınavını tamamladığında sonuçların ve performans detayların burada görüntülenecek.
-            </p>
+        {visible.length === 0 ? (
+          <div style={{
+            padding: '48px 24px', textAlign: 'center' as const,
+            background: tokens.ivory, border: `1px solid ${tokens.hairline}`, borderRadius: 12,
+            color: tokens.subtle, fontSize: 13.5,
+          }}>
+            {results.length === 0
+              ? 'Henüz tamamlanan sınav yok.'
+              : 'Bu kategoride sonuç bulunamadı.'}
           </div>
         ) : (
-          <div style={styles.grid}>
-            {results.map((result) => (
-              <article key={result.id} style={styles.card}>
-                <div style={styles.cardAccent} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {visible.map(r => {
+              const isGraded = r.status === 'GRADED';
+              const maxScore = r.maxScore ?? 100;
+              const pct = isGraded ? Math.round((r.score / maxScore) * 100) : null;
+              const perf = pct != null ? scoreLabel(pct) : null;
 
-                <div style={styles.cardHeader}>
-                  <div style={styles.iconBox}>
-                    <FileText size={24} />
+              return (
+                <article key={r.id} style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto auto',
+                  alignItems: 'center', gap: 24,
+                  padding: '18px 22px',
+                  background: tokens.ivory,
+                  border: `1px solid ${tokens.hairline}`,
+                  borderRadius: 12,
+                }}>
+                  <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <span style={{ fontSize: 12, color: tokens.subtle }}>
+                      {formatTrDateShort(r.submittedAt)}
+                    </span>
+                    <h4 style={{
+                      margin: 0, fontFamily: tokens.serif,
+                      fontSize: 18, fontWeight: 400, color: '#2a2a36',
+                      letterSpacing: '-0.01em',
+                    }}>{r.exam.title}</h4>
+                    {r.exam.description && (
+                      <p style={{
+                        margin: 0, fontSize: 12.5, color: tokens.muted,
+                        lineHeight: 1.5, maxWidth: 480,
+                        overflow: 'hidden', textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>{r.exam.description}</p>
+                    )}
                   </div>
 
-                  <span style={styles.scoreBadge}>
-                    <Trophy size={14} />
-                    {result.score} puan
-                  </span>
-                </div>
-
-                <h3 style={styles.examTitle}>{result.exam.title}</h3>
-
-                <p style={styles.description}>
-                  {result.exam.description || 'Bu sınav için açıklama bulunmuyor.'}
-                </p>
-
-                <div style={styles.metaGrid}>
-                  <div style={styles.metaItem}>
-                    <Clock3 size={16} />
-                    Süre: {result.exam.duration} dakika
+                  <div style={{ textAlign: 'right' as const }}>
+                    {isGraded ? (
+                      <>
+                        <div style={{
+                          fontFamily: tokens.serif, fontSize: 32, lineHeight: 1,
+                          color: tokens.ink, letterSpacing: '-0.02em',
+                        }}>
+                          {r.score}
+                          <span style={{ fontSize: 16, color: tokens.subtle }}> / {maxScore}</span>
+                        </div>
+                        {perf && (
+                          <div style={{
+                            fontFamily: tokens.mono, fontSize: 10.5,
+                            color: perf.color, marginTop: 4,
+                            fontWeight: 600, letterSpacing: '0.04em',
+                          }}>{perf.text}</div>
+                        )}
+                      </>
+                    ) : (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 10px', borderRadius: 999,
+                        background: '#fff', border: '1px solid #e7e7ec',
+                        color: tokens.muted, fontSize: 12, fontWeight: 500,
+                      }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+                        </svg>
+                        Değerlendiriliyor
+                      </span>
+                    )}
                   </div>
 
-                  <div style={styles.metaItem}>
-                    <Calendar size={16} />
-                    Teslim: {result.submittedAt ? formatDate(result.submittedAt) : 'Henüz teslim edilmedi'}
-                  </div>
-                </div>
-
-                <div style={styles.footer}>
-                  <span
-                    style={{
-                      ...styles.statusBadge,
-                      background:
-                        result.status === 'GRADED' ? '#ecfdf5' : '#eff6ff',
-                      color:
-                        result.status === 'GRADED' ? '#15803d' : '#2563eb',
-                      border:
-                        result.status === 'GRADED'
-                          ? '1px solid #bbf7d0'
-                          : '1px solid #bfdbfe',
-                    }}
-                  >
-                    <CheckCircle2 size={14} />
-                    {result.status === 'GRADED'
-                      ? 'Puanlandı'
-                      : 'Teslim Edildi'}
-                  </span>
-
-                  <button
-                    onClick={() => navigate(`/student/result/${result.id}`)}
-                    style={styles.viewButton}
-                  >
-                    Detayları Gör
-                    <ArrowRight size={16} />
-                  </button>
-                </div>
-              </article>
-            ))}
+                  <Btn
+                    variant="ghost"
+                    onClick={() => navigate(`/student/result/${r.id}`)}
+                    iconR={<ArrowRight size={13} style={{ opacity: 0.5 }} />}
+                  >İncele</Btn>
+                </article>
+              );
+            })}
           </div>
         )}
+      </section>
+
+      <div style={{ marginTop: 40 }}>
+        <Btn
+          variant="outline"
+          onClick={() => navigate('/student')}
+          icon={<ArrowLeft size={14} />}
+        >Sınavlarıma Dön</Btn>
       </div>
-    </main>
+    </PageShell>
   );
 }

@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 @RestController
 @RequestMapping("/api/questions")
@@ -47,6 +48,23 @@ public class QuestionController {
         return questionRepository.save(question);
     }
     
+    @GetMapping("/{id}/full")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
+    public Map<String, Object> getQuestionFull(@PathVariable Long id) {
+        Question q = questionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Question not found"));
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", q.getId());
+        map.put("type", q.getType());
+        map.put("questionText", q.getQuestionText());
+        map.put("options", q.getOptions());
+        map.put("correctAnswer", q.getCorrectAnswer());
+        map.put("points", q.getPoints());
+        map.put("category", q.getCategory());
+        map.put("keycloakCreatorId", q.getKeycloakCreatorId());
+        return map;
+    }
+
     @PostMapping("/bulk-import")
     @PreAuthorize("hasRole('INSTRUCTOR')")
     public Map<String, Object> bulkImport(@RequestParam("file") MultipartFile file) {

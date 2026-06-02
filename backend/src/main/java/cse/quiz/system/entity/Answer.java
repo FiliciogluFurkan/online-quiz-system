@@ -26,5 +26,8 @@ public class Answer {
     private Boolean isCorrect;
     private Integer pointsEarned;
 
+    @Column(columnDefinition = "TEXT")
+    private String feedback;
+
     private LocalDateTime answeredAt = LocalDateTime.now();
 }

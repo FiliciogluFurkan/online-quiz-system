@@ -1,7 +1,8 @@
-import { Bell, Sparkles } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 
 const styles = {
   wrapper: {
@@ -76,17 +77,20 @@ const styles = {
 
 export default function NotificationBell() {
   const navigate = useNavigate();
+  const { isAuthenticated, loading } = useAuth();
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
+    if (loading || !isAuthenticated) return;
+
     loadUnreadCount();
 
     const interval = setInterval(loadUnreadCount, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [loading, isAuthenticated]);
 
   const loadUnreadCount = async () => {
     try {

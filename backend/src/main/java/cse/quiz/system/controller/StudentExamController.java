@@ -1,13 +1,20 @@
 package cse.quiz.system.controller;
 
 import cse.quiz.system.entity.StudentExam;
+import cse.quiz.system.exception.ConflictException;
+import cse.quiz.system.exception.NotFoundException;
+import cse.quiz.system.exception.UnauthorizedException;
 import cse.quiz.system.repository.StudentExamRepository;
+import cse.quiz.system.repository.UserRepository;
+import cse.quiz.system.service.ExamSubmissionService;
 import cse.quiz.system.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -15,8 +22,11 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class StudentExamController {
     private final StudentExamRepository studentExamRepository;
+    private final ExamSubmissionService examSubmissionService;
+    private final UserRepository userRepository;
 
     @GetMapping("/student/{studentId}")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
     public List<StudentExam> getStudentExams(@PathVariable Long studentId) {
         return studentExamRepository.findByStudentId(studentId);
     }
@@ -66,7 +76,7 @@ public StudentExam startExam(@RequestBody StudentExam studentExam) {
         boolean alreadyDone = existing.stream()
             .anyMatch(se -> se.getStatus() == StudentExam.ExamStatus.SUBMITTED || 
                            se.getStatus() == StudentExam.ExamStatus.GRADED);
-        if (alreadyDone) throw new RuntimeException("Bu sınavı zaten tamamladınız!");
+        if (alreadyDone) throw new ConflictException("Bu sınavı zaten tamamladınız!");
         
         // IN_PROGRESS varsa onu döndür
         Optional<StudentExam> inProgress = existing.stream()
@@ -75,27 +85,46 @@ public StudentExam startExam(@RequestBody StudentExam studentExam) {
         if (inProgress.isPresent()) return inProgress.get();
         
         studentExam.setKeycloakUserId(currentUserId);
+        userRepository.findByKeycloakUserId(currentUserId).ifPresent(studentExam::setStudent);
     }
-    
+
     studentExam.setStartedAt(LocalDateTime.now());
     studentExam.setStatus(StudentExam.ExamStatus.IN_PROGRESS);
     return studentExamRepository.save(studentExam);
 }
 
+    @PostMapping("/{id}/submit")
+    @PreAuthorize("hasRole('STUDENT')")
+    public Map<String, Object> submitExam(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> answers
+    ) {
+        StudentExam graded = examSubmissionService.submit(id, answers);
+        return Map.of(
+                "studentExamId", graded.getId(),
+                "status", graded.getStatus(),
+                "score", graded.getScore() != null ? graded.getScore() : 0.0
+        );
+    }
+
  @PutMapping("/{id}")
 public StudentExam updateStudentExam(@PathVariable Long id, @RequestBody StudentExam studentExam) {
-    // Önce mevcut kaydı DB'den çek
     StudentExam existing = studentExamRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("StudentExam not found"));
-    
+            .orElseThrow(() -> new NotFoundException("StudentExam not found"));
+
+    String currentUserId = SecurityUtils.getCurrentUserId();
+    if (!SecurityUtils.hasAnyRole("INSTRUCTOR", "ADMIN")
+            && (currentUserId == null || !currentUserId.equals(existing.getKeycloakUserId()))) {
+        throw new UnauthorizedException("Unauthorized");
+    }
+
     existing.setStatus(studentExam.getStatus());
-    existing.setScore(studentExam.getScore());
-    
+    // score is managed exclusively by GradingService, not settable via this endpoint
+
     if (studentExam.getStatus() == StudentExam.ExamStatus.SUBMITTED) {
         existing.setSubmittedAt(LocalDateTime.now());
     }
-    
-    // keycloakUserId, exam, startedAt gibi alanlar DB'deki haliyle korunur
+
     return studentExamRepository.save(existing);
 }
 }

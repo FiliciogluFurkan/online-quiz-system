@@ -1,312 +1,69 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  BookOpen,
-  Check,
-  CheckCircle2,
-  CircleHelp,
-  FileQuestion,
-  Layers,
-  Plus,
-  Sparkles,
-} from 'lucide-react';
+import { ArrowLeft, Check, Plus, Search } from 'lucide-react';
 import api from '../api/axios';
 import type { Question } from '../types';
+import {
+  tokens, PageShell, Crumbs, Kicker, HeroTitle, Stat, SectionHeader, Btn, CodeTag,
+} from '../components/academic-ui';
 
-const styles = {
-  page: {
-    minHeight: '100vh',
-    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    background:
-      'radial-gradient(circle at 10% 8%, rgba(99,102,241,0.10), transparent 26%), radial-gradient(circle at 88% 12%, rgba(14,165,233,0.10), transparent 24%), #f8fafc',
-    color: '#0f172a',
-    padding: '32px',
-    boxSizing: 'border-box',
-  },
-  container: {
-    maxWidth: '1120px',
-    margin: '0 auto',
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: '18px',
-    marginBottom: '24px',
-  },
-  eyebrow: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '8px 12px',
-    borderRadius: '999px',
-    background: '#eef2ff',
-    border: '1px solid #c7d2fe',
-    color: '#4f46e5',
-    fontSize: '13px',
-    fontWeight: 900,
-    marginBottom: '10px',
-  },
-  title: {
-    margin: 0,
-    fontSize: '42px',
-    lineHeight: 1.05,
-    letterSpacing: '-0.04em',
-    fontWeight: 950,
-    color: '#0f172a',
-  },
-  subtitle: {
-    margin: '10px 0 0',
-    color: '#64748b',
-    fontSize: '16px',
-    lineHeight: 1.65,
-    maxWidth: '650px',
-  },
-  actions: {
-    display: 'flex',
-    gap: '10px',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-  },
-  primaryButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    borderRadius: '15px',
-    padding: '13px 17px',
-    border: '1px solid #bbf7d0',
-    background: 'linear-gradient(135deg, #ecfdf5, #ffffff)',
-    color: '#15803d',
-    fontWeight: 950,
-    cursor: 'pointer',
-    boxShadow: '0 14px 30px rgba(22,163,74,0.10)',
-  },
-  disabledButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    borderRadius: '15px',
-    padding: '13px 17px',
-    border: '1px solid #e2e8f0',
-    background: '#f1f5f9',
-    color: '#94a3b8',
-    fontWeight: 950,
-    cursor: 'not-allowed',
-  },
-  ghostButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    borderRadius: '15px',
-    padding: '13px 16px',
-    border: '1px solid #e2e8f0',
-    background: '#ffffff',
-    color: '#475569',
-    fontWeight: 900,
-    cursor: 'pointer',
-  },
-  summaryGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-    gap: '16px',
-    marginBottom: '22px',
-  },
-  statCard: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '13px',
-    background: 'rgba(255,255,255,0.9)',
-    border: '1px solid #e2e8f0',
-    borderRadius: '22px',
-    padding: '18px',
-    boxShadow: '0 16px 42px rgba(15,23,42,0.055)',
-  },
-  statIcon: {
-    width: '44px',
-    height: '44px',
-    borderRadius: '15px',
-    display: 'grid',
-    placeItems: 'center',
-    flexShrink: 0,
-  },
-  statLabel: {
-    margin: 0,
-    color: '#64748b',
-    fontSize: '13px',
-    fontWeight: 800,
-  },
-  statValue: {
-    margin: '3px 0 0',
-    color: '#0f172a',
-    fontSize: '24px',
-    fontWeight: 950,
-  },
-  panel: {
-    background: 'rgba(255,255,255,0.92)',
-    border: '1px solid #e2e8f0',
-    borderRadius: '28px',
-    boxShadow: '0 24px 70px rgba(15,23,42,0.065)',
-    overflow: 'hidden',
-  },
-  panelHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '16px',
-    padding: '22px 24px',
-    borderBottom: '1px solid #eef2f7',
-    background: 'linear-gradient(135deg, rgba(248,250,252,0.96), rgba(239,246,255,0.75))',
-  },
-  panelTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    margin: 0,
-    fontSize: '21px',
-    color: '#0f172a',
-  },
-  list: {
-    padding: '20px',
-    display: 'grid',
-    gap: '14px',
-  },
-  questionCard: {
-    display: 'grid',
-    gridTemplateColumns: '46px 1fr',
-    gap: '14px',
-    padding: '18px',
-    borderRadius: '22px',
-    background: '#ffffff',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 12px 30px rgba(15,23,42,0.04)',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-  },
-  selectedCard: {
-    background: 'linear-gradient(135deg, #f0f9ff, #ffffff)',
-    border: '1px solid #93c5fd',
-    boxShadow: '0 16px 38px rgba(37,99,235,0.10)',
-  },
-  checkBox: {
-    width: '26px',
-    height: '26px',
-    borderRadius: '9px',
-    border: '1px solid #cbd5e1',
-    background: '#ffffff',
-    display: 'grid',
-    placeItems: 'center',
-    marginTop: '2px',
-  },
-  selectedCheckBox: {
-    background: '#2563eb',
-    border: '1px solid #2563eb',
-    color: '#ffffff',
-  },
-  tags: {
-    display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap',
-    marginBottom: '9px',
-  },
-  tag: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '6px 9px',
-    borderRadius: '999px',
-    fontSize: '12px',
-    fontWeight: 900,
-  },
-  questionText: {
-    margin: 0,
-    color: '#0f172a',
-    fontSize: '16px',
-    lineHeight: 1.6,
-    fontWeight: 850,
-  },
-  optionsBox: {
-    margin: '12px 0 0',
-    padding: '12px',
-    borderRadius: '15px',
-    background: '#f8fafc',
-    border: '1px solid #eef2f7',
-    color: '#475569',
-    fontSize: '13px',
-    lineHeight: 1.55,
-    whiteSpace: 'pre-wrap',
-    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-  },
-  emptyState: {
-    padding: '58px 24px',
-    textAlign: 'center',
-  },
-  emptyIcon: {
-    width: '76px',
-    height: '76px',
-    borderRadius: '25px',
-    background: '#eef2ff',
-    color: '#4f46e5',
-    display: 'grid',
-    placeItems: 'center',
-    margin: '0 auto 18px',
-  },
-};
-
-function getQuestionTypeLabel(type: string) {
+function getQuestionTypeLabel(type: string): string {
   if (type === 'MULTIPLE_CHOICE') return 'Çoktan Seçmeli';
-  if (type === 'TRUE_FALSE') return 'Doğru/Yanlış';
+  if (type === 'TRUE_FALSE') return 'Doğru / Yanlış';
   return 'Kısa Cevap';
 }
+
+type ExamPoolInfo = {
+  questionPoolEnabled?: boolean;
+  poolSize?: number;
+  questionsPerStudent?: number;
+};
 
 export default function AddQuestionsToExam() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
-  const [exam, setExam] = useState<any>(null);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [exam, setExam] = useState<ExamPoolInfo | null>(null);
 
   useEffect(() => {
-    api.get('/questions').then((res) => setQuestions(res.data));
-    api.get(`/exams/${id}`).then((res) => setExam(res.data));
+    api.get('/questions').then(res => setQuestions(res.data));
+    api.get(`/exams/${id}`).then(res => setExam(res.data));
   }, [id]);
 
-  const toggleQuestion = (questionId: number) => {
-    if (selectedQuestions.includes(questionId)) {
-      setSelectedQuestions(selectedQuestions.filter((id) => id !== questionId));
-    } else {
-      setSelectedQuestions([...selectedQuestions, questionId]);
-    }
+  const toggle = (qid: number) => {
+    setSelected(prev => prev.includes(qid) ? prev.filter(x => x !== qid) : [...prev, qid]);
   };
 
-  const selectedPoints = useMemo(() => {
-    return questions
-      .filter((question) => selectedQuestions.includes(question.id))
-      .reduce((sum, question) => sum + (question.points || 0), 0);
-  }, [questions, selectedQuestions]);
+  const selectedPoints = useMemo(() =>
+    questions.filter(q => selected.includes(q.id))
+      .reduce((sum, q) => sum + (q.points || 0), 0),
+    [questions, selected]);
 
-  const handleAddQuestions = async () => {
+  const filtered = useMemo(() =>
+    questions.filter(q => {
+      const matchesText = q.questionText.toLowerCase().includes(search.toLowerCase());
+      const matchesType = typeFilter === 'ALL' || q.type === typeFilter;
+      return matchesText && matchesType;
+    }),
+    [questions, search, typeFilter]);
+
+  const handleAdd = async () => {
     try {
-      // Soru havuzu modu kontrolü
       if (exam?.questionPoolEnabled) {
-        // Havuza toplu ekle
-        await api.post(`/question-pool/exam/${id}`, {
-          questionIds: selectedQuestions
-        });
-        alert(`${selectedQuestions.length} soru havuza eklendi!`);
+        await api.post(`/question-pool/exam/${id}`, { questionIds: selected });
+        alert(`${selected.length} soru havuza eklendi!`);
       } else {
-        // Normal mod - tek tek ekle
-        for (const questionId of selectedQuestions) {
+        for (const qid of selected) {
           await api.post('/exam-questions', {
             exam: { id: parseInt(id!) },
-            question: { id: questionId },
+            question: { id: qid },
             orderIndex: 0,
           });
         }
-        alert(`${selectedQuestions.length} soru eklendi!`);
+        alert(`${selected.length} soru eklendi!`);
       }
       navigate(`/instructor/exam/${id}`);
     } catch (error) {
@@ -316,135 +73,177 @@ export default function AddQuestionsToExam() {
   };
 
   return (
-    <main style={styles.page}>
-      <div style={styles.container}>
-        <header style={styles.header}>
-          <div>
-            <div style={styles.eyebrow}>
-              <Sparkles size={15} />
-              Sınav içeriği
-            </div>
-            <h1 style={styles.title}>Sınava Soru Ekle</h1>
-            <p style={styles.subtitle}>
-              {exam?.questionPoolEnabled ? (
-                <>
-                  🎲 <strong>Soru Havuzu Modu:</strong> Havuz boyutu {exam.poolSize}, her öğrenciye {exam.questionsPerStudent} soru gösterilecek.
-                </>
-              ) : (
-                'Soru bankasından sınava eklemek istediğin soruları seç. Seçilen sorular sınav detayına kaydedilir.'
-              )}
-            </p>
+    <PageShell>
+      <Crumbs items={['Eğitmen', 'Sınav', 'Soru ekle']} />
+
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        alignItems: 'flex-start', gap: 24, marginBottom: 28, flexWrap: 'wrap' as const,
+      }}>
+        <div>
+          <Kicker>Sınav içeriği</Kicker>
+          <div style={{ marginTop: 8 }}>
+            <HeroTitle>Soru Ekle</HeroTitle>
           </div>
+          <p style={{
+            margin: '14px 0 0', maxWidth: 580, color: tokens.muted,
+            fontSize: 15.5, lineHeight: 1.6,
+          }}>
+            {exam?.questionPoolEnabled ? (
+              <>
+                <strong>Soru havuzu modu:</strong> Havuz boyutu {exam.poolSize ?? '—'},
+                her öğrenciye {exam.questionsPerStudent ?? '—'} soru gösterilir.
+                Seçilen sorular havuza eklenir.
+              </>
+            ) : (
+              <>Soru bankasından sınava eklemek istediğin soruları seç. Birden fazla seçim yapabilirsin.</>
+            )}
+          </p>
+        </div>
 
-          <div style={styles.actions}>
-            <button
-              onClick={handleAddQuestions}
-              disabled={selectedQuestions.length === 0}
-              style={selectedQuestions.length > 0 ? styles.primaryButton : styles.disabledButton}
-            >
-              <CheckCircle2 size={17} />
-              Seçilenleri Ekle ({selectedQuestions.length})
-            </button>
-            <button onClick={() => navigate(`/instructor/exam/${id}`)} style={styles.ghostButton}>
-              <ArrowLeft size={17} />
-              Geri Dön
-            </button>
-          </div>
-        </header>
-
-        <section style={styles.summaryGrid}>
-          <article style={styles.statCard}>
-            <div style={{ ...styles.statIcon, background: '#eef2ff', color: '#4f46e5' }}>
-              <Layers size={22} />
-            </div>
-            <div>
-              <p style={styles.statLabel}>Toplam Soru</p>
-              <p style={styles.statValue}>{questions.length}</p>
-            </div>
-          </article>
-
-          <article style={styles.statCard}>
-            <div style={{ ...styles.statIcon, background: '#f0f9ff', color: '#0284c7' }}>
-              <CheckCircle2 size={22} />
-            </div>
-            <div>
-              <p style={styles.statLabel}>Seçilen Soru</p>
-              <p style={styles.statValue}>{selectedQuestions.length}</p>
-            </div>
-          </article>
-
-          <article style={styles.statCard}>
-            <div style={{ ...styles.statIcon, background: '#ecfdf5', color: '#16a34a' }}>
-              <FileQuestion size={22} />
-            </div>
-            <div>
-              <p style={styles.statLabel}>Seçilen Puan</p>
-              <p style={styles.statValue}>{selectedPoints}</p>
-            </div>
-          </article>
-        </section>
-
-        <section style={styles.panel}>
-          <div style={styles.panelHeader}>
-            <h2 style={styles.panelTitle}>
-              <BookOpen size={23} color="#2563eb" />
-              Soru Bankası
-            </h2>
-            <span style={styles.eyebrow}>Kartlara tıklayarak seçim yap</span>
-          </div>
-
-          {questions.length === 0 ? (
-            <div style={styles.emptyState}>
-              <div style={styles.emptyIcon}>
-                <CircleHelp size={36} />
-              </div>
-              <h3 style={{ margin: '0 0 8px', fontSize: '22px' }}>Soru bankasında henüz soru yok</h3>
-              <p style={{ margin: '0 auto 22px', maxWidth: '460px', color: '#64748b', lineHeight: 1.6 }}>
-                Önce soru bankasına birkaç soru ekleyerek bu sınava içerik seçebilirsin.
-              </p>
-              <button onClick={() => navigate('/instructor/questions')} style={styles.primaryButton}>
-                <Plus size={17} />
-                Soru Bankasına Git
-              </button>
-            </div>
-          ) : (
-            <div style={styles.list}>
-              {questions.map((q, index) => {
-                const selected = selectedQuestions.includes(q.id);
-                return (
-                  <article
-                    key={q.id}
-                    onClick={() => toggleQuestion(q.id)}
-                    style={{ ...styles.questionCard, ...(selected ? styles.selectedCard : {}) }}
-                  >
-                    <div style={{ ...styles.checkBox, ...(selected ? styles.selectedCheckBox : {}) }}>
-                      {selected && <Check size={17} />}
-                    </div>
-
-                    <div>
-                      <div style={styles.tags}>
-                        <span style={{ ...styles.tag, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
-                          {getQuestionTypeLabel(q.type)}
-                        </span>
-                        <span style={{ ...styles.tag, background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe' }}>
-                          {q.points} Puan
-                        </span>
-                        <span style={{ ...styles.tag, background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0' }}>
-                          #{index + 1}
-                        </span>
-                      </div>
-
-                      <p style={styles.questionText}>{q.questionText}</p>
-
-                      {q.options && <pre style={styles.optionsBox}>{q.options}</pre>}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </section>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Btn icon={<ArrowLeft size={14} />} onClick={() => navigate(`/instructor/exam/${id}`)}>
+            Geri Dön
+          </Btn>
+          <Btn
+            variant="primary"
+            disabled={selected.length === 0}
+            onClick={handleAdd}
+            icon={<Check size={14} />}
+          >
+            Seçilenleri Ekle ({selected.length})
+          </Btn>
+        </div>
       </div>
-    </main>
+
+      <section style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32,
+      }}>
+        <Stat label="Bankadaki Sorular" value={String(questions.length).padStart(2, '0')} />
+        <Stat label="Seçilen" value={String(selected.length).padStart(2, '0')} accent={tokens.indigo} />
+        <Stat label="Seçilen Puan" value={String(selectedPoints)} sub="toplam puan" />
+      </section>
+
+      <section>
+        <SectionHeader
+          kicker="Soru bankası"
+          title="Mevcut sorular"
+          count={filtered.length}
+          action={
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 12px', background: '#fff',
+                border: `1px solid ${tokens.hairline}`, borderRadius: 10,
+                color: tokens.subtle, minWidth: 240,
+              }}>
+                <Search size={15} />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Soru ara…"
+                  style={{
+                    border: 'none', outline: 'none', background: 'transparent',
+                    flex: 1, color: tokens.ink, fontFamily: 'inherit', fontSize: 13,
+                  }}
+                />
+              </div>
+              <select
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+                style={{
+                  padding: '8px 12px', background: '#fff',
+                  border: `1px solid ${tokens.hairline}`, borderRadius: 10,
+                  color: tokens.ink, fontFamily: 'inherit', fontSize: 13,
+                  outline: 'none', cursor: 'pointer',
+                }}>
+                <option value="ALL">Tüm tipler</option>
+                <option value="MULTIPLE_CHOICE">Çoktan Seçmeli</option>
+                <option value="TRUE_FALSE">Doğru / Yanlış</option>
+                <option value="SHORT_ANSWER">Kısa Cevap</option>
+              </select>
+            </div>
+          }
+        />
+
+        {filtered.length === 0 ? (
+          <div style={{
+            padding: '48px 24px', textAlign: 'center' as const,
+            background: '#fff', border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+          }}>
+            <div style={{ fontFamily: tokens.serif, fontSize: 22, color: tokens.muted, marginBottom: 8 }}>
+              {questions.length === 0 ? 'Soru bankası boş' : 'Sonuç bulunamadı'}
+            </div>
+            <div style={{ fontSize: 13.5, color: tokens.subtle, marginBottom: 18 }}>
+              {questions.length === 0
+                ? 'Önce soru bankasına soru ekleyin.'
+                : 'Farklı bir arama veya filtre deneyin.'}
+            </div>
+            {questions.length === 0 && (
+              <Btn variant="primary" onClick={() => navigate('/instructor/questions')}
+                icon={<Plus size={14} />}>Soru Bankasına Git</Btn>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {filtered.map((q, idx) => {
+              const isSel = selected.includes(q.id);
+              return (
+                <article
+                  key={q.id}
+                  onClick={() => toggle(q.id)}
+                  style={{
+                    display: 'grid', gridTemplateColumns: '40px 1fr', gap: 16,
+                    padding: 18,
+                    background: isSel ? tokens.indigoSoft : '#fff',
+                    border: `1px solid ${isSel ? '#bfc4ee' : tokens.hairline}`,
+                    borderRadius: 12, cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 6,
+                    background: isSel ? tokens.indigo : '#fff',
+                    color: isSel ? '#fff' : tokens.subtle,
+                    border: `1px solid ${isSel ? tokens.indigo : tokens.hairline}`,
+                    display: 'grid', placeItems: 'center',
+                    fontFamily: tokens.mono, fontSize: 11, fontWeight: 600,
+                  }}>
+                    {isSel ? <Check size={14} /> : String(idx + 1).padStart(2, '0')}
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
+                    }}>
+                      <CodeTag tone="slate">{getQuestionTypeLabel(q.type)}</CodeTag>
+                      <span style={{ fontSize: 12, color: tokens.subtle }}>{q.points} puan</span>
+                      {q.category && (
+                        <>
+                          <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#cfcfd6' }} />
+                          <span style={{ fontSize: 12, color: tokens.subtle }}>{q.category.name}</span>
+                        </>
+                      )}
+                    </div>
+                    <p style={{
+                      margin: 0, fontFamily: tokens.serif,
+                      fontSize: 16, lineHeight: 1.45, color: tokens.ink, fontWeight: 400,
+                    }}>{q.questionText}</p>
+                    {q.options && (
+                      <pre style={{
+                        margin: '10px 0 0', padding: '8px 12px',
+                        background: 'rgba(0,0,0,0.02)', border: `1px solid ${tokens.hairlineSoft}`,
+                        borderRadius: 8, fontFamily: tokens.mono,
+                        fontSize: 12, color: tokens.text,
+                        whiteSpace: 'pre-wrap' as const,
+                      }}>{q.options}</pre>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </PageShell>
   );
 }

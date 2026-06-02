@@ -1,20 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  BookOpen,
-  CalendarClock,
-  CheckCircle2,
-  CircleHelp,
-  Clock3,
-  FileQuestion,
-  FileText,
-  Layers,
-  Shield,
-  Sparkles,
-} from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import api from '../api/axios';
-import type { Exam, Question } from '../types';
+import type { Exam, Question, AuditLogEntry } from '../types';
+import {
+  tokens, PageShell, Crumbs, Kicker, HeroTitle, SectionHeader, Btn, CodeTag,
+  formatTrDate,
+} from '../components/academic-ui';
 
 interface ExamQuestion {
   id: number;
@@ -22,269 +14,19 @@ interface ExamQuestion {
   orderIndex: number;
 }
 
-const styles = {
-  page: {
-    minHeight: '100vh',
-    fontFamily:
-      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    background:
-      'radial-gradient(circle at 10% 8%, rgba(99,102,241,0.10), transparent 26%), radial-gradient(circle at 88% 12%, rgba(14,165,233,0.10), transparent 24%), #f8fafc',
-    color: '#0f172a',
-    padding: '32px',
-    boxSizing: 'border-box' as const,
-  },
-  container: {
-    maxWidth: '1120px',
-    margin: '0 auto',
-  },
-  topbar: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '16px',
-    marginBottom: '24px',
-  },
-  backButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '9px',
-    border: '1px solid #e2e8f0',
-    background: 'rgba(255,255,255,0.86)',
-    color: '#334155',
-    padding: '12px 16px',
-    borderRadius: '14px',
-    cursor: 'pointer',
-    fontWeight: 850,
-    boxShadow: '0 10px 24px rgba(15,23,42,0.05)',
-  },
-  topBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '7px',
-    padding: '9px 12px',
-    borderRadius: '999px',
-    fontSize: '13px',
-    fontWeight: 900,
-    border: '1px solid #e2e8f0',
-    background: '#ffffff',
-    color: '#475569',
-  },
-  heroCard: {
-    overflow: 'hidden',
-    borderRadius: '30px',
-    background: 'rgba(255,255,255,0.92)',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 24px 70px rgba(15,23,42,0.075)',
-    marginBottom: '24px',
-  },
-  heroTop: {
-    padding: '28px',
-    background: 'linear-gradient(135deg, rgba(238,242,255,0.95), rgba(240,249,255,0.9))',
-    borderBottom: '1px solid #e2e8f0',
-  },
-  eyebrow: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '9px 13px',
-    borderRadius: '999px',
-    background: '#ffffff',
-    border: '1px solid #c7d2fe',
-    color: '#4f46e5',
-    fontSize: '14px',
-    fontWeight: 850,
-    marginBottom: '16px',
-  },
-  titleRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: '24px',
-    flexWrap: 'wrap' as const,
-  },
-  title: {
-    margin: 0,
-    fontSize: '42px',
-    lineHeight: 1.08,
-    letterSpacing: '-0.04em',
-    fontWeight: 950,
-    color: '#0f172a',
-  },
-  description: {
-    margin: '14px 0 0',
-    maxWidth: '720px',
-    color: '#64748b',
-    fontSize: '16px',
-    lineHeight: 1.7,
-  },
-  statusPill: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '7px',
-    padding: '10px 13px',
-    borderRadius: '999px',
-    fontSize: '13px',
-    fontWeight: 950,
-    whiteSpace: 'nowrap' as const,
-  },
-  metaGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: '16px',
-    padding: '22px 28px 26px',
-  },
-  metaCard: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '13px',
-    padding: '17px',
-    borderRadius: '20px',
-    background: '#ffffff',
-    border: '1px solid #eef2f7',
-    boxShadow: '0 12px 30px rgba(15,23,42,0.035)',
-  },
-  metaIcon: {
-    width: '42px',
-    height: '42px',
-    borderRadius: '15px',
-    display: 'grid',
-    placeItems: 'center',
-    flexShrink: 0,
-  },
-  metaLabel: {
-    margin: 0,
-    color: '#94a3b8',
-    fontSize: '12px',
-    fontWeight: 850,
-  },
-  metaValue: {
-    margin: '3px 0 0',
-    color: '#0f172a',
-    fontWeight: 900,
-    fontSize: '15px',
-  },
-  questionsPanel: {
-    background: 'rgba(255,255,255,0.92)',
-    border: '1px solid #e2e8f0',
-    borderRadius: '28px',
-    boxShadow: '0 24px 70px rgba(15,23,42,0.06)',
-    overflow: 'hidden',
-  },
-  panelHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '16px',
-    padding: '24px 26px',
-    borderBottom: '1px solid #eef2f7',
-    background: 'linear-gradient(135deg, rgba(248,250,252,0.95), rgba(239,246,255,0.68))',
-  },
-  panelTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    margin: 0,
-    fontSize: '22px',
-    color: '#0f172a',
-  },
-  questionList: {
-    padding: '22px',
-    display: 'grid',
-    gap: '14px',
-  },
-  questionCard: {
-    background: '#ffffff',
-    border: '1px solid #e2e8f0',
-    borderRadius: '22px',
-    padding: '20px',
-    boxShadow: '0 12px 30px rgba(15,23,42,0.04)',
-  },
-  questionTop: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '12px',
-    marginBottom: '13px',
-    flexWrap: 'wrap' as const,
-  },
-  tags: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    flexWrap: 'wrap' as const,
-  },
-  tag: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '7px 10px',
-    borderRadius: '999px',
-    fontSize: '12px',
-    fontWeight: 900,
-  },
-  questionText: {
-    margin: 0,
-    color: '#0f172a',
-    fontSize: '16px',
-    lineHeight: 1.65,
-    fontWeight: 850,
-  },
-  optionsBox: {
-    margin: '14px 0 0',
-    padding: '14px',
-    borderRadius: '16px',
-    background: '#f8fafc',
-    border: '1px solid #eef2f7',
-    color: '#475569',
-    fontSize: '13px',
-    lineHeight: 1.55,
-    whiteSpace: 'pre-wrap' as const,
-    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-  },
-  answerBox: {
-    marginTop: '12px',
-    padding: '12px 14px',
-    borderRadius: '16px',
-    background: '#ecfdf5',
-    border: '1px solid #bbf7d0',
-    color: '#15803d',
-    fontSize: '14px',
-    fontWeight: 900,
-  },
-  emptyState: {
-    padding: '54px 24px',
-    textAlign: 'center' as const,
-  },
-  emptyIcon: {
-    width: '76px',
-    height: '76px',
-    borderRadius: '25px',
-    background: '#eef2ff',
-    color: '#4f46e5',
-    display: 'grid',
-    placeItems: 'center',
-    margin: '0 auto 18px',
-  },
-  loading: {
-    minHeight: '100vh',
-    display: 'grid',
-    placeItems: 'center',
-    background: '#f8fafc',
-    color: '#64748b',
-    fontFamily: 'Inter, sans-serif',
-    fontWeight: 800,
-  },
+const ACTION_TONE: Record<string, string> = {
+  CREATE: tokens.indigo,
+  UPDATE: tokens.indigo,
+  PUBLISH: tokens.good,
+  UNPUBLISH: '#b45309',
+  DELETE: tokens.bad,
+  GRADE: tokens.indigo,
 };
 
-function getQuestionTypeLabel(type: string) {
+function typeLabel(type: string): string {
   if (type === 'MULTIPLE_CHOICE') return 'Çoktan Seçmeli';
-  if (type === 'TRUE_FALSE') return 'Doğru/Yanlış';
+  if (type === 'TRUE_FALSE') return 'Doğru / Yanlış';
   return 'Kısa Cevap';
-}
-
-function formatDate(value?: string) {
-  if (!value) return 'Belirlenmedi';
-  return new Date(value).toLocaleString('tr-TR');
 }
 
 export default function AdminExamDetail() {
@@ -292,181 +34,284 @@ export default function AdminExamDetail() {
   const navigate = useNavigate();
   const [exam, setExam] = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
+  const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
 
   useEffect(() => {
-    loadExamDetail();
+    Promise.allSettled([
+      api.get(`/admin/exams/${id}`),
+      api.get(`/exam-questions/exam/${id}`),
+      api.get(`/admin/exams/${id}/audit-log`),
+    ])
+      .then(([examRes, qsRes, auditRes]) => {
+        if (examRes.status === 'fulfilled') setExam(examRes.value.data);
+        if (qsRes.status === 'fulfilled') setQuestions(qsRes.value.data);
+        if (auditRes.status === 'fulfilled') setAuditLog(auditRes.value.data ?? []);
+        if (examRes.status === 'rejected') {
+          alert('Sınav detayları yüklenirken hata oluştu!');
+        }
+      });
   }, [id]);
 
-  const loadExamDetail = async () => {
-    try {
-      const examRes = await api.get(`/admin/exams/${id}`);
-      setExam(examRes.data);
+  const totalPoints = useMemo(() =>
+    questions.reduce((sum, item) => sum + (item.question.points || 0), 0),
+    [questions]);
 
-      const questionsRes = await api.get(`/exam-questions/exam/${id}`);
-      setQuestions(questionsRes.data);
-    } catch (error) {
-      console.error('Error loading exam detail:', error);
-      alert('Sınav detayları yüklenirken hata oluştu!');
-    }
-  };
-
-  const totalPoints = useMemo(() => {
-    return questions.reduce((sum, item) => sum + (item.question.points || 0), 0);
-  }, [questions]);
-
-  if (!exam) return <div style={styles.loading}>Sınav detayları yükleniyor...</div>;
+  if (!exam) {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'grid', placeItems: 'center',
+        background: tokens.bg, fontFamily: tokens.sans, color: tokens.muted,
+      }}>Sınav detayları yükleniyor…</div>
+    );
+  }
 
   return (
-    <main style={styles.page}>
-      <div style={styles.container}>
-        <div style={styles.topbar}>
-          <button onClick={() => navigate('/admin')} style={styles.backButton}>
-            <ArrowLeft size={18} />
-            Admin Paneline Dön
-          </button>
+    <PageShell>
+      <Crumbs items={['Admin', 'Sınavlar', exam.title]} />
 
-          <span style={styles.topBadge}>
-            <Shield size={15} />
-            Admin görünümü
-          </span>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        alignItems: 'flex-start', gap: 24, marginBottom: 8, flexWrap: 'wrap' as const,
+      }}>
+        <Btn icon={<ArrowLeft size={14} />} onClick={() => navigate('/admin')}>
+          Admin Paneline Dön
+        </Btn>
+        <CodeTag tone="ink">ADMIN GÖRÜNÜMÜ</CodeTag>
+      </div>
+
+      <section style={{ marginTop: 28, marginBottom: 32 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <CodeTag tone={exam.published ? 'indigo' : 'slate'}>
+            {exam.published ? 'YAYINDA' : 'TASLAK'}
+          </CodeTag>
+          <span style={{
+            fontFamily: tokens.mono, fontSize: 11, color: tokens.subtle,
+            letterSpacing: '0.06em',
+          }}>#{String(exam.id).padStart(3, '0')}</span>
         </div>
+        <HeroTitle accent={false}>{exam.title}</HeroTitle>
+        <p style={{
+          margin: '14px 0 0', maxWidth: 720, color: tokens.text,
+          fontSize: 16, lineHeight: 1.65,
+        }}>
+          {exam.description || 'Bu sınav için henüz açıklama eklenmemiş.'}
+        </p>
 
-        <section style={styles.heroCard}>
-          <div style={styles.heroTop}>
-            <div style={styles.eyebrow}>
-              <Sparkles size={16} />
-              Sınav detayları
+        <div style={{
+          marginTop: 32, padding: '24px 0',
+          borderTop: `1px solid ${tokens.hairline}`, borderBottom: `1px solid ${tokens.hairline}`,
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24,
+        }}>
+          {[
+            ['Süre', `${exam.duration} dk`],
+            ['Soru', `${questions.length} · ${totalPoints} puan`],
+            ['Başlangıç', formatTrDate(exam.startTime)],
+            ['Bitiş', formatTrDate(exam.endTime)],
+          ].map(([k, v]) => (
+            <div key={k}>
+              <Kicker>{k}</Kicker>
+              <div style={{
+                fontFamily: tokens.serif, fontSize: 22, color: tokens.ink,
+                lineHeight: 1.2, letterSpacing: '-0.015em', marginTop: 6,
+              }}>{v}</div>
             </div>
+          ))}
+        </div>
+      </section>
 
-            <div style={styles.titleRow}>
-              <div>
-                <h1 style={styles.title}>{exam.title}</h1>
-                <p style={styles.description}>{exam.description || 'Bu sınav için henüz açıklama eklenmemiş.'}</p>
-              </div>
+      <SectionHeader
+        kicker="İçerik"
+        title="Sınav soruları"
+        count={questions.length}
+        action={
+          <span style={{ fontFamily: tokens.mono, fontSize: 12, color: tokens.muted }}>
+            Toplam <strong style={{ color: tokens.ink }}>{totalPoints}</strong> puan
+          </span>
+        }
+      />
 
-              <span
-                style={{
-                  ...styles.statusPill,
-                  background: exam.published ? '#ecfdf5' : '#fffbeb',
-                  color: exam.published ? '#15803d' : '#b45309',
-                  border: exam.published ? '1px solid #bbf7d0' : '1px solid #fde68a',
-                }}
-              >
-                {exam.published ? <CheckCircle2 size={16} /> : <Clock3 size={16} />}
-                {exam.published ? 'Yayında' : 'Taslak'}
-              </span>
-            </div>
+      {questions.length === 0 ? (
+        <div style={{
+          padding: '48px 24px', textAlign: 'center' as const,
+          background: '#fff', border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+        }}>
+          <div style={{ fontFamily: tokens.serif, fontSize: 22, color: tokens.muted, marginBottom: 8 }}>
+            Henüz soru eklenmemiş
           </div>
-
-          <div style={styles.metaGrid}>
-            <div style={styles.metaCard}>
-              <div style={{ ...styles.metaIcon, background: '#eef2ff', color: '#4f46e5' }}>
-                <Clock3 size={21} />
-              </div>
-              <div>
-                <p style={styles.metaLabel}>Süre</p>
-                <p style={styles.metaValue}>{exam.duration} dakika</p>
-              </div>
-            </div>
-
-            <div style={styles.metaCard}>
-              <div style={{ ...styles.metaIcon, background: '#f0f9ff', color: '#0284c7' }}>
-                <CalendarClock size={21} />
-              </div>
-              <div>
-                <p style={styles.metaLabel}>Başlangıç</p>
-                <p style={styles.metaValue}>{formatDate(exam.startTime)}</p>
-              </div>
-            </div>
-
-            <div style={styles.metaCard}>
-              <div style={{ ...styles.metaIcon, background: '#fff7ed', color: '#c2410c' }}>
-                <CalendarClock size={21} />
-              </div>
-              <div>
-                <p style={styles.metaLabel}>Bitiş</p>
-                <p style={styles.metaValue}>{formatDate(exam.endTime)}</p>
-              </div>
-            </div>
-
-            <div style={styles.metaCard}>
-              <div style={{ ...styles.metaIcon, background: '#ecfdf5', color: '#16a34a' }}>
-                <Layers size={21} />
-              </div>
-              <div>
-                <p style={styles.metaLabel}>Soru / Puan</p>
-                <p style={styles.metaValue}>
-                  {questions.length} soru · {totalPoints} puan
-                </p>
-              </div>
-            </div>
+          <div style={{ fontSize: 13.5, color: tokens.subtle, maxWidth: 440, margin: '0 auto' }}>
+            Bu sınava ait soru bulunmuyor.
           </div>
-        </section>
-
-        <section style={styles.questionsPanel}>
-          <div style={styles.panelHeader}>
-            <h2 style={styles.panelTitle}>
-              <FileQuestion size={24} color="#2563eb" />
-              Sınav Soruları
-            </h2>
-            <span style={styles.topBadge}>
-              <FileText size={15} />
-              Toplam {totalPoints} puan
-            </span>
-          </div>
-
-          {questions.length === 0 ? (
-            <div style={styles.emptyState}>
-              <div style={styles.emptyIcon}>
-                <CircleHelp size={36} />
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 10 }}>
+          {questions.map((eq, idx) => (
+            <article key={eq.id} style={{
+              padding: 22, background: '#fff',
+              border: `1px solid ${tokens.hairline}`, borderRadius: 12,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                <span style={{
+                  width: 28, height: 28, borderRadius: 6,
+                  background: tokens.ink, color: '#fff',
+                  display: 'grid', placeItems: 'center',
+                  fontFamily: tokens.mono, fontSize: 12, fontWeight: 600,
+                }}>{String(idx + 1).padStart(2, '0')}</span>
+                <CodeTag tone="slate">{typeLabel(eq.question.type)}</CodeTag>
+                <span style={{ fontSize: 12, color: tokens.subtle }}>{eq.question.points} puan</span>
               </div>
-              <h3 style={{ margin: '0 0 8px', fontSize: '22px' }}>Henüz soru eklenmemiş</h3>
-              <p style={{ margin: '0 auto', maxWidth: '460px', color: '#64748b', lineHeight: 1.6 }}>
-                Bu sınava ait soru bulunmuyor. Soru eklendiğinde burada detaylı şekilde görüntülenir.
-              </p>
-            </div>
-          ) : (
-            <div style={styles.questionList}>
-              {questions.map((eq, index) => (
-                <article key={eq.id} style={styles.questionCard}>
-                  <div style={styles.questionTop}>
-                    <div style={styles.tags}>
-                      <span
-                        style={{
-                          ...styles.tag,
-                          background: '#eff6ff',
-                          color: '#1d4ed8',
-                          border: '1px solid #bfdbfe',
-                        }}
-                      >
-                        {getQuestionTypeLabel(eq.question.type)}
-                      </span>
-                      <span
-                        style={{
-                          ...styles.tag,
-                          background: '#f5f3ff',
-                          color: '#6d28d9',
-                          border: '1px solid #ddd6fe',
-                        }}
-                      >
-                        {eq.question.points} Puan
-                      </span>
-                    </div>
 
-                    <span style={{ ...styles.topBadge, padding: '7px 10px' }}>#{index + 1}</span>
+              <p style={{
+                margin: 0, fontFamily: tokens.serif,
+                fontSize: 17, lineHeight: 1.45, color: tokens.ink, fontWeight: 400,
+              }}>{eq.question.questionText}</p>
+
+              {eq.question.options && (
+                <pre style={{
+                  margin: '14px 0 0', padding: '12px 14px',
+                  background: '#fafafb', border: `1px solid ${tokens.hairlineSoft}`,
+                  borderRadius: 8, fontFamily: tokens.mono,
+                  fontSize: 13, color: tokens.text,
+                  whiteSpace: 'pre-wrap' as const, lineHeight: 1.7,
+                }}>{eq.question.options}</pre>
+              )}
+
+              <div style={{
+                marginTop: 12, padding: '10px 14px',
+                background: '#ecfdf5', border: '1px solid #bbf7d0', borderRadius: 8,
+                fontSize: 13, color: tokens.good,
+                fontFamily: tokens.mono,
+              }}>
+                <strong>✓ Doğru cevap:</strong> {eq.question.correctAnswer || '—'}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {/* Owner + Audit log */}
+      <section style={{
+        marginTop: 48,
+        display: 'grid', gridTemplateColumns: '320px 1fr', gap: 24, alignItems: 'start',
+      }}>
+        <aside style={{
+          padding: 22, background: '#fff',
+          border: `1px solid ${tokens.hairline}`, borderRadius: 12,
+        }}>
+          <Kicker>Sahip / Eğitmen</Kicker>
+
+          {exam.instructor ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, marginBottom: 18 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%',
+                  background: tokens.indigoSoft, color: '#3730a3',
+                  display: 'grid', placeItems: 'center',
+                  fontFamily: tokens.serif, fontSize: 17,
+                }}>
+                  {(exam.instructor.fullName || '?')
+                    .split(/[\s.]+/).filter(Boolean).slice(0, 2)
+                    .map(s => s[0]?.toUpperCase()).join('') || '?'}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14, color: tokens.ink, fontWeight: 500 }}>
+                    {exam.instructor.fullName || 'Bilinmiyor'}
                   </div>
+                  {exam.instructor.email && (
+                    <div style={{
+                      fontSize: 11.5, color: tokens.subtle, marginTop: 2,
+                      fontFamily: tokens.mono,
+                    }}>{exam.instructor.email}</div>
+                  )}
+                </div>
+              </div>
+              <hr style={{ border: 'none', borderTop: `1px solid ${tokens.hairline}`, margin: '0 0 14px' }} />
+            </>
+          ) : (
+            <div style={{
+              marginTop: 14, marginBottom: 14, padding: 12,
+              background: tokens.ivory, border: `1px solid ${tokens.hairlineSoft}`,
+              borderRadius: 8, fontSize: 12.5, color: tokens.subtle,
+            }}>Bu sınav için sahip bilgisi bulunmuyor (eski kayıt).</div>
+          )}
 
-                  <p style={styles.questionText}>{eq.question.questionText}</p>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {[
+              ['Oluşturulma', formatTrDate(exam.createdAt)],
+              ['Sınav ID', `#${String(exam.id).padStart(3, '0')}`],
+              ['Durum', exam.published ? 'Yayında' : 'Taslak'],
+            ].map(([k, v]) => (
+              <div key={k} style={{
+                display: 'flex', justifyContent: 'space-between', fontSize: 12.5,
+              }}>
+                <span style={{ color: tokens.subtle }}>{k}</span>
+                <span style={{
+                  color: tokens.ink, fontWeight: 500, fontFamily: tokens.mono,
+                }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </aside>
 
-                  {eq.question.options && <pre style={styles.optionsBox}>{eq.question.options}</pre>}
+        <div>
+          <SectionHeader
+            kicker="Audit log"
+            title="Son aktiviteler"
+            count={auditLog.length}
+            sub="Bu sınavda yapılan tüm değişikliklerin kaydı"
+          />
 
-                  <div style={styles.answerBox}>Doğru Cevap: {eq.question.correctAnswer || '-'}</div>
-                </article>
-              ))}
+          {auditLog.length === 0 ? (
+            <div style={{
+              padding: '32px 24px', textAlign: 'center' as const,
+              background: '#fff', border: `1px solid ${tokens.hairline}`, borderRadius: 12,
+              color: tokens.subtle, fontSize: 13.5,
+            }}>Henüz aktivite kaydı yok.</div>
+          ) : (
+            <div style={{
+              background: '#fff', border: `1px solid ${tokens.hairline}`,
+              borderRadius: 12, overflow: 'hidden',
+            }}>
+              {auditLog.map((entry, i) => {
+                const color = ACTION_TONE[entry.action?.toUpperCase()] ?? tokens.subtle;
+                return (
+                  <div key={entry.id} style={{
+                    display: 'grid', gridTemplateColumns: '150px 1fr 130px 90px',
+                    gap: 16, alignItems: 'center',
+                    padding: '14px 18px',
+                    borderBottom: i < auditLog.length - 1
+                      ? `1px solid ${tokens.hairlineSoft}` : 'none',
+                  }}>
+                    <span style={{
+                      fontFamily: tokens.mono, fontSize: 11.5, color: tokens.muted,
+                    }}>{formatTrDate(entry.createdAt)}</span>
+                    <span style={{ fontSize: 13, color: tokens.ink, lineHeight: 1.45 }}>
+                      {entry.payload || `${entry.action} · ${entry.entityType}`}
+                    </span>
+                    <span style={{
+                      fontSize: 12, color: tokens.muted,
+                      overflow: 'hidden', textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap' as const,
+                    }}>{entry.userName || (entry.userId != null ? `#${entry.userId}` : 'Sistem')}</span>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: '3px 8px', borderRadius: 4,
+                      background: '#fafafb', color,
+                      fontSize: 10.5, fontFamily: tokens.mono,
+                      fontWeight: 600, letterSpacing: '0.04em',
+                      width: 'fit-content' as const,
+                    }}>
+                      <span style={{
+                        width: 5, height: 5, borderRadius: '50%', background: color,
+                      }} />
+                      {(entry.action || '').toLowerCase()}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
-        </section>
-      </div>
-    </main>
+        </div>
+      </section>
+    </PageShell>
   );
 }

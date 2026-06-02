@@ -1,14 +1,17 @@
 import axios from 'axios';
 import keycloak from '../keycloak';
 
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    _retried?: boolean;
+  }
+}
+
 const api = axios.create({
   baseURL: 'http://localhost:8080/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor - Token ekle
 api.interceptors.request.use(
   (config) => {
     if (keycloak.token) {
@@ -16,38 +19,25 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor - 401 hatalarını yakala ve token refresh yap
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
-    // 401 hatası ve daha önce retry yapılmamışsa
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retried) {
+      originalRequest._retried = true;
       try {
-        // Token'ı yenilemeyi dene (5 saniye içinde expire olacaksa yenile)
-        const refreshed = await keycloak.updateToken(5);
-        
+        const refreshed = await keycloak.updateToken(30);
         if (refreshed) {
-          // Token yenilendi, yeni token ile isteği tekrar gönder
           originalRequest.headers.Authorization = `Bearer ${keycloak.token}`;
           return api.request(originalRequest);
-        } else {
-          // Token hala geçerli ama 401 aldık, login sayfasına yönlendir
-          console.warn('Token valid but 401 received, redirecting to login');
-          keycloak.login();
-          return Promise.reject(error);
         }
-      } catch (refreshError) {
-        // Token refresh başarısız, login sayfasına yönlendir
-        console.error('Token refresh failed:', refreshError);
+        // Token hala geçerli ama 401 aldık — clock skew / key rotation: login'e yönlendir
+        keycloak.login();
+        return Promise.reject(error);
+      } catch {
         keycloak.login();
         return Promise.reject(error);
       }

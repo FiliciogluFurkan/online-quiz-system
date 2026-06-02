@@ -1,5 +1,6 @@
 package cse.quiz.system.controller;
 
+import cse.quiz.system.dto.QuestionStudentDto;
 import cse.quiz.system.entity.Question;
 import cse.quiz.system.service.QuestionPoolService;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/question-pool")
@@ -28,12 +30,16 @@ public class QuestionPoolController {
     }
 
     @PostMapping("/student-exam/{studentExamId}/assign")
-    public List<Question> assignRandomQuestions(@PathVariable Long studentExamId) {
-        return questionPoolService.assignRandomQuestions(studentExamId);
+    public List<QuestionStudentDto> assignRandomQuestions(@PathVariable Long studentExamId) {
+        return questionPoolService.assignRandomQuestions(studentExamId).stream()
+                .map(QuestionStudentDto::from)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/student-exam/{studentExamId}")
-    public List<Question> getAssignedQuestions(@PathVariable Long studentExamId) {
-        return questionPoolService.getAssignedQuestions(studentExamId);
+    public List<QuestionStudentDto> getAssignedQuestions(@PathVariable Long studentExamId) {
+        return questionPoolService.getAssignedQuestions(studentExamId).stream()
+                .map(QuestionStudentDto::from)
+                .collect(Collectors.toList());
     }
 }

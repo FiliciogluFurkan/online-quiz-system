@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Clock, Send, Check, AlertTriangle } from 'lucide-react';
 import api from '../api/axios';
 import type { Exam, Question } from '../types';
 import Toast from '../components/Toast';
+import { tokens, CodeTag, Btn } from '../components/academic-ui';
 
 interface ExamQuestion {
   id: number;
@@ -15,13 +17,25 @@ interface Answer {
   answerText: string;
 }
 
+const TYPE_LABEL: Record<string, string> = {
+  MULTIPLE_CHOICE: 'Çoktan Seçmeli',
+  TRUE_FALSE: 'Doğru / Yanlış',
+  SHORT_ANSWER: 'Kısa Cevap',
+};
+
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
 export default function TakeExam() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [exam, setExam] = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [answers, setAnswers] = useState<Answer[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [studentExamId, setStudentExamId] = useState<number | null>(null);
   const [showWarning5Min, setShowWarning5Min] = useState(false);
@@ -38,27 +52,20 @@ export default function TakeExam() {
       const timer = setInterval(() => {
         setTimeRemaining(prev => {
           const newTime = prev - 1;
-          
-          // 5 dakika uyarısı
           if (newTime === 5 * 60 && !showWarning5Min) {
             setToastMessage('⚠️ 5 dakika kaldı! Cevaplarınızı kontrol edin.');
             setToastType('warning');
             setShowWarning5Min(true);
           }
-          
-          // 1 dakika uyarısı
           if (newTime === 60 && !showWarning1Min) {
             setToastMessage('🚨 1 dakika kaldı! Sınav otomatik olarak teslim edilecek.');
             setToastType('critical');
             setShowWarning1Min(true);
           }
-          
-          // Süre bitti
           if (newTime <= 0) {
             handleSubmit();
             return 0;
           }
-          
           return newTime;
         });
       }, 1000);
@@ -70,123 +77,40 @@ export default function TakeExam() {
     try {
       const examRes = await api.get(`/exams/${id}`);
       setExam(examRes.data);
-      
-      // Backend'den kontrol et (artık Keycloak user ID ile)
+
+      const questionsRes = await api.get(`/exam-questions/exam/${id}`);
+      setQuestions(questionsRes.data);
+
       try {
-        const existingExamRes = await api.get(`/student-exams/check/${id}`);
-        if (existingExamRes.data && 
-            ['SUBMITTED', 'GRADED'].includes(existingExamRes.data.status)) {
+        const existing = await api.get(`/student-exams/check/${id}`);
+        if (existing.data && ['SUBMITTED', 'GRADED'].includes(existing.data.status)) {
           alert('Bu sınavı zaten tamamladınız!');
           navigate('/student');
           return;
         }
-        
-        // Eğer IN_PROGRESS durumunda bir kayıt varsa onu kullan
-        if (existingExamRes.data && existingExamRes.data.status === 'IN_PROGRESS') {
-          setStudentExamId(existingExamRes.data.id);
+        if (existing.data && existing.data.status === 'IN_PROGRESS') {
+          setStudentExamId(existing.data.id);
           setTimeRemaining(examRes.data.duration * 60);
-          
-          // Soru havuzu moduysa atanmış soruları çek
-          if (examRes.data.questionPoolEnabled) {
-            const poolQuestionsRes = await api.get(`/question-pool/student-exam/${existingExamRes.data.id}`);
-            const poolQuestions = poolQuestionsRes.data.map((q: any, idx: number) => ({
-              id: idx,
-              question: q,
-              orderIndex: idx
-            }));
-            setQuestions(poolQuestions);
-            
-            // Cevapları initialize et
-            const initialAnswers = poolQuestions.map((eq: any) => ({
-              questionId: eq.question.id,
-              answerText: ''
-            }));
-            setAnswers(initialAnswers);
-          } else {
-            const questionsRes = await api.get(`/exam-questions/exam/${id}`);
-            setQuestions(questionsRes.data);
-            
-            // Cevapları initialize et
-            const initialAnswers = questionsRes.data.map((eq: ExamQuestion) => ({
-              questionId: eq.question.id,
-              answerText: ''
-            }));
-            setAnswers(initialAnswers);
-          }
         } else {
-          // Yeni sınav oturumu başlat
           const studentExamRes = await api.post('/student-exams', {
             exam: { id: parseInt(id!) },
-            status: 'IN_PROGRESS'
+            status: 'IN_PROGRESS',
           });
           setStudentExamId(studentExamRes.data.id);
           setTimeRemaining(examRes.data.duration * 60);
-          
-          // Soru havuzu moduysa rastgele sorular ata
-          if (examRes.data.questionPoolEnabled) {
-            const assignRes = await api.post(`/question-pool/student-exam/${studentExamRes.data.id}/assign`);
-            const poolQuestions = assignRes.data.map((q: any, idx: number) => ({
-              id: idx,
-              question: q,
-              orderIndex: idx
-            }));
-            setQuestions(poolQuestions);
-            
-            // Cevapları initialize et
-            const initialAnswers = poolQuestions.map((eq: any) => ({
-              questionId: eq.question.id,
-              answerText: ''
-            }));
-            setAnswers(initialAnswers);
-          } else {
-            const questionsRes = await api.get(`/exam-questions/exam/${id}`);
-            setQuestions(questionsRes.data);
-            
-            // Cevapları initialize et
-            const initialAnswers = questionsRes.data.map((eq: ExamQuestion) => ({
-              questionId: eq.question.id,
-              answerText: ''
-            }));
-            setAnswers(initialAnswers);
-          }
         }
-      } catch (err) {
-        // Sınav kaydı yoksa yeni oluştur
+      } catch {
         const studentExamRes = await api.post('/student-exams', {
           exam: { id: parseInt(id!) },
-          status: 'IN_PROGRESS'
+          status: 'IN_PROGRESS',
         });
         setStudentExamId(studentExamRes.data.id);
         setTimeRemaining(examRes.data.duration * 60);
-        
-        // Soru havuzu moduysa rastgele sorular ata
-        if (examRes.data.questionPoolEnabled) {
-          const assignRes = await api.post(`/question-pool/student-exam/${studentExamRes.data.id}/assign`);
-          const poolQuestions = assignRes.data.map((q: any, idx: number) => ({
-            id: idx,
-            question: q,
-            orderIndex: idx
-          }));
-          setQuestions(poolQuestions);
-          
-          // Cevapları initialize et
-          const initialAnswers = poolQuestions.map((eq: any) => ({
-            questionId: eq.question.id,
-            answerText: ''
-          }));
-          setAnswers(initialAnswers);
-        } else {
-          const questionsRes = await api.get(`/exam-questions/exam/${id}`);
-          setQuestions(questionsRes.data);
-          
-          // Cevapları initialize et
-          const initialAnswers = questionsRes.data.map((eq: ExamQuestion) => ({
-            questionId: eq.question.id,
-            answerText: ''
-          }));
-          setAnswers(initialAnswers);
-        }
       }
+
+      setAnswers(questionsRes.data.map((eq: ExamQuestion) => ({
+        questionId: eq.question.id, answerText: '',
+      })));
     } catch (error) {
       console.error('Error loading exam:', error);
       alert('Sınav yüklenirken hata oluştu!');
@@ -194,293 +118,335 @@ export default function TakeExam() {
   };
 
   const handleAnswerChange = (questionId: number, value: string) => {
-    setAnswers(prev => 
+    setAnswers(prev =>
       prev.map(a => a.questionId === questionId ? { ...a, answerText: value } : a)
     );
   };
 
   const handleSubmit = async () => {
     if (!studentExamId) return;
-    
     try {
-      // Cevapları kaydet
-      for (const answer of answers) {
-        if (answer.answerText) {
-          await api.post('/answers', {
-            studentExam: { id: studentExamId },
-            question: { id: answer.questionId },
-            answerText: answer.answerText
-          });
-        }
-      }
-      
-      // Sınav durumunu güncelle
-      await api.put(`/student-exams/${studentExamId}`, {
-        status: 'SUBMITTED'
+      const answersMap: Record<string, string> = {};
+      answers.forEach(a => {
+        if (a.answerText) answersMap[String(a.questionId)] = a.answerText;
       });
-      
-      // Otomatik puanlama yap
-      await api.post(`/results/grade/${studentExamId}`);
-      
-      alert('Sınav başarıyla teslim edildi ve puanlandı!');
-      navigate(`/student/result/${studentExamId}`);
+      const res = await api.post(`/student-exams/${studentExamId}/submit`, answersMap);
+      navigate(`/student/result/${res.data.studentExamId}`);
     } catch (error) {
       console.error('Error submitting exam:', error);
       alert('Sınav teslim edilirken hata oluştu!');
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getTimerColor = () => {
-    if (timeRemaining <= 60) return '#dc2626'; // Kırmızı - 1 dakika
-    if (timeRemaining <= 5 * 60) return '#ea580c'; // Turuncu - 5 dakika
-    return '#16a34a'; // Yeşil - Normal
-  };
-
   if (!exam || questions.length === 0) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>Yükleniyor...</div>;
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'grid', placeItems: 'center',
+        background: tokens.bg, fontFamily: tokens.sans, color: tokens.muted,
+      }}>
+        Yükleniyor…
+      </div>
+    );
   }
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const currentAnswer = answers.find(a => a.questionId === currentQuestion.question.id);
+  const currentQ = questions[currentIndex];
+  const currentAnswer = answers.find(a => a.questionId === currentQ.question.id);
+  const answeredCount = answers.filter(a => a.answerText).length;
+  const warnTimer = timeRemaining <= 5 * 60;
+  const isLastQuestion = currentIndex === questions.length - 1;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8f9fa', padding: '20px' }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ background: 'white', padding: '20px', borderRadius: '10px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h1 style={{ margin: '0 0 5px 0', fontSize: '24px' }}>{exam.title}</h1>
-              <p style={{ margin: 0, color: '#666' }}>Soru {currentQuestionIndex + 1} / {questions.length}</p>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ 
-                fontSize: '32px', 
-                fontWeight: 'bold', 
-                color: getTimerColor(),
-                fontFamily: 'monospace',
-                transition: 'color 0.3s ease'
-              }}>
-                {formatTime(timeRemaining)}
-              </div>
-              <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '14px' }}>Kalan Süre</p>
-            </div>
+    <div style={{
+      background: tokens.bg, minHeight: '100vh',
+      fontFamily: tokens.sans, color: tokens.ink,
+    }}>
+      {/* Sticky exam bar */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
+        padding: '14px 32px', background: tokens.bg,
+        borderBottom: `1px solid ${tokens.hairline}`,
+      }}>
+        <div style={{ lineHeight: 1.15 }}>
+          <div style={{
+            fontFamily: tokens.mono, fontSize: 10, color: tokens.subtle,
+            letterSpacing: '0.1em', textTransform: 'uppercase' as const,
+          }}>Sınav devam ediyor</div>
+          <strong style={{
+            fontFamily: tokens.serif, fontSize: 18, fontWeight: 400, letterSpacing: '-0.01em',
+          }}>{exam.title}</strong>
+        </div>
+
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 12,
+          padding: '10px 22px', borderRadius: 999,
+          background: warnTimer ? '#fef2f2' : '#ffffff',
+          border: `1px solid ${warnTimer ? '#fecaca' : tokens.hairline}`,
+          boxShadow: warnTimer ? '0 0 0 4px rgba(239,68,68,0.08)' : 'none',
+          transition: 'all 0.3s',
+        }}>
+          <Clock size={16} style={{ color: warnTimer ? '#dc2626' : tokens.indigo }} />
+          <div style={{ lineHeight: 1 }}>
+            <div style={{
+              fontFamily: tokens.mono, fontSize: 9, color: tokens.subtle,
+              letterSpacing: '0.12em', textTransform: 'uppercase' as const,
+            }}>Kalan Süre</div>
+            <div style={{
+              fontFamily: tokens.mono, fontSize: 22, fontWeight: 600,
+              color: warnTimer ? '#dc2626' : tokens.ink,
+              letterSpacing: '0.04em', marginTop: 3,
+            }}>{formatTime(timeRemaining)}</div>
           </div>
         </div>
 
-        {/* Question Card */}
-        <div style={{ background: 'white', padding: '30px', borderRadius: '10px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-            <span style={{ background: '#e3f2fd', color: '#1976d2', padding: '6px 12px', borderRadius: '5px', fontSize: '13px', fontWeight: 'bold' }}>
-              {currentQuestion.question.type === 'MULTIPLE_CHOICE' ? 'Çoktan Seçmeli' : 
-               currentQuestion.question.type === 'TRUE_FALSE' ? 'Doğru/Yanlış' : 'Kısa Cevap'}
-            </span>
-            <span style={{ background: '#f3e5f5', color: '#7b1fa2', padding: '6px 12px', borderRadius: '5px', fontSize: '13px', fontWeight: 'bold' }}>
-              {currentQuestion.question.points} Puan
-            </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '7px 11px', borderRadius: 999,
+            background: '#fff', border: `1px solid ${tokens.hairline}`,
+            fontSize: 11.5, color: tokens.muted,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a' }} />
+            {answeredCount}/{questions.length} cevaplandı
+          </div>
+        </div>
+      </header>
+
+      <main style={{
+        padding: '32px 32px 56px', maxWidth: 1280, margin: '0 auto',
+        display: 'grid', gridTemplateColumns: '1fr 280px', gap: 32,
+      }}>
+        {/* Question column */}
+        <div style={{ maxWidth: 720 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+            <CodeTag>SORU {String(currentIndex + 1).padStart(2, '0')} / {questions.length}</CodeTag>
+            <span style={{ fontSize: 12, color: tokens.subtle }}>{TYPE_LABEL[currentQ.question.type]}</span>
+            <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#cfcfd6' }} />
+            <span style={{ fontSize: 12, color: tokens.subtle }}>{currentQ.question.points} puan</span>
           </div>
 
-          <h2 style={{ fontSize: '20px', marginBottom: '20px', lineHeight: '1.6' }}>
-            {currentQuestion.question.questionText}
-          </h2>
+          <h1 style={{
+            margin: 0, fontFamily: tokens.serif,
+            fontSize: 28, fontWeight: 400, lineHeight: 1.4,
+            letterSpacing: '-0.015em', color: tokens.ink,
+          }}>{currentQ.question.questionText}</h1>
 
-          {currentQuestion.question.type === 'MULTIPLE_CHOICE' && currentQuestion.question.options && (
-            <div style={{ marginBottom: '20px' }}>
-              {currentQuestion.question.options.split('\n').map((option, idx) => (
-                <label 
-                  key={idx} 
-                  style={{ 
-                    display: 'block', 
-                    padding: '15px', 
-                    marginBottom: '10px', 
-                    border: '2px solid #e0e0e0', 
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    background: currentAnswer?.answerText === option.charAt(0) ? '#e3f2fd' : 'white',
-                    borderColor: currentAnswer?.answerText === option.charAt(0) ? '#1976d2' : '#e0e0e0'
-                  }}
-                >
+          {/* Options */}
+          <div style={{ marginTop: 28, display: 'grid', gap: 10 }}>
+            {currentQ.question.type === 'MULTIPLE_CHOICE' && currentQ.question.options &&
+              currentQ.question.options.split('\n').map((option, idx) => {
+                const letter = option.charAt(0);
+                const sel = currentAnswer?.answerText === letter;
+                return (
+                  <label key={idx} style={{
+                    display: 'flex', alignItems: 'center', gap: 16,
+                    padding: '16px 20px', cursor: 'pointer',
+                    background: sel ? tokens.indigoSoft : '#fff',
+                    border: `1px solid ${sel ? '#bfc4ee' : tokens.hairline}`,
+                    borderRadius: 12, transition: 'all 0.15s',
+                  }}>
+                    <input
+                      type="radio"
+                      name={`q-${currentQ.question.id}`}
+                      value={letter}
+                      checked={sel}
+                      onChange={() => handleAnswerChange(currentQ.question.id, letter)}
+                      style={{ display: 'none' }}
+                    />
+                    <span style={{
+                      width: 28, height: 28, borderRadius: 6,
+                      background: sel ? tokens.indigo : '#fff',
+                      color: sel ? '#fff' : tokens.subtle,
+                      border: `1px solid ${sel ? tokens.indigo : tokens.hairline}`,
+                      display: 'grid', placeItems: 'center',
+                      fontFamily: tokens.mono,
+                      fontSize: 13, fontWeight: 600, flexShrink: 0,
+                    }}>{letter}</span>
+                    <span style={{ fontSize: 15, color: tokens.ink, fontWeight: sel ? 500 : 400 }}>
+                      {option.substring(option.indexOf(')') + 1).trim() || option.substring(1).trim()}
+                    </span>
+                    {sel && <Check size={16} style={{ color: tokens.indigo, marginLeft: 'auto' }} />}
+                  </label>
+                );
+              })
+            }
+
+            {currentQ.question.type === 'TRUE_FALSE' && [
+              { val: 'true', label: 'Doğru' },
+              { val: 'false', label: 'Yanlış' },
+            ].map(opt => {
+              const sel = currentAnswer?.answerText === opt.val;
+              return (
+                <label key={opt.val} style={{
+                  display: 'flex', alignItems: 'center', gap: 16,
+                  padding: '16px 20px', cursor: 'pointer',
+                  background: sel ? tokens.indigoSoft : '#fff',
+                  border: `1px solid ${sel ? '#bfc4ee' : tokens.hairline}`,
+                  borderRadius: 12,
+                }}>
                   <input
                     type="radio"
-                    name={`question-${currentQuestion.question.id}`}
-                    value={option.charAt(0)}
-                    checked={currentAnswer?.answerText === option.charAt(0)}
-                    onChange={(e) => handleAnswerChange(currentQuestion.question.id, e.target.value)}
-                    style={{ marginRight: '10px' }}
+                    name={`q-${currentQ.question.id}`}
+                    value={opt.val}
+                    checked={sel}
+                    onChange={() => handleAnswerChange(currentQ.question.id, opt.val)}
+                    style={{ display: 'none' }}
                   />
-                  {option}
+                  <span style={{
+                    width: 28, height: 28, borderRadius: 6,
+                    background: sel ? tokens.indigo : '#fff',
+                    color: sel ? '#fff' : tokens.subtle,
+                    border: `1px solid ${sel ? tokens.indigo : tokens.hairline}`,
+                    display: 'grid', placeItems: 'center',
+                    fontFamily: tokens.mono, fontSize: 13, fontWeight: 600,
+                  }}>{opt.val === 'true' ? 'D' : 'Y'}</span>
+                  <span style={{ fontSize: 15, color: tokens.ink, fontWeight: sel ? 500 : 400 }}>
+                    {opt.label}
+                  </span>
+                  {sel && <Check size={16} style={{ color: tokens.indigo, marginLeft: 'auto' }} />}
                 </label>
-              ))}
-            </div>
-          )}
+              );
+            })}
 
-          {currentQuestion.question.type === 'TRUE_FALSE' && (
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ 
-                display: 'block', 
-                padding: '15px', 
-                marginBottom: '10px', 
-                border: '2px solid #e0e0e0', 
-                borderRadius: '8px',
-                cursor: 'pointer',
-                background: currentAnswer?.answerText === 'true' ? '#e3f2fd' : 'white',
-                borderColor: currentAnswer?.answerText === 'true' ? '#1976d2' : '#e0e0e0'
-              }}>
-                <input
-                  type="radio"
-                  name={`question-${currentQuestion.question.id}`}
-                  value="true"
-                  checked={currentAnswer?.answerText === 'true'}
-                  onChange={(e) => handleAnswerChange(currentQuestion.question.id, e.target.value)}
-                  style={{ marginRight: '10px' }}
-                />
-                Doğru
-              </label>
-              <label style={{ 
-                display: 'block', 
-                padding: '15px', 
-                border: '2px solid #e0e0e0', 
-                borderRadius: '8px',
-                cursor: 'pointer',
-                background: currentAnswer?.answerText === 'false' ? '#e3f2fd' : 'white',
-                borderColor: currentAnswer?.answerText === 'false' ? '#1976d2' : '#e0e0e0'
-              }}>
-                <input
-                  type="radio"
-                  name={`question-${currentQuestion.question.id}`}
-                  value="false"
-                  checked={currentAnswer?.answerText === 'false'}
-                  onChange={(e) => handleAnswerChange(currentQuestion.question.id, e.target.value)}
-                  style={{ marginRight: '10px' }}
-                />
-                Yanlış
-              </label>
-            </div>
-          )}
-
-          {currentQuestion.question.type === 'SHORT_ANSWER' && (
-            <textarea
-              value={currentAnswer?.answerText || ''}
-              onChange={(e) => handleAnswerChange(currentQuestion.question.id, e.target.value)}
-              placeholder="Cevabınızı buraya yazın..."
-              rows={6}
-              style={{ 
-                width: '100%', 
-                padding: '15px', 
-                border: '2px solid #e0e0e0', 
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontFamily: 'inherit',
-                resize: 'vertical'
-              }}
-            />
-          )}
-        </div>
-
-        {/* Navigation */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
-          <button
-            onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-            disabled={currentQuestionIndex === 0}
-            style={{
-              padding: '12px 24px',
-              background: currentQuestionIndex === 0 ? '#ccc' : '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: currentQuestionIndex === 0 ? 'not-allowed' : 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}
-          >
-            ← Önceki
-          </button>
-
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {currentQuestionIndex === questions.length - 1 ? (
-              <button
-                onClick={handleSubmit}
+            {currentQ.question.type === 'SHORT_ANSWER' && (
+              <textarea
+                value={currentAnswer?.answerText || ''}
+                onChange={(e) => handleAnswerChange(currentQ.question.id, e.target.value)}
+                placeholder="Cevabınızı buraya yazın…"
+                rows={6}
                 style={{
-                  padding: '12px 24px',
-                  background: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: '#fafafb',
+                  border: `1px solid ${tokens.hairline}`,
+                  borderRadius: 12,
+                  fontFamily: tokens.mono, fontSize: 14, color: tokens.ink,
+                  resize: 'vertical', boxSizing: 'border-box',
+                  outline: 'none',
                 }}
-              >
-                Sınavı Bitir
-              </button>
-            ) : (
-              <button
-                onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
-                style={{
-                  padding: '12px 24px',
-                  background: '#007bff',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
-                }}
-              >
-                Sonraki →
-              </button>
+              />
             )}
+          </div>
+
+          {/* Nav buttons */}
+          <div style={{
+            marginTop: 40, paddingTop: 24, borderTop: `1px solid ${tokens.hairline}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <Btn
+              variant="ghost"
+              onClick={() => setCurrentIndex(p => Math.max(0, p - 1))}
+              disabled={currentIndex === 0}
+              icon={<ArrowLeft size={14} />}
+            >Önceki Soru</Btn>
+            <span style={{
+              fontFamily: tokens.mono, fontSize: 11, color: tokens.subtle, letterSpacing: '0.08em',
+            }}>
+              {String(currentIndex + 1).padStart(2, '0')} / {String(questions.length).padStart(2, '0')}
+            </span>
+            <Btn
+              variant={isLastQuestion ? 'dark' : 'primary'}
+              onClick={() => isLastQuestion ? handleSubmit() : setCurrentIndex(p => Math.min(questions.length - 1, p + 1))}
+              iconR={isLastQuestion ? <Send size={14} /> : <ArrowRight size={14} />}
+            >{isLastQuestion ? 'Sınavı Bitir' : 'Sonraki Soru'}</Btn>
           </div>
         </div>
 
-        {/* Question Navigator */}
-        <div style={{ background: 'white', padding: '20px', borderRadius: '10px', marginTop: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ margin: '0 0 15px 0', fontSize: '16px' }}>Soru Navigasyonu</h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {/* Palette */}
+        <aside style={{
+          position: 'sticky', top: 80, alignSelf: 'flex-start',
+          padding: 22, background: '#fff', border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+        }}>
+          <div style={{
+            fontFamily: tokens.mono, fontSize: 10, color: tokens.subtle,
+            letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 4,
+          }}>Soru haritası</div>
+          <div style={{
+            fontFamily: tokens.serif, fontSize: 22, color: tokens.ink, lineHeight: 1, marginBottom: 16,
+          }}>
+            {answeredCount}/{questions.length}
+            <span style={{ fontSize: 13, color: tokens.subtle }}> cevaplandı</span>
+          </div>
+
+          <div style={{
+            height: 4, background: tokens.hairlineSoft, borderRadius: 2,
+            overflow: 'hidden', marginBottom: 18,
+          }}>
+            <div style={{
+              width: `${(answeredCount / questions.length) * 100}%`,
+              height: '100%', background: tokens.indigo,
+            }} />
+          </div>
+
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6, marginBottom: 18,
+          }}>
             {questions.map((q, idx) => {
-              const hasAnswer = answers.find(a => a.questionId === q.question.id)?.answerText;
+              const hasAnswer = !!answers.find(a => a.questionId === q.question.id)?.answerText;
+              const isCurrent = idx === currentIndex;
+              let bg = '#fff', fg = tokens.subtle, br = tokens.hairline;
+              if (isCurrent) { bg = tokens.indigo; fg = '#fff'; br = tokens.indigo; }
+              else if (hasAnswer) { bg = tokens.indigoSoft; fg = '#3730a3'; br = tokens.indigoBorder; }
               return (
                 <button
                   key={q.id}
-                  onClick={() => setCurrentQuestionIndex(idx)}
+                  onClick={() => setCurrentIndex(idx)}
                   style={{
-                    width: '40px',
-                    height: '40px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    background: idx === currentQuestionIndex ? '#007bff' : hasAnswer ? '#28a745' : '#e0e0e0',
-                    color: idx === currentQuestionIndex || hasAnswer ? 'white' : '#666'
-                  }}
-                >
-                  {idx + 1}
-                </button>
+                    width: 36, height: 36, borderRadius: 8,
+                    background: bg, color: fg, border: `1px solid ${br}`,
+                    fontFamily: tokens.mono, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  }}>{idx + 1}</button>
               );
             })}
           </div>
-          <p style={{ margin: '15px 0 0 0', fontSize: '13px', color: '#666' }}>
-            <span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#28a745', borderRadius: '3px', marginRight: '5px' }}></span>
-            Cevaplanmış
-            <span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#e0e0e0', borderRadius: '3px', marginLeft: '15px', marginRight: '5px' }}></span>
-            Cevaplanmamış
-          </p>
-        </div>
-      </div>
 
-      {/* Toast Notification */}
+          <div style={{ display: 'grid', gap: 8 }}>
+            {[
+              [tokens.indigo, tokens.indigo, 'Mevcut soru', 1],
+              [tokens.indigoSoft, tokens.indigoBorder, 'Cevaplanmış', answeredCount],
+              ['#fff', tokens.hairline, 'Boş', questions.length - answeredCount],
+            ].map(([bg, br, lbl, n]) => (
+              <div key={lbl as string} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+                <span style={{
+                  width: 14, height: 14, borderRadius: 3,
+                  background: bg as string, border: `1px solid ${br}`,
+                }} />
+                <span style={{ color: tokens.text, flex: 1 }}>{lbl}</span>
+                <span style={{ fontFamily: tokens.mono, fontSize: 11, color: tokens.subtle }}>{n}</span>
+              </div>
+            ))}
+          </div>
+
+          <hr style={{ border: 'none', borderTop: `1px solid ${tokens.hairline}`, margin: '18px 0' }} />
+
+          <Btn variant="dark" onClick={handleSubmit} icon={<Send size={14} />}
+            style={{ width: '100%', justifyContent: 'center', padding: 11 }}>
+            Sınavı Bitir
+          </Btn>
+          <p style={{
+            margin: '10px 0 0', fontSize: 11, color: tokens.subtle,
+            lineHeight: 1.5, textAlign: 'center' as const,
+          }}>
+            Teslim ettikten sonra değişiklik yapamazsın.
+          </p>
+
+          {warnTimer && (
+            <div style={{
+              marginTop: 14, padding: 10, background: '#fef2f2',
+              border: '1px solid #fecaca', borderRadius: 8,
+              display: 'flex', gap: 8, alignItems: 'flex-start',
+            }}>
+              <AlertTriangle size={14} style={{ color: '#dc2626', flexShrink: 0, marginTop: 2 }} />
+              <div style={{ fontSize: 11.5, color: '#991b1b', lineHeight: 1.5 }}>
+                Süre azalıyor — cevaplarını kontrol et.
+              </div>
+            </div>
+          )}
+        </aside>
+      </main>
+
       {toastMessage && (
-        <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setToastMessage(null)}
-        />
+        <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage(null)} />
       )}
     </div>
   );
