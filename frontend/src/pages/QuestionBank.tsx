@@ -1,39 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Save, Upload, X, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Upload, X, Save, Search, Pencil, Trash2, Sigma, List, Scale, PenLine, SquarePen, Info } from 'lucide-react';
 import api from '../api/axios';
 import type { Question } from '../types';
-import {
-  tokens, PageShell, Crumbs, Kicker, HeroTitle, Stat, SectionHeader, Btn, CodeTag,
-} from '../components/academic-ui';
+import { tokens, Btn } from '../components/academic-ui';
 
-interface Category {
-  id: number;
-  name: string;
-}
+interface Category { id: number; name: string; }
 
-const inputStyle = {
-  width: '100%',
-  padding: '12px 14px',
-  background: '#fff',
-  border: `1px solid ${tokens.hairline}`,
-  borderRadius: 10,
-  fontFamily: 'inherit',
-  fontSize: 14,
-  color: tokens.ink,
-  outline: 'none',
-  boxSizing: 'border-box' as const,
+const labelStyle: React.CSSProperties = {
+  display: 'block', fontSize: 13.5, fontWeight: 600, color: tokens.text, marginBottom: 8,
 };
-
-const labelStyle = {
-  display: 'block',
-  fontFamily: tokens.mono,
-  fontSize: 10.5,
-  color: tokens.subtle,
-  letterSpacing: '0.1em',
-  textTransform: 'uppercase' as const,
-  fontWeight: 600,
-  marginBottom: 8,
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '11px 14px', background: tokens.card,
+  border: `1px solid ${tokens.hairline}`, borderRadius: 10,
+  fontFamily: 'inherit', fontSize: 14, color: tokens.ink, outline: 'none', boxSizing: 'border-box',
 };
 
 const initialFormState = {
@@ -45,17 +25,10 @@ const initialFormState = {
   categoryId: null as number | null,
 };
 
-function typeLabel(type: string): string {
-  if (type === 'MULTIPLE_CHOICE') return 'Çoktan Seçmeli';
-  if (type === 'TRUE_FALSE') return 'Doğru / Yanlış';
-  return 'Kısa Cevap';
-}
-
-function tfDisplay(value: string): string {
-  const v = (value || '').trim().toLowerCase();
-  if (v === 'true' || v === 'doğru' || v === 'd') return 'Doğru';
-  if (v === 'false' || v === 'yanlış' || v === 'y') return 'Yanlış';
-  return value;
+function typeBadge(type: string): { label: string; bg: string; fg: string } {
+  if (type === 'MULTIPLE_CHOICE') return { label: 'ÇS', bg: '#c9e6ff', fg: '#004c6e' };
+  if (type === 'TRUE_FALSE') return { label: 'D/Y', bg: '#e2dfff', fg: '#3323cc' };
+  return { label: 'KC', bg: '#d3e4fe', fg: '#444651' };
 }
 
 export default function QuestionBank() {
@@ -64,7 +37,6 @@ export default function QuestionBank() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [search, setSearch] = useState('');
-  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(initialFormState);
@@ -84,28 +56,13 @@ export default function QuestionBank() {
     sa: questions.filter(q => q.type === 'SHORT_ANSWER').length,
   }), [questions]);
 
-  const filtered = useMemo(() => {
-    return questions.filter(q => {
-      const matchesCategory = !selectedCategory || q.category?.id === parseInt(selectedCategory);
-      const matchesSearch = q.questionText.toLowerCase().includes(search.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
-  }, [questions, selectedCategory, search]);
+  const filtered = useMemo(() => questions.filter(q => {
+    const matchesCategory = !selectedCategory || q.category?.id === parseInt(selectedCategory);
+    const matchesSearch = q.questionText.toLowerCase().includes(search.toLowerCase());
+    return matchesCategory && matchesSearch;
+  }), [questions, selectedCategory, search]);
 
-  const resetForm = () => {
-    setFormData(initialFormState);
-    setEditingId(null);
-  };
-
-  const startCreate = () => {
-    if (showForm) {
-      setShowForm(false);
-      resetForm();
-    } else {
-      resetForm();
-      setShowForm(true);
-    }
-  };
+  const resetForm = () => { setFormData(initialFormState); setEditingId(null); };
 
   const startEdit = (q: Question) => {
     setEditingId(q.id);
@@ -117,7 +74,6 @@ export default function QuestionBank() {
       points: q.points ?? 1,
       categoryId: q.category?.id ?? null,
     });
-    setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -134,30 +90,14 @@ export default function QuestionBank() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.categoryId) {
-      alert('Lütfen bir kategori seç. Kategori zorunlu.');
-      return;
-    }
-    if (formData.type === 'MULTIPLE_CHOICE' && !formData.options.trim()) {
-      alert('Çoktan seçmeli sorular için seçenekler zorunludur.');
-      return;
-    }
-    if (!formData.correctAnswer.trim()) {
-      alert('Doğru cevap boş bırakılamaz.');
-      return;
-    }
+    if (!formData.categoryId) { alert('Lütfen bir kategori seç. Kategori zorunlu.'); return; }
+    if (formData.type === 'MULTIPLE_CHOICE' && !formData.options.trim()) { alert('Çoktan seçmeli sorular için seçenekler zorunludur.'); return; }
+    if (!formData.correctAnswer.trim()) { alert('Doğru cevap boş bırakılamaz.'); return; }
     setSaving(true);
     try {
-      const payload = {
-        ...formData,
-        category: { id: formData.categoryId },
-      };
-      if (editingId) {
-        await api.put(`/questions/${editingId}`, payload);
-      } else {
-        await api.post('/questions', payload);
-      }
-      setShowForm(false);
+      const payload = { ...formData, category: { id: formData.categoryId } };
+      if (editingId) await api.put(`/questions/${editingId}`, payload);
+      else await api.post('/questions', payload);
       resetForm();
       loadQuestions();
     } catch (error) {
@@ -168,71 +108,54 @@ export default function QuestionBank() {
     }
   };
 
+  const statCards = [
+    { icon: <Sigma size={18} />, color: tokens.navy, label: 'Toplam', value: stats.total, big: true },
+    { icon: <List size={18} />, color: '#0369a1', label: 'Çoktan Seçmeli', value: stats.mc, big: false },
+    { icon: <Scale size={18} />, color: tokens.indigo, label: 'Doğru / Yanlış', value: stats.tf, big: false },
+    { icon: <PenLine size={18} />, color: tokens.muted, label: 'Kısa Cevap', value: stats.sa, big: false },
+  ];
+
   return (
-    <PageShell>
-      <Crumbs items={['Eğitmen', 'Soru bankası']} />
-
-      <div style={{
-        display: 'flex', justifyContent: 'space-between',
-        alignItems: 'flex-end', gap: 24, marginBottom: 32, flexWrap: 'wrap' as const,
-      }}>
-        <div>
-          <Kicker>Soru yönetimi</Kicker>
-          <div style={{ marginTop: 8 }}>
-            <HeroTitle>Soru Bankası</HeroTitle>
+    <div style={{ minHeight: '100vh', background: tokens.bg, fontFamily: tokens.sans, color: tokens.ink }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '36px 40px 64px', display: 'flex', flexDirection: 'column', gap: 32 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24, flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700, letterSpacing: '-0.02em', color: tokens.ink }}>Soru Bankası</h1>
+            <p style={{ margin: '6px 0 0', color: tokens.muted, fontSize: 15 }}>Sorularını tek yerden oluştur, kategorize et ve sınavlarda kullan.</p>
           </div>
-          <p style={{
-            margin: '14px 0 0', maxWidth: 580, color: tokens.muted,
-            fontSize: 15.5, lineHeight: 1.6,
-          }}>
-            Sorularını tek yerden oluştur, kategorize et ve sınavlarda kullan.
-          </p>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <Btn onClick={() => navigate('/instructor/bulk-import')} icon={<Upload size={16} />}>Toplu İçe Aktar</Btn>
+            <Btn variant="primary" onClick={resetForm} icon={<Plus size={16} />}>Yeni Soru</Btn>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
-          <Btn icon={<ArrowLeft size={14} />} onClick={() => navigate('/instructor')}>Geri</Btn>
-          <Btn onClick={() => navigate('/instructor/bulk-import')} icon={<Upload size={14} />}>
-            Toplu İçe Aktar
-          </Btn>
-          <Btn variant="primary" onClick={startCreate}
-            icon={showForm ? <X size={14} /> : <Plus size={14} />}>
-            {showForm ? 'Formu Kapat' : 'Yeni Soru'}
-          </Btn>
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+          {statCards.map(s => (
+            <div key={s.label} style={{ background: tokens.card, border: `1px solid ${tokens.hairline}`, borderRadius: 14, padding: 20, boxShadow: '0 4px 20px rgba(30,58,138,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, color: tokens.muted, fontSize: 13, fontWeight: 600 }}>
+                <span style={{ color: s.color }}>{s.icon}</span>{s.label}
+              </div>
+              <div style={{ fontSize: s.big ? 40 : 30, fontWeight: 800, color: tokens.ink, lineHeight: 1, letterSpacing: '-0.02em' }}>{s.value}</div>
+            </div>
+          ))}
         </div>
-      </div>
 
-      <section style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32,
-      }}>
-        <Stat label="Toplam" value={String(stats.total).padStart(2, '0')} accent={tokens.indigo} />
-        <Stat label="Çoktan Seçmeli" value={String(stats.mc).padStart(2, '0')} />
-        <Stat label="Doğru / Yanlış" value={String(stats.tf).padStart(2, '0')} />
-        <Stat label="Kısa Cevap" value={String(stats.sa).padStart(2, '0')} />
-      </section>
-
-      {showForm && (
-        <section style={{
-          marginBottom: 32, padding: 24,
-          background: '#fff', border: `1px solid ${tokens.hairline}`, borderRadius: 14,
-        }}>
-          <SectionHeader
-            kicker={editingId ? 'Soru düzenle' : 'Yeni soru'}
-            title={editingId ? 'Soruyu güncelle' : 'Soru oluştur'}
-          />
-
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gap: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {/* Form card */}
+        <div style={{ background: tokens.card, border: `1px solid ${tokens.hairline}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 4px 20px rgba(30,58,138,0.06)' }}>
+          <div style={{ height: 6, background: tokens.navy }} />
+          <div style={{ padding: 28 }}>
+            <h3 style={{ margin: '0 0 22px', fontSize: 20, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <SquarePen size={20} style={{ color: tokens.navy }} />{editingId ? 'Soruyu Güncelle' : 'Yeni Soru Oluştur'}
+            </h3>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Row: type / category / points */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20 }}>
                 <div>
                   <label style={labelStyle}>Soru Tipi</label>
-                  <select
-                    value={formData.type}
-                    onChange={e => setFormData({
-                      ...formData,
-                      type: e.target.value as typeof formData.type,
-                      correctAnswer: '',
-                      options: '',
-                    })}
+                  <select value={formData.type}
+                    onChange={e => setFormData({ ...formData, type: e.target.value as typeof formData.type, correctAnswer: '', options: '' })}
                     style={{ ...inputStyle, cursor: 'pointer' }}>
                     <option value="MULTIPLE_CHOICE">Çoktan Seçmeli</option>
                     <option value="TRUE_FALSE">Doğru / Yanlış</option>
@@ -240,59 +163,47 @@ export default function QuestionBank() {
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>Kategori *</label>
-                  <select
-                    required
-                    value={formData.categoryId || ''}
-                    onChange={e => setFormData({
-                      ...formData,
-                      categoryId: e.target.value ? parseInt(e.target.value) : null,
-                    })}
+                  <label style={labelStyle}>Kategori <span style={{ color: tokens.bad }}>*</span></label>
+                  <select required value={formData.categoryId || ''}
+                    onChange={e => setFormData({ ...formData, categoryId: e.target.value ? parseInt(e.target.value) : null })}
                     style={{ ...inputStyle, cursor: 'pointer' }}>
                     <option value="">Kategori seçiniz</option>
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Soru Metni *</label>
-                <textarea
-                  required
-                  rows={3}
-                  value={formData.questionText}
-                  onChange={e => setFormData({ ...formData, questionText: e.target.value })}
-                  style={{ ...inputStyle, resize: 'vertical' as const }}
-                />
-              </div>
-
-              {formData.type === 'MULTIPLE_CHOICE' && (
                 <div>
-                  <label style={labelStyle}>Seçenekler *</label>
-                  <textarea
-                    rows={4}
-                    value={formData.options}
-                    onChange={e => setFormData({ ...formData, options: e.target.value })}
-                    placeholder={"A) İstanbul\nB) Ankara\nC) İzmir\nD) Bursa"}
-                    style={{ ...inputStyle, fontFamily: tokens.mono, fontSize: 13, resize: 'vertical' as const }}
-                  />
+                  <label style={labelStyle}>Puan</label>
+                  <input type="number" min={1} required
+                    value={formData.points === 0 ? '' : formData.points}
+                    onChange={e => { const v = e.target.value; setFormData({ ...formData, points: v === '' ? 0 : parseInt(v) }); }}
+                    style={inputStyle} />
                 </div>
-              )}
+              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              {/* Question text */}
+              <div>
+                <label style={labelStyle}>Soru Metni</label>
+                <textarea required rows={3} value={formData.questionText}
+                  onChange={e => setFormData({ ...formData, questionText: e.target.value })}
+                  placeholder="Soru kökünü buraya girin..."
+                  style={{ ...inputStyle, resize: 'vertical' }} />
+              </div>
+
+              {/* Options + correct answer */}
+              <div style={{ display: 'grid', gridTemplateColumns: formData.type === 'MULTIPLE_CHOICE' ? '1fr 1fr' : '1fr', gap: 20 }}>
+                {formData.type === 'MULTIPLE_CHOICE' && (
+                  <div>
+                    <label style={labelStyle}>Seçenekler <span style={{ color: tokens.subtle, fontWeight: 400, fontSize: 12 }}>(Her satıra bir seçenek yazın)</span></label>
+                    <textarea rows={4} value={formData.options}
+                      onChange={e => setFormData({ ...formData, options: e.target.value })}
+                      placeholder={"A) Seçenek 1\nB) Seçenek 2\nC) Seçenek 3\nD) Seçenek 4"}
+                      style={{ ...inputStyle, fontFamily: tokens.mono, fontSize: 13, resize: 'vertical' }} />
+                  </div>
+                )}
                 <div>
-                  <label style={labelStyle}>
-                    Doğru Cevap *
-                    {formData.type === 'MULTIPLE_CHOICE' && (
-                      <span style={{ fontFamily: tokens.sans, color: tokens.subtle, marginLeft: 6, textTransform: 'none' }}>(A, B, C, D)</span>
-                    )}
-                  </label>
+                  <label style={labelStyle}>Doğru Cevap</label>
                   {formData.type === 'TRUE_FALSE' ? (
-                    <select
-                      required
-                      value={formData.correctAnswer}
+                    <select required value={formData.correctAnswer}
                       onChange={e => setFormData({ ...formData, correctAnswer: e.target.value })}
                       style={{ ...inputStyle, cursor: 'pointer' }}>
                       <option value="">Seçiniz</option>
@@ -300,191 +211,94 @@ export default function QuestionBank() {
                       <option value="false">Yanlış</option>
                     </select>
                   ) : (
-                    <input
-                      type="text" required
-                      value={formData.correctAnswer}
-                      onChange={e => setFormData({
-                        ...formData,
-                        correctAnswer: formData.type === 'MULTIPLE_CHOICE'
-                          ? e.target.value.toUpperCase()
-                          : e.target.value,
-                      })}
-                      placeholder={formData.type === 'MULTIPLE_CHOICE' ? 'A' : ''}
-                      style={{ ...inputStyle, fontFamily: tokens.mono }}
-                    />
+                    <input type="text" required value={formData.correctAnswer}
+                      onChange={e => setFormData({ ...formData, correctAnswer: formData.type === 'MULTIPLE_CHOICE' ? e.target.value.toUpperCase() : e.target.value })}
+                      placeholder="Örn: A veya Doğru Seçenek Metni"
+                      style={inputStyle} />
                   )}
-                </div>
-                <div>
-                  <label style={labelStyle}>Puan *</label>
-                  <input
-                    type="number" min={1} required
-                    value={formData.points === 0 ? '' : formData.points}
-                    onChange={e => {
-                      const v = e.target.value;
-                      setFormData({ ...formData, points: v === '' ? 0 : parseInt(v) });
-                    }}
-                    style={{ ...inputStyle, fontFamily: tokens.mono }}
-                  />
+                  <div style={{ marginTop: 14, padding: 14, background: tokens.ivory, border: `1px solid ${tokens.hairline}`, borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <Info size={18} style={{ color: '#0369a1', flexShrink: 0, marginTop: 1 }} />
+                    <p style={{ margin: 0, fontSize: 13, color: tokens.muted, lineHeight: 1.5 }}>Doğru cevabı seçeneklerde yazdığınız metinle birebir eşleşecek şekilde veya harf olarak belirtebilirsiniz.</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div style={{
-              display: 'flex', justifyContent: 'flex-end', gap: 10,
-              marginTop: 20, paddingTop: 16,
-              borderTop: `1px solid ${tokens.hairlineSoft}`,
-            }}>
-              <Btn type="button" onClick={() => { setShowForm(false); resetForm(); }} icon={<X size={14} />}>İptal</Btn>
-              <Btn type="submit" variant="primary" disabled={saving} icon={<Save size={14} />}>
-                {saving ? 'Kaydediliyor…' : (editingId ? 'Güncelle' : 'Kaydet')}
-              </Btn>
-            </div>
-          </form>
-        </section>
-      )}
-
-      <section>
-        <SectionHeader
-          kicker="Tüm sorular"
-          title="Soru listesi"
-          count={filtered.length}
-          action={
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 12px', background: '#fff',
-                border: `1px solid ${tokens.hairline}`, borderRadius: 10,
-                color: tokens.subtle, minWidth: 240,
-              }}>
-                <Search size={15} />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Soru ara…"
-                  style={{
-                    border: 'none', outline: 'none', background: 'transparent',
-                    flex: 1, color: tokens.ink, fontFamily: 'inherit', fontSize: 13,
-                  }}
-                />
+              {/* Actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, paddingTop: 16, borderTop: `1px solid ${tokens.hairline}` }}>
+                <Btn type="button" onClick={resetForm} icon={<X size={15} />}>İptal</Btn>
+                <Btn type="submit" variant="primary" disabled={saving} icon={<Save size={15} />}>{saving ? 'Kaydediliyor…' : (editingId ? 'Güncelle' : 'Kaydet')}</Btn>
               </div>
-              <select
-                value={selectedCategory}
-                onChange={e => setSelectedCategory(e.target.value)}
-                style={{
-                  padding: '8px 12px', background: '#fff',
-                  border: `1px solid ${tokens.hairline}`, borderRadius: 10,
-                  color: tokens.ink, fontFamily: 'inherit', fontSize: 13,
-                  outline: 'none', cursor: 'pointer',
-                }}>
-                <option value="">Tüm kategoriler</option>
-                {categories.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
+            </form>
+          </div>
+        </div>
+
+        {/* Question list */}
+        <div style={{ background: tokens.card, border: `1px solid ${tokens.hairline}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 4px 20px rgba(30,58,138,0.06)' }}>
+          <div style={{ padding: '20px 24px', borderBottom: `1px solid ${tokens.hairline}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0, fontSize: 19, fontWeight: 700 }}>Soru Listesi</h3>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: tokens.bg, border: `1px solid ${tokens.hairline}`, borderRadius: 10, minWidth: 220 }}>
+                <Search size={15} style={{ color: tokens.subtle }} />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Soru ara…"
+                  style={{ border: 'none', outline: 'none', background: 'transparent', flex: 1, color: tokens.ink, fontFamily: 'inherit', fontSize: 13 }} />
+              </div>
+              <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
+                style={{ padding: '8px 12px', background: tokens.bg, border: `1px solid ${tokens.hairline}`, borderRadius: 10, color: tokens.ink, fontFamily: 'inherit', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
+                <option value="">Kategori Filtrele</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-          }
-        />
-
-        {filtered.length === 0 ? (
-          <div style={{
-            padding: '48px 24px', textAlign: 'center' as const,
-            background: '#fff', border: `1px solid ${tokens.hairline}`, borderRadius: 14,
-          }}>
-            <div style={{ fontFamily: tokens.serif, fontSize: 22, color: tokens.muted, marginBottom: 8 }}>
-              {questions.length === 0 ? 'Henüz soru yok' : 'Sonuç bulunamadı'}
-            </div>
-            <div style={{ fontSize: 13.5, color: tokens.subtle }}>
-              {questions.length === 0
-                ? 'İlk soruyu "Yeni Soru" ile ekleyebilirsin.'
-                : 'Farklı bir arama veya kategori deneyin.'}
-            </div>
           </div>
-        ) : (
-          <div style={{ display: 'grid', gap: 10 }}>
-            {filtered.map((q, idx) => (
-              <article key={q.id} style={{
-                padding: 20, background: '#fff',
-                border: `1px solid ${tokens.hairline}`, borderRadius: 12,
-                position: 'relative' as const,
-              }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
-                }}>
-                  <span style={{
-                    width: 28, height: 28, borderRadius: 6,
-                    background: tokens.ink, color: '#fff',
-                    display: 'grid', placeItems: 'center',
-                    fontFamily: tokens.mono, fontSize: 12, fontWeight: 600,
-                  }}>{String(idx + 1).padStart(2, '0')}</span>
-                  <CodeTag tone="slate">{typeLabel(q.type)}</CodeTag>
-                  <span style={{ fontSize: 12, color: tokens.subtle }}>{q.points} puan</span>
-                  {q.category && (
-                    <>
-                      <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#cfcfd6' }} />
-                      <span style={{ fontSize: 12, color: tokens.subtle }}>{q.category.name}</span>
-                    </>
-                  )}
-                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                    <button
-                      type="button"
-                      onClick={() => startEdit(q)}
-                      title="Düzenle"
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '6px 10px', fontSize: 12,
-                        background: '#fff', border: `1px solid ${tokens.hairline}`,
-                        borderRadius: 8, color: tokens.ink, cursor: 'pointer',
-                        fontFamily: 'inherit',
-                      }}>
-                      <Pencil size={13} /> Düzenle
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(q)}
-                      title="Sil"
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '6px 10px', fontSize: 12,
-                        background: '#fff', border: '1px solid #fecaca',
-                        borderRadius: 8, color: tokens.bad, cursor: 'pointer',
-                        fontFamily: 'inherit',
-                      }}>
-                      <Trash2 size={13} /> Sil
-                    </button>
-                  </div>
-                </div>
 
-                <p style={{
-                  margin: 0, fontFamily: tokens.serif,
-                  fontSize: 17, lineHeight: 1.45, color: tokens.ink, fontWeight: 400,
-                }}>{q.questionText}</p>
-
-                {q.options && (
-                  <pre style={{
-                    margin: '12px 0 0', padding: '10px 12px',
-                    background: '#fafafb', border: `1px solid ${tokens.hairlineSoft}`,
-                    borderRadius: 8, fontFamily: tokens.mono,
-                    fontSize: 13, color: tokens.text,
-                    whiteSpace: 'pre-wrap' as const, lineHeight: 1.6,
-                  }}>{q.options}</pre>
-                )}
-
-                {q.correctAnswer && (
-                  <div style={{
-                    marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '5px 10px', borderRadius: 6,
-                    background: '#ecfdf5', border: '1px solid #bbf7d0',
-                    color: tokens.good, fontSize: 12.5,
-                    fontFamily: tokens.mono, fontWeight: 600,
-                  }}>
-                    ✓ Doğru cevap: {q.type === 'TRUE_FALSE' ? tfDisplay(q.correctAnswer) : q.correctAnswer}
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-    </PageShell>
+          {filtered.length === 0 ? (
+            <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: tokens.text, marginBottom: 6 }}>{questions.length === 0 ? 'Henüz soru yok' : 'Sonuç bulunamadı'}</div>
+              <div style={{ fontSize: 13.5, color: tokens.subtle }}>{questions.length === 0 ? 'İlk soruyu yukarıdaki formla ekleyebilirsin.' : 'Farklı bir arama veya kategori dene.'}</div>
+            </div>
+          ) : (
+            <>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: tokens.ivory, borderBottom: `1px solid ${tokens.hairline}` }}>
+                      {['#', 'Tip', 'Puan', 'Soru Önizleme', 'İşlemler'].map((h, i) => (
+                        <th key={h} style={{ textAlign: i === 4 ? 'right' : 'left', padding: '12px 24px', fontSize: 11.5, fontWeight: 700, color: tokens.muted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((q, idx) => {
+                      const b = typeBadge(q.type);
+                      return (
+                        <tr key={q.id} style={{ borderBottom: `1px solid ${tokens.hairlineSoft}` }}
+                          onMouseEnter={e => (e.currentTarget.style.background = tokens.ivory)}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          <td style={{ padding: '14px 24px', color: tokens.subtle, fontWeight: 600 }}>{idx + 1}</td>
+                          <td style={{ padding: '14px 24px' }}>
+                            <span style={{ display: 'inline-flex', padding: '3px 8px', borderRadius: 5, background: b.bg, color: b.fg, fontSize: 11, fontWeight: 800, letterSpacing: '0.04em' }}>{b.label}</span>
+                          </td>
+                          <td style={{ padding: '14px 24px', fontSize: 13.5, color: tokens.text }}>{q.points} Puan</td>
+                          <td style={{ padding: '14px 24px', fontSize: 13.5, color: tokens.text, maxWidth: 460, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.questionText}</td>
+                          <td style={{ padding: '14px 24px', textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', gap: 6 }}>
+                              <button type="button" onClick={() => startEdit(q)} title="Düzenle" style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', color: tokens.muted, cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Pencil size={17} /></button>
+                              <button type="button" onClick={() => handleDelete(q)} title="Sil" style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', color: tokens.bad, cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Trash2 size={17} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ padding: '16px 24px', borderTop: `1px solid ${tokens.hairline}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <p style={{ margin: 0, fontSize: 13, color: tokens.subtle }}>1-{filtered.length} arası gösteriliyor (Toplam {questions.length})</p>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: tokens.navy, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700 }}>1</div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

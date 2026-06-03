@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { TopBar } from './components/academic-ui';
+import { AppShell } from './components/academic-ui';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import StudentDashboard from './pages/StudentDashboard';
@@ -27,7 +27,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <TopBar />
+        <AppShell>
         <Routes>
           <Route path="/" element={<Home />} />
 
@@ -58,6 +58,7 @@ function App() {
           <Route path="/admin" element={<ProtectedRoute roles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/exam/:id" element={<ProtectedRoute roles={['ADMIN']}><AdminExamDetail /></ProtectedRoute>} />
         </Routes>
+        </AppShell>
       </BrowserRouter>
     </AuthProvider>
   );

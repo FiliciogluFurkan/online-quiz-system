@@ -1,12 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Download, Send } from 'lucide-react';
+import { ArrowLeft, Download, MessageSquare, CheckCircle2, XCircle, MinusCircle, TrendingUp, Clock } from 'lucide-react';
 import api from '../api/axios';
-import type { Question, CategoryBreakdown, ExamAggregate } from '../types';
-import {
-  tokens, PageShell, Crumbs, HeroTitle, Kicker, SectionHeader, Btn, CodeTag,
-  scoreLabel, formatTrDate,
-} from '../components/academic-ui';
+import type { Question, ExamAggregate } from '../types';
+import { tokens } from '../components/academic-ui';
 
 interface Answer {
   id: number;
@@ -18,13 +15,7 @@ interface Answer {
 }
 
 interface ResultData {
-  studentExam: {
-    id: number;
-    score: number;
-    status: string;
-    submittedAt: string;
-    exam?: { id: number; title?: string };
-  };
+  studentExam: { id: number; score: number; status: string; submittedAt: string; exam?: { id: number; title?: string } };
   answers: Answer[];
   correctCount: number;
   incorrectCount: number;
@@ -32,10 +23,7 @@ interface ResultData {
   totalQuestions: number;
 }
 
-interface InstructorInfo {
-  email?: string;
-  fullName?: string;
-}
+interface InstructorInfo { email?: string; fullName?: string; }
 
 function displayAnswer(questionType: string, value: string | null | undefined): string {
   if (!value) return 'Boş';
@@ -47,12 +35,21 @@ function displayAnswer(questionType: string, value: string | null | undefined): 
   return value;
 }
 
+function AnswerBox({ label, value, tone }: { label: string; value: ReactNode; tone: 'neutral' | 'good' | 'bad' }) {
+  const c = tone === 'good' ? { bg: '#f0faf3', br: '#cdebd7', fg: '#1e8e3e' } : tone === 'bad' ? { bg: '#fff1ef', br: '#ffcdc6', fg: tokens.bad } : { bg: tokens.ivory, br: tokens.hairline, fg: tokens.muted };
+  return (
+    <div style={{ background: c.bg, border: `1px solid ${c.br}`, borderRadius: 10, padding: 14 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: c.fg, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 14, color: tokens.ink }}>{value}</div>
+    </div>
+  );
+}
+
 export default function ExamResult() {
   const { studentExamId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [result, setResult] = useState<ResultData | null>(null);
-  const [topics, setTopics] = useState<CategoryBreakdown[]>([]);
   const [aggregate, setAggregate] = useState<ExamAggregate | null>(null);
   const [instructor, setInstructor] = useState<InstructorInfo | null>(null);
 
@@ -64,17 +61,9 @@ export default function ExamResult() {
       .then(res => {
         setResult(res.data);
         const examId = res.data.studentExam?.exam?.id;
-        // Fetch enrichment endpoints in parallel — failures are non-fatal
-        api.get(`/results/student-exam/${studentExamId}/by-category`)
-          .then(r => setTopics(r.data || []))
-          .catch(() => setTopics([]));
         if (examId) {
-          api.get(`/results/exam/${examId}/aggregate`)
-            .then(r => setAggregate(r.data))
-            .catch(() => setAggregate(null));
-          api.get(`/exams/${examId}`)
-            .then(r => setInstructor(r.data?.instructor || null))
-            .catch(() => setInstructor(null));
+          api.get(`/results/exam/${examId}/aggregate`).then(r => setAggregate(r.data)).catch(() => setAggregate(null));
+          api.get(`/exams/${examId}`).then(r => setInstructor(r.data?.instructor || null)).catch(() => setInstructor(null));
         }
       })
       .catch(() => alert('Sonuç yüklenemedi'));
@@ -83,466 +72,125 @@ export default function ExamResult() {
   const handleAskInstructor = () => {
     const examTitle = result?.studentExam.exam?.title || 'Sınav';
     const email = instructor?.email;
-    if (!email) {
-      alert('Eğitmen iletişim bilgisi mevcut değil.');
-      return;
-    }
+    if (!email) { alert('Eğitmen iletişim bilgisi mevcut değil.'); return; }
     const subject = encodeURIComponent(`[${examTitle}] Sınav hakkında soru`);
-    const body = encodeURIComponent(
-      `Merhaba ${instructor?.fullName || ''},\n\n` +
-      `${examTitle} sınavıyla ilgili bir sorum var:\n\n\n\n` +
-      `Teşekkürler.`
-    );
+    const body = encodeURIComponent(`Merhaba ${instructor?.fullName || ''},\n\n${examTitle} sınavıyla ilgili bir sorum var:\n\n\n\nTeşekkürler.`);
     window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
   };
 
   if (!result) {
-    return (
-      <div style={{
-        minHeight: '100vh', display: 'grid', placeItems: 'center',
-        background: tokens.bg, fontFamily: tokens.sans, color: tokens.muted,
-      }}>Yükleniyor…</div>
-    );
+    return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: tokens.bg, color: tokens.muted }}>Yükleniyor…</div>;
   }
 
   const totalPoints = result.answers.reduce((sum, a) => sum + (a.question.points || 0), 0);
-  const percentage = totalPoints > 0 ? (result.studentExam.score / totalPoints) * 100 : 0;
-  const correct = result.correctCount;
-  const wrong = result.incorrectCount;
-  const empty = result.unansweredCount;
-  const total = result.totalQuestions;
-  const perf = scoreLabel(percentage);
+  const percentage = totalPoints > 0 ? Math.round((result.studentExam.score / totalPoints) * 100) : 0;
+  const pct = aggregate ? Math.max(0, Math.min(100, aggregate.yourPercentile)) : null;
+  const percentileLine = pct == null ? null : pct >= 50 ? `Sınıfın %${pct.toFixed(0)}'inden yüksek` : `Sınıfın %${(100 - pct).toFixed(0)}'i senden yüksek`;
 
-  const correctPct = total > 0 ? (correct / total) * 100 : 0;
-  const wrongPct = total > 0 ? (wrong / total) * 100 : 0;
+  const stats = [
+    { icon: <CheckCircle2 size={20} />, bg: '#e6f4ea', fg: '#1e8e3e', label: 'Doğru', value: result.correctCount },
+    { icon: <XCircle size={20} />, bg: '#ffdad6', fg: tokens.bad, label: 'Yanlış', value: result.incorrectCount },
+    { icon: <MinusCircle size={20} />, bg: '#e5eeff', fg: tokens.navy, label: 'Boş', value: result.unansweredCount },
+  ];
 
   return (
-    <PageShell>
-      <Crumbs items={isInstructor ? ['Eğitmen', 'Sınav Sonucu'] : ['Sınavlarım', 'Sonuç']} />
+    <div style={{ minHeight: '100vh', background: tokens.bg, fontFamily: tokens.sans, color: tokens.ink }}>
+      <div style={{ maxWidth: 820, margin: '0 auto', padding: '36px 40px 64px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: 28 }}>
+          <button onClick={() => isInstructor ? navigate(-1) : navigate('/student?refresh=' + Date.now())} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: tokens.navy, fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 14, fontFamily: 'inherit' }}>
+            <ArrowLeft size={16} />Geri Dön
+          </button>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em', color: tokens.ink }}>{result.studentExam.exam?.title || 'Sınav Sonucu'}</h1>
+        </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 32, alignItems: 'start' }}>
-        <div>
-          <Kicker>Sınav sonucu</Kicker>
-          <div style={{ marginTop: 8 }}>
-            <HeroTitle>Sınav Tamamlandı</HeroTitle>
-          </div>
-          <p style={{ margin: '14px 0 0', color: tokens.muted, fontSize: 15.5 }}>
-            {formatTrDate(result.studentExam.submittedAt)} — Teslim alındı.
-            {result.studentExam.status === 'GRADED'
-              ? ' Tüm sorular değerlendirildi.'
-              : ' Otomatik puanlanan sorular hemen, kısa cevaplar 48 saat içinde değerlendirilecek.'}
-          </p>
-
-          {/* Big score panel */}
-          <div style={{
-            marginTop: 36, padding: '32px 0',
-            borderTop: `1px solid ${tokens.hairline}`, borderBottom: `1px solid ${tokens.hairline}`,
-            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 24, alignItems: 'center',
-          }}>
+        {/* Score hero */}
+        <div style={{ position: 'relative', overflow: 'hidden', background: tokens.card, border: `1px solid ${tokens.hairline}`, borderRadius: 16, padding: 32, marginBottom: 24, boxShadow: '0 4px 12px rgba(30,58,138,0.04)' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: tokens.navy }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
             <div>
-              <Kicker>Puanın</Kicker>
-              <div style={{
-                fontFamily: tokens.serif, fontSize: 72, lineHeight: 0.95,
-                color: tokens.ink, letterSpacing: '-0.03em', marginTop: 6,
-              }}>
-                {result.studentExam.score}
-                <span style={{ fontSize: 24, color: tokens.subtle }}> / {totalPoints}</span>
+              <div style={{ fontSize: 14, color: tokens.muted, marginBottom: 8 }}>Toplam Puan</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+                <span style={{ fontSize: 48, fontWeight: 800, color: tokens.navy, letterSpacing: '-0.02em', lineHeight: 1 }}>{result.studentExam.score}<span style={{ fontSize: 26, color: tokens.subtle, fontWeight: 600 }}>/{totalPoints}</span></span>
+                <span style={{ background: '#dce1ff', color: tokens.navy, fontSize: 13, fontWeight: 700, padding: '5px 12px', borderRadius: 999 }}>%{percentage} Başarı</span>
               </div>
-              <div style={{
-                fontFamily: tokens.mono, fontSize: 11,
-                color: perf.color, marginTop: 6, fontWeight: 600, letterSpacing: '0.04em',
-              }}>{perf.text} · %{percentage.toFixed(0)} BAŞARI</div>
+              {percentileLine && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 14, color: tokens.muted }}>
+                  <TrendingUp size={16} style={{ color: tokens.indigo }} />{percentileLine}
+                </div>
+              )}
             </div>
+            <button onClick={() => window.print()} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderRadius: 10, border: `1px solid ${tokens.hairline}`, background: tokens.card, color: tokens.navy, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <Download size={18} />PDF olarak indir
+            </button>
+          </div>
+        </div>
 
-            {/* Donut */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-              <div style={{
-                width: 130, height: 130, borderRadius: '50%',
-                background: `conic-gradient(${tokens.indigo} 0% ${correctPct}%, #dc2626 ${correctPct}% ${correctPct + wrongPct}%, #e2e3eb ${correctPct + wrongPct}% 100%)`,
-                display: 'grid', placeItems: 'center',
-              }}>
-                <div style={{
-                  width: 96, height: 96, borderRadius: '50%', background: tokens.bg,
-                  display: 'grid', placeItems: 'center',
-                }}>
-                  <div>
-                    <div style={{
-                      fontFamily: tokens.serif, fontSize: 32, color: tokens.ink, lineHeight: 1,
-                    }}>{total}</div>
-                    <div style={{
-                      fontSize: 10, color: tokens.subtle,
-                      textTransform: 'uppercase' as const, letterSpacing: '0.1em',
-                    }}>soru</div>
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 40 }}>
+          {stats.map(s => (
+            <div key={s.label} style={{ background: tokens.card, border: `1px solid ${tokens.hairline}`, borderRadius: 12, padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+              <span style={{ width: 40, height: 40, borderRadius: '50%', background: s.bg, color: s.fg, display: 'grid', placeItems: 'center', flexShrink: 0 }}>{s.icon}</span>
+              <div>
+                <div style={{ fontSize: 13, color: tokens.muted, fontWeight: 600 }}>{s.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: tokens.ink }}>{s.value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Cevap Detayı */}
+        <h2 style={{ margin: '0 0 20px', fontSize: 22, fontWeight: 700 }}>Cevap Detayı</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {result.answers.map((a, i) => {
+            const pending = a.question.type === 'SHORT_ANSWER' && a.isCorrect === null;
+            const correct = a.isCorrect === true;
+            const wrong = a.isCorrect === false;
+            const borderColor = correct ? '#cdebd7' : wrong ? '#ffcdc6' : tokens.hairline;
+            const badge = correct ? { bg: '#e6f4ea', fg: '#1e8e3e', text: `Soru ${i + 1}` } : wrong ? { bg: '#ffdad6', fg: tokens.bad, text: `Soru ${i + 1}` } : { bg: '#e5eeff', fg: tokens.muted, text: `Soru ${i + 1}` };
+            return (
+              <div key={a.id} style={{ position: 'relative', overflow: 'hidden', background: tokens.card, border: `1px solid ${borderColor}`, borderRadius: 14, padding: 24, boxShadow: '0 4px 12px rgba(30,58,138,0.04)' }}>
+                {pending && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#c3c0ff' }} />}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                  <span style={{ padding: '4px 10px', borderRadius: 6, background: badge.bg, color: badge.fg, fontSize: 12, fontWeight: 700 }}>{badge.text}</span>
+                  {correct && <CheckCircle2 size={20} style={{ color: '#1e8e3e' }} />}
+                  {wrong && <XCircle size={20} style={{ color: tokens.bad }} />}
+                  {pending && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: tokens.muted, fontWeight: 600 }}><Clock size={15} />Eğitmen değerlendirmesi bekleniyor</span>}
+                </div>
+                <p style={{ margin: '0 0 16px', fontSize: 17, lineHeight: 1.5, color: tokens.ink }}>{a.question.questionText}</p>
+                {correct ? (
+                  <AnswerBox label="Senin Cevabın / Doğru Cevap" value={displayAnswer(a.question.type, a.answerText)} tone="good" />
+                ) : wrong ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+                    <AnswerBox label="Senin Cevabın" value={displayAnswer(a.question.type, a.answerText)} tone="bad" />
+                    <AnswerBox label="Doğru Cevap" value={displayAnswer(a.question.type, a.question.correctAnswer)} tone="good" />
                   </div>
-                </div>
+                ) : (
+                  <AnswerBox label="Senin Cevabın" value={a.answerText || 'Boş'} tone="neutral" />
+                )}
+                {a.feedback && (
+                  <div style={{ marginTop: 12, padding: '12px 14px', background: tokens.indigoSoft, border: `1px solid ${tokens.indigoBorder}`, borderRadius: 10, fontSize: 13.5, color: '#3730a3', lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: tokens.indigo, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Eğitmen Notu</div>
+                    {a.feedback}
+                  </div>
+                )}
               </div>
-            </div>
-
-            {[
-              ['Doğru', correct, tokens.indigo],
-              ['Yanlış', wrong, '#dc2626'],
-            ].map(([k, v, c]) => (
-              <div key={k as string}>
-                <Kicker>{k as string}</Kicker>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 6 }}>
-                  <span style={{
-                    fontFamily: tokens.serif, fontSize: 44, color: c as string,
-                    lineHeight: 1, letterSpacing: '-0.02em',
-                  }}>{v as number}</span>
-                  <span style={{ fontSize: 13, color: tokens.subtle }}>/ {total}</span>
-                </div>
-                <div style={{
-                  marginTop: 8, height: 4, background: tokens.hairlineSoft,
-                  borderRadius: 2, overflow: 'hidden',
-                }}>
-                  <div style={{
-                    width: total > 0 ? `${((v as number) / total) * 100}%` : '0%',
-                    height: '100%', background: c as string,
-                  }} />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {empty > 0 && (
-            <div style={{
-              marginTop: 16, padding: '12px 16px',
-              background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10,
-              color: '#9a3412', fontSize: 13,
-            }}>
-              <strong>{empty}</strong> soru boş bırakıldı.
-            </div>
-          )}
-
-          {/* Topic breakdown */}
-          {topics.length > 0 && (
-            <section style={{ marginTop: 40 }}>
-              <SectionHeader
-                kicker="Performans"
-                title="Konu bazında"
-                sub="Hangi konuda nerede güçlüsün?"
-              />
-              <div style={{ display: 'grid', gap: 12 }}>
-                {topics.map((t, idx) => {
-                  const pct = t.successRate * 100;
-                  const color = pct >= 70 ? tokens.indigo : pct >= 40 ? '#b45309' : tokens.bad;
-                  return (
-                    <div key={idx} style={{
-                      display: 'grid', gridTemplateColumns: '220px 1fr 80px',
-                      gap: 16, alignItems: 'center',
-                    }}>
-                      <span style={{ fontSize: 13.5, color: tokens.text }}>
-                        {t.category?.name || 'Diğer'}
-                        <span style={{ fontSize: 11, color: tokens.subtle, marginLeft: 6 }}>
-                          ({t.questionCount} soru)
-                        </span>
-                      </span>
-                      <div style={{
-                        height: 6, background: tokens.hairlineSoft,
-                        borderRadius: 3, overflow: 'hidden',
-                      }}>
-                        <div style={{
-                          width: `${pct}%`, height: '100%', background: color,
-                          transition: 'width .35s',
-                        }} />
-                      </div>
-                      <span style={{
-                        fontFamily: tokens.mono, fontSize: 12,
-                        color: tokens.ink, fontWeight: 500, textAlign: 'right' as const,
-                      }}>{Math.round(t.earned)}/{Math.round(t.total)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {/* Answers list */}
-          <section style={{ marginTop: 40 }}>
-            <SectionHeader
-              kicker="Cevap Anahtarı"
-              title="Soru bazında"
-              count={total}
-              action={
-                <Btn
-                  icon={<Download size={13} />}
-                  onClick={() => window.print()}
-                >PDF olarak indir</Btn>
-              }
-            />
-            <div style={{ display: 'grid', gap: 10 }}>
-              {result.answers.map((a, i) => {
-                const isShortAnswerPending = a.question.type === 'SHORT_ANSWER' && a.isCorrect === null;
-                const tone = a.isCorrect === true
-                  ? { fg: tokens.good, bg: '#ecfdf5', br: '#bbf7d0', lbl: '✓ Doğru' }
-                  : a.isCorrect === false
-                  ? { fg: tokens.bad, bg: '#fef2f2', br: '#fecaca', lbl: '✗ Yanlış' }
-                  : isShortAnswerPending
-                  ? { fg: '#9a3412', bg: '#fff7ed', br: '#fed7aa', lbl: '⋯ Eğitmen değerlendirmesi bekleniyor' }
-                  : { fg: '#9a3412', bg: '#fff7ed', br: '#fed7aa', lbl: '⋯ Değerlendiriliyor' };
-
-                return (
-                  <article key={a.id} style={{
-                    padding: 18, background: '#fff',
-                    border: `1px solid ${tokens.hairline}`, borderRadius: 12,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                      <span style={{
-                        width: 24, height: 24, borderRadius: 5,
-                        background: tokens.ink, color: '#fff',
-                        display: 'grid', placeItems: 'center',
-                        fontFamily: tokens.mono, fontSize: 11, fontWeight: 600,
-                      }}>{String(i + 1).padStart(2, '0')}</span>
-                      <span style={{
-                        padding: '3px 8px', borderRadius: 4,
-                        background: tone.bg, color: tone.fg, border: `1px solid ${tone.br}`,
-                        fontSize: 11, fontWeight: 600,
-                      }}>{tone.lbl}</span>
-                      <span style={{ flex: 1 }} />
-                      <span style={{
-                        fontFamily: tokens.mono, fontSize: 12,
-                        color: tokens.ink, fontWeight: 500,
-                      }}>{a.pointsEarned ?? '—'} / {a.question.points}</span>
-                    </div>
-                    <p style={{
-                      margin: 0, fontSize: 15, color: tokens.ink, lineHeight: 1.5,
-                      fontFamily: tokens.serif, fontWeight: 400,
-                    }}>{a.question.questionText}</p>
-                    <div style={{
-                      marginTop: 10, padding: '8px 12px',
-                      background: '#fafafb', border: `1px solid ${tokens.hairlineSoft}`,
-                      borderRadius: 6, fontSize: 12.5, color: tokens.text,
-                      fontFamily: tokens.mono,
-                    }}>
-                      <span style={{ color: tokens.subtle }}>Cevabın: </span>
-                      {displayAnswer(a.question.type, a.answerText)}
-                    </div>
-                    {a.isCorrect === false && a.question.correctAnswer && (
-                      <div style={{
-                        marginTop: 6, padding: '8px 12px',
-                        background: '#ecfdf5', border: '1px solid #bbf7d0',
-                        borderRadius: 6, fontSize: 12.5, color: tokens.good,
-                        fontFamily: tokens.mono,
-                      }}>
-                        <span style={{ color: '#16a34a' }}>Doğru cevap: </span>
-                        {displayAnswer(a.question.type, a.question.correctAnswer)}
-                      </div>
-                    )}
-                    {isShortAnswerPending && (
-                      <div style={{
-                        marginTop: 6, padding: '8px 12px',
-                        background: '#fff7ed', border: '1px solid #fed7aa',
-                        borderRadius: 6, fontSize: 12.5, color: '#9a3412',
-                        lineHeight: 1.5,
-                      }}>
-                        Kısa cevap soruları eğitmen tarafından manuel değerlendirilir.
-                        Toplam puanın değerlendirme tamamlandıktan sonra güncellenecek.
-                      </div>
-                    )}
-                    {a.feedback && (
-                      <div style={{
-                        marginTop: 8, padding: '10px 12px',
-                        background: tokens.indigoSoft,
-                        border: `1px solid ${tokens.indigoBorder}`,
-                        borderRadius: 6, fontSize: 13, color: '#3730a3',
-                        lineHeight: 1.55,
-                      }}>
-                        <div style={{
-                          fontFamily: tokens.mono, fontSize: 10.5,
-                          color: tokens.indigo, letterSpacing: '0.1em',
-                          textTransform: 'uppercase' as const, fontWeight: 600,
-                          marginBottom: 4,
-                        }}>Eğitmen notu</div>
-                        {a.feedback}
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
-          </section>
+            );
+          })}
         </div>
 
-        {/* Sidebar */}
-        <aside style={{ position: 'sticky', top: 24 }}>
-          {aggregate ? (
-            <ClassComparisonCard agg={aggregate} />
+        {/* Bottom action */}
+        <div style={{ display: 'flex', justifyContent: 'center', borderTop: `1px solid ${tokens.hairline}`, marginTop: 40, paddingTop: 32 }}>
+          {!isInstructor && instructor?.email ? (
+            <button onClick={handleAskInstructor} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 10, border: 'none', background: tokens.navy, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <MessageSquare size={18} />Eğitmene Soru Sor
+            </button>
           ) : (
-            <SummaryCard
-              score={result.studentExam.score}
-              total={totalPoints}
-              status={result.studentExam.status}
-              correct={correct}
-              wrong={wrong}
-              empty={empty}
-            />
+            <button onClick={() => isInstructor ? navigate(-1) : navigate('/student?refresh=' + Date.now())} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 10, border: `1px solid ${tokens.hairline}`, background: tokens.card, color: tokens.ink, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <ArrowLeft size={18} />{isInstructor ? 'Geri Dön' : 'Sınavlarıma Dön'}
+            </button>
           )}
-
-          <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
-            <Btn
-              variant="outline"
-              onClick={() => isInstructor ? navigate(-1) : navigate('/student?refresh=' + Date.now())}
-              icon={<ArrowLeft size={14} />}
-              style={{ width: '100%', justifyContent: 'center' }}
-            >{isInstructor ? 'Geri Dön' : 'Sınavlarıma Dön'}</Btn>
-            {!isInstructor && instructor?.email && (
-              <Btn variant="ghost" icon={<Send size={14} />}
-                onClick={handleAskInstructor}
-                style={{ width: '100%', justifyContent: 'center' }}>
-                Eğitmene Soru Sor
-              </Btn>
-            )}
-          </div>
-        </aside>
-      </div>
-    </PageShell>
-  );
-}
-
-function SummaryCard({ score, total, status, correct, wrong, empty }: {
-  score: number; total: number; status: string;
-  correct: number; wrong: number; empty: number;
-}) {
-  return (
-    <div style={{
-      padding: 24, background: '#fff',
-      border: `1px solid ${tokens.hairline}`, borderRadius: 14,
-    }}>
-      <Kicker>Özet</Kicker>
-      <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
-        {[
-          ['Doğru', correct, tokens.good],
-          ['Yanlış', wrong, tokens.bad],
-          ['Boş', empty, tokens.muted],
-          ['Toplam puan', `${score} / ${total}`, tokens.ink],
-        ].map(([k, v, c]) => (
-          <div key={k as string} style={{
-            display: 'flex', justifyContent: 'space-between', fontSize: 13,
-            paddingBottom: 8, borderBottom: `1px solid ${tokens.hairlineSoft}`,
-          }}>
-            <span style={{ color: tokens.subtle }}>{k}</span>
-            <span style={{
-              color: c as string, fontWeight: 600, fontFamily: tokens.mono,
-            }}>{v as string | number}</span>
-          </div>
-        ))}
-      </div>
-      <div style={{ marginTop: 18 }}>
-        <Kicker>Durum</Kicker>
-        <div style={{ marginTop: 8 }}>
-          <CodeTag tone={status === 'GRADED' ? 'indigo' : 'slate'}>
-            {status === 'GRADED' ? 'DEĞERLENDİRİLDİ' : 'TESLİM EDİLDİ'}
-          </CodeTag>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function ClassComparisonCard({ agg }: { agg: ExamAggregate }) {
-  const pct = Math.max(0, Math.min(100, agg.yourPercentile));
-  const topLabel = `%${pct.toFixed(0)} yüzdelik dilim`;
-  const subLabel = pct >= 50
-    ? `Sınıfın %${pct.toFixed(0)}'inden yüksek puan`
-    : `Sınıfın %${(100 - pct).toFixed(0)}'i senden daha yüksek`;
-
-  const bins = agg.histogram?.bins ?? [];
-  const counts = agg.histogram?.counts ?? [];
-  const maxCount = counts.length > 0 ? Math.max(...counts, 1) : 1;
-
-  // Find which bin the student is in
-  let userBin = -1;
-  if (bins.length >= 2 && agg.yourScore != null) {
-    for (let i = 0; i < counts.length; i++) {
-      const lo = bins[i];
-      const hi = bins[i + 1] ?? bins[i];
-      if (agg.yourScore >= lo && agg.yourScore <= hi) {
-        userBin = i;
-        break;
-      }
-    }
-  }
-
-  return (
-    <div style={{
-      padding: 24, background: '#fff',
-      border: `1px solid ${tokens.hairline}`, borderRadius: 14,
-    }}>
-      <Kicker>Sınıf karşılaştırması</Kicker>
-
-      <div style={{ marginTop: 14, marginBottom: 18 }}>
-        <span style={{
-          fontFamily: tokens.serif, fontSize: 32, color: tokens.ink, lineHeight: 1.1,
-        }}>{topLabel}</span>
-        <div style={{ fontSize: 12.5, color: tokens.muted, marginTop: 6 }}>
-          {subLabel}
-        </div>
-        <div style={{ fontSize: 11.5, color: tokens.subtle, marginTop: 4 }}>
-          {agg.classSize} öğrencilik sınıfta · {agg.completedCount} tamamlandı
-        </div>
-      </div>
-
-      {counts.length > 0 && (
-        <>
-          <div style={{
-            display: 'flex', alignItems: 'flex-end', gap: 3,
-            height: 60, marginBottom: 6,
-          }}>
-            {counts.map((c, i) => {
-              const h = (c / maxCount) * 100;
-              const isUser = i === userBin;
-              return (
-                <div key={i} style={{
-                  flex: 1, height: `${h}%`,
-                  background: isUser ? tokens.indigo : '#e2e3eb',
-                  borderRadius: '2px 2px 0 0',
-                  position: 'relative' as const,
-                  minHeight: c > 0 ? 2 : 0,
-                }}>
-                  {isUser && (
-                    <span style={{
-                      position: 'absolute' as const, bottom: '100%',
-                      left: '50%', transform: 'translateX(-50%)',
-                      marginBottom: 4,
-                      fontFamily: tokens.mono, fontSize: 10, color: tokens.indigo,
-                      fontWeight: 600, whiteSpace: 'nowrap' as const,
-                    }}>SEN ↓</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div style={{
-            display: 'flex', justifyContent: 'space-between',
-            fontFamily: tokens.mono, fontSize: 9.5, color: tokens.subtle,
-          }}>
-            <span>{Math.round(bins[0] ?? 0)}</span>
-            <span>{Math.round(bins[Math.floor(bins.length / 2)] ?? 50)}</span>
-            <span>{Math.round(bins[bins.length - 1] ?? 100)}</span>
-          </div>
-        </>
-      )}
-
-      <hr style={{ border: 'none', borderTop: `1px solid ${tokens.hairline}`, margin: '18px 0' }} />
-
-      <div style={{ display: 'grid', gap: 10 }}>
-        {[
-          ['Senin puanın', agg.yourScore?.toFixed(0) ?? '—'],
-          ['Sınıf ortalaması', agg.average.toFixed(1)],
-          ['Medyan', agg.median.toFixed(0)],
-          ['En yüksek', agg.max.toFixed(0)],
-          ['En düşük', agg.min.toFixed(0)],
-          ['Std. sapma', agg.stdDev.toFixed(1)],
-        ].map(([k, v]) => (
-          <div key={k as string} style={{
-            display: 'flex', justifyContent: 'space-between', fontSize: 12.5,
-          }}>
-            <span style={{ color: tokens.subtle }}>{k}</span>
-            <span style={{
-              color: tokens.ink, fontWeight: 500, fontFamily: tokens.mono,
-            }}>{v as string}</span>
-          </div>
-        ))}
       </div>
     </div>
   );

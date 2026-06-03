@@ -35,6 +35,7 @@ export type ExamWithStats = {
   enrolledCount: number;
   completedCount: number;
   avgScore: number | null;
+  questionCount?: number; // backend henüz döndürmüyor; gelince Soru Sayısı sütununu doldurur
 };
 
 export type CategoryBreakdown = {

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html class="light" lang="tr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sınav Sonucu - QuizLab</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed-dim": "#89ceff",
+                        "on-secondary-container": "#fffbff",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#264191",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#001e2f",
+                        "surface-tint": "#4059aa",
+                        "surface-dim": "#cbdbf5",
+                        "primary-fixed": "#dce1ff",
+                        "surface-variant": "#d3e4fe",
+                        "tertiary": "#002e44",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#eff4ff",
+                        "on-background": "#0b1c30",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#e2dfff",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#004565",
+                        "on-secondary-fixed-variant": "#3323cc",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#004c6e",
+                        "on-primary-fixed": "#00164e",
+                        "inverse-primary": "#b6c4ff",
+                        "surface-container-high": "#dce9ff",
+                        "surface": "#f8f9ff",
+                        "secondary-fixed-dim": "#c3c0ff",
+                        "on-surface": "#0b1c30",
+                        "primary": "#00236f",
+                        "on-primary": "#ffffff",
+                        "secondary": "#4b41e1",
+                        "on-secondary-fixed": "#0f0069",
+                        "on-primary-container": "#90a8ff",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "on-surface-variant": "#444651",
+                        "on-tertiary-container": "#36b6fb",
+                        "outline-variant": "#c5c5d3",
+                        "inverse-surface": "#213145",
+                        "surface-container": "#e5eeff",
+                        "outline": "#757682",
+                        "surface-container-highest": "#d3e4fe",
+                        "background": "#f8f9ff",
+                        "tertiary-fixed": "#c9e6ff",
+                        "secondary-container": "#645efb",
+                        "primary-container": "#1e3a8a",
+                        "surface-bright": "#f8f9ff",
+                        "inverse-on-surface": "#eaf1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-max": "1280px",
+                        "margin-desktop": "40px",
+                        "unit": "8px",
+                        "margin-mobile": "16px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "display-lg": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "button-text": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "button-text": ["16px", { "lineHeight": "1", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex font-body-md">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col bg-surface fixed left-0 top-0 h-full w-64 border-r border-outline-variant py-6 z-40">
+<div class="px-6 mb-8 flex items-center gap-3">
+<img alt="Student Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-primary-fixed" data-alt="A close-up portrait of a young male student with short dark hair, wearing a casual grey t-shirt, set against a clean, bright white background. The lighting is soft and even, typical of a modern corporate or educational headshot. The overall aesthetic is clean, professional, and approachable, perfectly suited for an educational platform's user profile image." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDT9-cv3JLTidT-r3y1NFG-MkLkxKfisTea_edgIcJzrFq1oTiqe3QLsWVSVQGPrP5Be0tx8gKGfy-ics3R6ZFYaSXkgmOq8hhSEC96APq7U2qMqWVw5RFpL5Z3PBbajzX3k957_PlrKsR8BcR369JNeCS8YOB_Kxe7jv_gC4Pe2XKsIP1sY_mlQG5vjgdIFc-wnhgcKV_YnbP9HHcB2uRm5NSFfU83uqJjRWMqChcKUdKLzWp6LbqHKNcz8qbXDXD37vRYaDx4YAM"/>
+<div>
+<h2 class="font-label-md text-label-md text-on-surface">Öğrenci Paneli</h2>
+<p class="font-body-md text-[12px] leading-[16px] text-on-surface-variant">QuizLab Eğitim</p>
+</div>
+</div>
+<ul class="flex flex-col gap-2 px-4 flex-grow">
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">quiz</span>
+<span class="font-label-md text-label-md">Sınavlarım</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-primary font-bold bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-label-md text-label-md">Sonuçlar</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="font-label-md text-label-md">Bildirimler</span>
+</a>
+</li>
+</ul>
+<ul class="flex flex-col gap-2 px-4 mt-auto pt-6 border-t border-outline-variant">
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="font-label-md text-label-md">Profil</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Ayarlar</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content -->
+<main class="flex-1 md:ml-64 p-margin-mobile md:p-margin-desktop bg-surface-container-lowest">
+<div class="max-w-[800px] mx-auto w-full">
+<!-- Header -->
+<header class="mb-8">
+<a class="inline-flex items-center gap-2 text-primary hover:text-primary-container transition-colors mb-4 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined text-sm">arrow_back</span>
+                    Geri Dön
+                </a>
+<h1 class="font-headline-lg text-headline-lg text-on-background">İleri Düzey Matematik - Dönem Sonu Sınavı</h1>
+</header>
+<!-- Score Hero Card -->
+<section class="bg-surface border border-outline-variant rounded-xl p-8 mb-8 shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+<div class="flex flex-col md:flex-row items-center justify-between gap-6">
+<div class="text-center md:text-left">
+<p class="font-body-md text-on-surface-variant mb-2">Toplam Puan</p>
+<div class="flex items-baseline gap-4 justify-center md:justify-start">
+<h2 class="font-display-lg text-display-lg text-primary">75<span class="text-3xl text-outline font-normal">/100</span></h2>
+<span class="bg-surface-container-high text-primary font-label-md text-label-md px-3 py-1 rounded-full">%75 Başarı</span>
+</div>
+<p class="font-body-md text-on-surface-variant mt-2 flex items-center justify-center md:justify-start gap-1">
+<span class="material-symbols-outlined text-sm text-secondary">trending_up</span>
+                            Sınıfın %60'ından yüksek
+                        </p>
+</div>
+<button class="flex items-center gap-2 bg-surface text-primary border border-outline-variant font-button-text text-button-text px-6 py-3 rounded-lg hover:bg-surface-container transition-colors shadow-sm">
+<span class="material-symbols-outlined">download</span>
+                        PDF olarak indir
+                    </button>
+</div>
+</section>
+<!-- Stats Row -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+<div class="bg-surface border border-outline-variant rounded-lg p-4 flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-[#e6f4ea] flex items-center justify-center text-[#1e8e3e]">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant">Doğru</p>
+<p class="font-headline-md text-headline-md text-on-surface">3</p>
+</div>
+</div>
+<div class="bg-surface border border-outline-variant rounded-lg p-4 flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center text-error">
+<span class="material-symbols-outlined">cancel</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant">Yanlış</p>
+<p class="font-headline-md text-headline-md text-on-surface">1</p>
+</div>
+</div>
+<div class="bg-surface border border-outline-variant rounded-lg p-4 flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">schedule</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant">Süre</p>
+<p class="font-headline-md text-headline-md text-on-surface">12 dk</p>
+</div>
+</div>
+</section>
+<!-- Cevap Detayı Section -->
+<section class="mb-12">
+<h3 class="font-headline-md text-headline-md text-on-background mb-6">Cevap Detayı</h3>
+<div class="flex flex-col gap-4">
+<!-- Correct Answer Card -->
+<div class="bg-surface border border-[#e6f4ea] rounded-xl p-6 shadow-sm">
+<div class="flex items-start justify-between mb-4">
+<span class="bg-[#e6f4ea] text-[#1e8e3e] font-label-md text-[12px] px-2 py-1 rounded">Soru 1</span>
+<span class="material-symbols-outlined text-[#1e8e3e]">check_circle</span>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface mb-4">Türev alma kurallarına göre, f(x) = 3x^2 + 5x fonksiyonunun türevi nedir?</p>
+<div class="bg-surface-container-lowest border border-[#e6f4ea] rounded-lg p-4">
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Senin Cevabın / Doğru Cevap</p>
+<p class="font-body-md text-on-surface">f'(x) = 6x + 5</p>
+</div>
+</div>
+<!-- Wrong Answer Card -->
+<div class="bg-surface border border-error-container rounded-xl p-6 shadow-sm">
+<div class="flex items-start justify-between mb-4">
+<span class="bg-error-container text-error font-label-md text-[12px] px-2 py-1 rounded">Soru 2</span>
+<span class="material-symbols-outlined text-error">cancel</span>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface mb-4">Limit x sonsuza giderken (2x^2 + 3) / (x^2 - 1) limitinin değeri kaçtır?</p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="bg-error-container/30 border border-error-container rounded-lg p-4">
+<p class="font-label-md text-label-md text-error mb-1">Senin Cevabın</p>
+<p class="font-body-md text-on-surface">Sonsuz</p>
+</div>
+<div class="bg-[#e6f4ea]/30 border border-[#e6f4ea] rounded-lg p-4">
+<p class="font-label-md text-label-md text-[#1e8e3e] mb-1">Doğru Cevap</p>
+<p class="font-body-md text-on-surface">2</p>
+</div>
+</div>
+</div>
+<!-- Pending Evaluation Card -->
+<div class="bg-surface border border-outline-variant rounded-xl p-6 shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-secondary-fixed-dim"></div>
+<div class="flex items-start justify-between mb-4">
+<span class="bg-surface-container text-on-surface-variant font-label-md text-[12px] px-2 py-1 rounded">Soru 3</span>
+<span class="flex items-center gap-1 text-on-surface-variant font-label-md text-[12px]">
+<span class="material-symbols-outlined text-[16px]">pending</span>
+                                Eğitmen değerlendirmesi bekleniyor
+                            </span>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface mb-4">İntegralin temel teoremini kendi kelimelerinizle açıklayınız ve bir örnek veriniz.</p>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4">
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Senin Cevabın</p>
+<p class="font-body-md text-on-surface">İntegral, bir fonksiyonun altındaki alanı bulmaya yarar. Türevin ters işlemi olarak düşünülebilir...</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Action -->
+<div class="flex justify-center border-t border-outline-variant pt-8">
+<button class="flex items-center gap-2 bg-primary text-on-primary font-button-text text-button-text px-8 py-4 rounded-lg hover:bg-primary-container transition-colors shadow-sm">
+<span class="material-symbols-outlined">forum</span>
+                    Eğitmene Soru Sor
+                </button>
+</div>
+</div>
+</main>
+</body></html>

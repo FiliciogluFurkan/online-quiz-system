@@ -1,279 +1,151 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, FileText, SlidersHorizontal, CheckCircle2 } from 'lucide-react';
 import { useCreateExam } from '../hooks/useCreateExam';
-import {
-  tokens, PageShell, Crumbs, Kicker, HeroTitle, SectionHeader, Btn,
-} from '../components/academic-ui';
+import { tokens } from '../components/academic-ui';
 
-const inputStyle = {
-  width: '100%',
-  padding: '12px 14px',
-  background: '#fff',
-  border: `1px solid ${tokens.hairline}`,
-  borderRadius: 10,
-  fontFamily: 'inherit',
-  fontSize: 14,
-  color: tokens.ink,
-  outline: 'none',
-  boxSizing: 'border-box' as const,
+const labelStyle: React.CSSProperties = {
+  display: 'block', fontSize: 13.5, fontWeight: 600, color: tokens.text, marginBottom: 8,
 };
-
-const labelStyle = {
-  display: 'block',
-  fontFamily: tokens.mono,
-  fontSize: 10.5,
-  color: tokens.subtle,
-  letterSpacing: '0.1em',
-  textTransform: 'uppercase' as const,
-  fontWeight: 600,
-  marginBottom: 8,
+const inputStyle: React.CSSProperties = {
+  width: '100%', height: 48, padding: '0 16px', background: tokens.card,
+  border: `1px solid ${tokens.hairline}`, borderRadius: 10,
+  fontFamily: 'inherit', fontSize: 14, color: tokens.ink, outline: 'none', boxSizing: 'border-box',
 };
 
 export default function CreateExam() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const {
-    formData, setFormData, computedEndTime, examSummary, handleSubmit, saving, loading, isEditMode,
-  } = useCreateExam(navigate, id);
+  const { formData, setFormData, computedEndTime, handleSubmit, saving, loading, isEditMode } = useCreateExam(navigate, id);
+  const [randomize, setRandomize] = useState(false); // UI hazır; backend desteği sonra bağlanacak
 
   if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh', display: 'grid', placeItems: 'center',
-        background: tokens.bg, fontFamily: tokens.sans, color: tokens.muted,
-      }}>Yükleniyor…</div>
-    );
+    return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: tokens.bg, color: tokens.muted }}>Yükleniyor…</div>;
   }
 
   const backTo = isEditMode ? `/instructor/exam/${id}` : '/instructor';
-  const backLabel = isEditMode ? 'Sınav Detayına Dön' : 'Eğitmen Paneli';
+  const pool = formData.questionPoolEnabled;
 
   return (
-    <PageShell>
-      <Crumbs items={
-        isEditMode
-          ? ['Eğitmen', 'Sınavlar', formData.title || 'Sınav', 'Düzenle']
-          : ['Eğitmen', 'Sınavlar', 'Yeni sınav']
-      } />
-
-      <Btn icon={<ArrowLeft size={14} />} onClick={() => navigate(backTo)}>
-        {backLabel}
-      </Btn>
-
-      <section style={{ marginTop: 24, marginBottom: 36 }}>
-        <Kicker>{isEditMode ? 'Sınav düzenle' : 'Yeni sınav'}</Kicker>
-        <div style={{ marginTop: 8 }}>
-          <HeroTitle>{isEditMode ? 'Sınavı Düzenle' : 'Sınav Oluştur'}</HeroTitle>
+    <div style={{ minHeight: '100vh', background: tokens.bg, fontFamily: tokens.sans, color: tokens.ink }}>
+      <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: 32 }}>
+          <button onClick={() => navigate(backTo)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: tokens.indigo, fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 16, fontFamily: 'inherit' }}>
+            <ArrowLeft size={16} />{isEditMode ? 'Sınav Detayına Dön' : 'Eğitmen Paneli'}
+          </button>
+          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700, letterSpacing: '-0.02em', color: tokens.ink }}>{isEditMode ? 'Sınavı Düzenle' : 'Yeni Sınav Oluştur'}</h1>
+          <p style={{ margin: '6px 0 0', color: tokens.muted, fontSize: 15 }}>Yeni bir sınav tanımlayın ve ayarlarını yapılandırın.</p>
+          {isEditMode && formData.published && (
+            <div style={{ marginTop: 16, padding: '12px 16px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10, fontSize: 13.5, color: '#9a3412', lineHeight: 1.5 }}>
+              Bu sınav <strong>yayında</strong>. Öğrenciler katıldıysa süre ve takvim değişiklikleri yok sayılır; yalnızca başlık ve açıklama güncellenir.
+            </div>
+          )}
         </div>
-        <p style={{
-          margin: '14px 0 0', maxWidth: 620, color: tokens.muted,
-          fontSize: 15.5, lineHeight: 1.65,
-        }}>
-          {isEditMode
-            ? 'Sınavın temel bilgilerini güncelle. Öğrenciler katılmaya başladıktan sonra süre ve takvim değiştirilemez.'
-            : 'Sınavın temel bilgilerini gir, süre ve zaman aralığını belirle. Soru ekleme adımı kaydetmeden sonra gelir.'}
-        </p>
-        {isEditMode && formData.published && (
-          <div style={{
-            marginTop: 18, padding: '12px 16px',
-            background: '#fff7ed', border: '1px solid #fed7aa',
-            borderRadius: 10, fontSize: 13.5, color: '#9a3412', lineHeight: 1.55,
-          }}>
-            Bu sınav <strong>yayında</strong>. Öğrenciler katılmaya başladıysa süre ve takvim
-            değişiklikleri sistem tarafından göz ardı edilir; sadece başlık ve açıklama güncellenir.
-          </div>
-        )}
-      </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 32, alignItems: 'start' }}>
-        <form onSubmit={handleSubmit}>
-          <section style={{ marginBottom: 32 }}>
-            <SectionHeader kicker="01" title="Temel bilgi" />
-
-            <div style={{ display: 'grid', gap: 16 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+          {/* Section 1: Sınav Bilgileri */}
+          <section style={{ background: tokens.card, border: `1px solid ${tokens.hairline}`, borderRadius: 14, padding: 24, boxShadow: '0 4px 24px -4px rgba(30,58,138,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, paddingBottom: 16, borderBottom: `1px solid ${tokens.hairline}` }}>
+              <span style={{ width: 40, height: 40, borderRadius: 10, background: '#e5eeff', color: tokens.navy, display: 'grid', placeItems: 'center' }}><FileText size={20} /></span>
+              <h3 style={{ margin: 0, fontSize: 19, fontWeight: 700 }}>Sınav Bilgileri</h3>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div>
-                <label style={labelStyle} htmlFor="title">Başlık *</label>
-                <input
-                  id="title"
-                  required
-                  value={formData.title}
-                  onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Örn. Veri Yapıları — Ara Sınav"
-                  style={inputStyle}
-                />
+                <label style={labelStyle}>Sınav Başlığı</label>
+                <input required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Örn: Ara Sınav - Matematik 101" style={inputStyle} />
               </div>
-
               <div>
-                <label style={labelStyle} htmlFor="desc">Açıklama</label>
-                <textarea
-                  id="desc"
-                  rows={4}
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Sınavın konularını ve öğrencilerin bilmesi gerekenleri yaz…"
-                  style={{ ...inputStyle, resize: 'vertical' as const }}
-                />
+                <label style={labelStyle}>Açıklama</label>
+                <textarea rows={3} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Sınav hakkında genel bilgiler..." style={{ ...inputStyle, height: 'auto', padding: '12px 16px', resize: 'vertical' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18 }}>
+                <div>
+                  <label style={labelStyle}>Süre (dakika)</label>
+                  <input type="number" min={1} required value={formData.duration === 0 ? '' : formData.duration}
+                    onChange={e => setFormData({ ...formData, duration: e.target.value === '' ? 0 : parseInt(e.target.value) })} placeholder="60" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Başlangıç Tarihi</label>
+                  <input type="datetime-local" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Bitiş Tarihi <span style={{ color: tokens.subtle, fontWeight: 400, fontSize: 12 }}>(otomatik)</span></label>
+                  <input type="datetime-local" value={computedEndTime} disabled style={{ ...inputStyle, background: tokens.ivory, color: tokens.muted }} />
+                </div>
               </div>
             </div>
           </section>
 
-          <section style={{ marginBottom: 32 }}>
-            <SectionHeader kicker="02" title="Süre ve takvim" />
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div>
-                <label style={labelStyle} htmlFor="duration">Süre (dakika) *</label>
-                <input
-                  id="duration" type="number" required min={1}
-                  value={formData.duration === 0 ? '' : formData.duration}
-                  onChange={e => setFormData({ ...formData, duration: e.target.value === '' ? 0 : parseInt(e.target.value) })}
-                  style={inputStyle}
-                />
-              </div>
-
-              <div>
-                <label style={labelStyle} htmlFor="start">Başlangıç zamanı</label>
-                <input
-                  id="start" type="datetime-local"
-                  value={formData.startTime}
-                  onChange={e => setFormData({ ...formData, startTime: e.target.value })}
-                  style={inputStyle}
-                />
-              </div>
-
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Bitiş (otomatik hesaplanır)</label>
-                <input
-                  type="text" readOnly
-                  value={computedEndTime
-                    ? new Date(computedEndTime).toLocaleString('tr-TR')
-                    : 'Başlangıç ve süre girildiğinde hesaplanır'}
-                  style={{
-                    ...inputStyle,
-                    background: tokens.ivory,
-                    color: tokens.muted,
-                    fontFamily: tokens.mono,
-                    fontSize: 13,
-                  }}
-                />
-              </div>
+          {/* Section 2: Soru Ayarları */}
+          <section style={{ background: tokens.card, border: `1px solid ${tokens.hairline}`, borderRadius: 14, padding: 24, boxShadow: '0 4px 24px -4px rgba(30,58,138,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, paddingBottom: 16, borderBottom: `1px solid ${tokens.hairline}` }}>
+              <span style={{ width: 40, height: 40, borderRadius: 10, background: '#e5eeff', color: tokens.navy, display: 'grid', placeItems: 'center' }}><SlidersHorizontal size={20} /></span>
+              <h3 style={{ margin: 0, fontSize: 19, fontWeight: 700 }}>Soru Ayarları</h3>
             </div>
-          </section>
-
-          <section style={{ marginBottom: 32 }}>
-            <SectionHeader kicker="03" title="Soru havuzu" sub="İsteğe bağlı — her öğrenciye havuzdan rastgele sorular dağıtılır." />
-
-            <div style={{
-              padding: 16, background: '#fff',
-              border: `1px solid ${tokens.hairline}`, borderRadius: 12,
-              display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14,
-            }}>
-              <input
-                id="pool-enabled" type="checkbox"
-                checked={formData.questionPoolEnabled}
-                onChange={e => setFormData({ ...formData, questionPoolEnabled: e.target.checked })}
-                style={{ width: 16, height: 16, accentColor: tokens.indigo }}
-              />
-              <label htmlFor="pool-enabled" style={{
-                fontSize: 14, color: tokens.ink, fontWeight: 500, cursor: 'pointer',
-              }}>
-                Soru havuzunu etkinleştir
-              </label>
-            </div>
-
-            {formData.questionPoolEnabled && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+              {/* Radio cards */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div>
-                  <label style={labelStyle} htmlFor="pool-size">Havuz boyutu</label>
-                  <input
-                    id="pool-size" type="number" min={1}
-                    value={formData.poolSize === 0 ? '' : formData.poolSize}
-                    onChange={e => setFormData({ ...formData, poolSize: e.target.value === '' ? 0 : parseInt(e.target.value) })}
-                    style={inputStyle}
-                  />
-                </div>
-                <div>
-                  <label style={labelStyle} htmlFor="qps">Öğrenci başına soru</label>
-                  <input
-                    id="qps" type="number" min={1} max={formData.poolSize || undefined}
-                    value={formData.questionsPerStudent === 0 ? '' : formData.questionsPerStudent}
-                    onChange={e => setFormData({ ...formData, questionsPerStudent: e.target.value === '' ? 0 : parseInt(e.target.value) })}
-                    style={inputStyle}
-                  />
-                  {formData.questionsPerStudent > formData.poolSize && formData.poolSize > 0 && (
-                    <p style={{ margin: '6px 0 0', fontSize: 12, color: tokens.bad }}>
-                      Öğrenci başına soru sayısı havuz boyutundan büyük olamaz.
-                    </p>
-                  )}
-                </div>
+                {[
+                  { val: false, title: 'Tüm Sorular', desc: 'Eklenen tüm sorular sorulur.' },
+                  { val: true, title: 'Soru Havuzu', desc: 'Havuzdan rastgele seçilir.' },
+                ].map(opt => {
+                  const sel = pool === opt.val;
+                  return (
+                    <div key={opt.title} onClick={() => setFormData({ ...formData, questionPoolEnabled: opt.val })}
+                      style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 16, borderRadius: 10, border: sel ? `2px solid ${tokens.navy}` : `1px solid ${tokens.hairline}`, background: sel ? '#f0f3ff' : tokens.card }}>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: tokens.ink, marginBottom: 3 }}>{opt.title}</div>
+                        <div style={{ fontSize: 13, color: tokens.muted }}>{opt.desc}</div>
+                      </div>
+                      <CheckCircle2 size={22} style={{ color: sel ? tokens.navy : tokens.hairline, flexShrink: 0 }} />
+                    </div>
+                  );
+                })}
               </div>
-            )}
+
+              {/* Pool settings */}
+              {pool && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, padding: 16, background: tokens.ivory, border: `1px solid ${tokens.hairline}`, borderRadius: 10 }}>
+                  <div>
+                    <label style={labelStyle}>Havuz Boyutu</label>
+                    <input type="number" min={1} value={formData.poolSize === 0 ? '' : formData.poolSize}
+                      onChange={e => setFormData({ ...formData, poolSize: e.target.value === '' ? 0 : parseInt(e.target.value) })} placeholder="100" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Öğrenci Başına Soru Sayısı</label>
+                    <input type="number" min={1} max={formData.poolSize || undefined} value={formData.questionsPerStudent === 0 ? '' : formData.questionsPerStudent}
+                      onChange={e => setFormData({ ...formData, questionsPerStudent: e.target.value === '' ? 0 : parseInt(e.target.value) })} placeholder="20" style={inputStyle} />
+                    {formData.questionsPerStudent > formData.poolSize && formData.poolSize > 0 && (
+                      <p style={{ margin: '6px 0 0', fontSize: 12, color: tokens.bad }}>Havuz boyutundan büyük olamaz.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Randomize toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button type="button" role="switch" aria-checked={randomize} onClick={() => setRandomize(!randomize)}
+                  style={{ position: 'relative', width: 44, height: 24, borderRadius: 999, border: 'none', cursor: 'pointer', background: randomize ? tokens.navy : tokens.hairline, transition: 'background .2s', flexShrink: 0 }}>
+                  <span style={{ position: 'absolute', top: 2, left: randomize ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left .2s' }} />
+                </button>
+                <span style={{ fontSize: 14, fontWeight: 600, color: tokens.ink }}>Soruları rastgele sırala</span>
+              </div>
+            </div>
           </section>
 
-          <div style={{
-            display: 'flex', justifyContent: 'flex-end', gap: 10,
-            paddingTop: 20, borderTop: `1px solid ${tokens.hairline}`,
-          }}>
-            <Btn type="button" onClick={() => navigate(backTo)}>İptal</Btn>
-            <Btn type="submit" variant="primary" disabled={saving} icon={<Save size={14} />}>
-              {saving
-                ? 'Kaydediliyor…'
-                : isEditMode ? 'Değişiklikleri Kaydet' : 'Taslak olarak kaydet'}
-            </Btn>
+          {/* Footer actions */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 14, paddingTop: 4 }}>
+            <button type="button" onClick={() => navigate(backTo)} style={{ padding: '12px 24px', borderRadius: 10, border: 'none', background: 'transparent', color: tokens.muted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+            {!isEditMode && (
+              <button type="submit" disabled={saving} style={{ padding: '12px 24px', borderRadius: 10, border: `1px solid ${tokens.hairline}`, background: tokens.card, color: tokens.indigo, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Taslak Kaydet</button>
+            )}
+            <button type="submit" disabled={saving} style={{ padding: '12px 30px', borderRadius: 10, border: 'none', background: tokens.navy, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
+              {saving ? 'Kaydediliyor…' : isEditMode ? 'Değişiklikleri Kaydet' : 'Oluştur'}
+            </button>
           </div>
         </form>
-
-        {/* Preview sidebar */}
-        <aside style={{ position: 'sticky', top: 24 }}>
-          <div style={{
-            padding: 24, background: '#fff',
-            border: `1px solid ${tokens.hairline}`, borderRadius: 14,
-          }}>
-            <Kicker>Önizleme</Kicker>
-            <h3 style={{
-              margin: '12px 0 8px', fontFamily: tokens.serif,
-              fontSize: 22, fontWeight: 400, color: tokens.ink, letterSpacing: '-0.01em',
-              lineHeight: 1.25,
-            }}>{examSummary.title}</h3>
-            <p style={{
-              margin: 0, fontSize: 13.5, color: tokens.muted, lineHeight: 1.55,
-            }}>{examSummary.description}</p>
-
-            <hr style={{ border: 'none', borderTop: `1px solid ${tokens.hairline}`, margin: '18px 0' }} />
-
-            <div style={{ display: 'grid', gap: 10 }}>
-              {[
-                ['Süre', examSummary.duration],
-                ['Zaman', examSummary.dateRange],
-                ['Havuz', formData.questionPoolEnabled
-                  ? `${formData.poolSize} soru havuzu, ${formData.questionsPerStudent}/öğrenci`
-                  : 'Devre dışı'],
-              ].map(([k, v]) => (
-                <div key={k} style={{
-                  display: 'flex', justifyContent: 'space-between', gap: 12,
-                  fontSize: 12.5, paddingBottom: 8,
-                  borderBottom: `1px solid ${tokens.hairlineSoft}`,
-                }}>
-                  <span style={{ color: tokens.subtle }}>{k}</span>
-                  <span style={{
-                    color: tokens.ink, fontWeight: 500, textAlign: 'right' as const,
-                  }}>{v}</span>
-                </div>
-              ))}
-            </div>
-
-            <div style={{
-              marginTop: 18, padding: 12,
-              background: tokens.indigoSoft,
-              border: `1px solid ${tokens.indigoBorder}`,
-              borderRadius: 10, fontSize: 12.5, color: '#3730a3', lineHeight: 1.55,
-            }}>
-              Kaydedildikten sonra <strong>Soru Ekle</strong> ile sınavın
-              içeriğini hazırlayabilirsin.
-            </div>
-          </div>
-        </aside>
       </div>
-    </PageShell>
+    </div>
   );
 }
