@@ -106,7 +106,28 @@ Felsefe: *"Ekranda olması gereken öğeyi koy, işlevini sonra yaz."*
 
 ---
 
-## 5. Hızlı çalıştırma
+## 5. Açık kararlar (takımla konuşulacak)
+
+### 5.1 Öğrenci–sınav erişimi — ÖNEMLİ
+**Mevcut durum:** Yayındaki **her** sınav **her** öğrenciye açık. Bir öğrencinin
+sınava girmesi için tek koşullar: sınav `published`, **zaman penceresi** içinde
+(`startTime ≤ now ≤ endTime`), öğrenci o sınavı daha önce tamamlamamış, rolü STUDENT.
+Veri modelinde **ders / sınıf / enrollment / öğrenci–sınav ataması yok**
+(`/exams/published` tüm yayınlı sınavları döndürür).
+
+**Tartışılan yön:** **Sınıf (class) + enrollment** modeli — eğitmen sınıf oluşturur,
+öğrencileri kaydeder, sınavı bir sınıfa atar; öğrenci yalnızca **atandığı** sınavları
+görür/girer. Daha gerçekçi bir akademik model.
+
+**Notlar:**
+- Kategori (soru kategorisi) ≠ Sınıf (öğrenci grubu); farklı eksenler. Sınıf modeli
+  kategoriyi değiştirmez, ona eklenir.
+- Etki: yeni entity'ler (Class, Enrollment) + endpoint'ler + UI (eğitmen ataması,
+  öğrenci "atanan sınavlar" görünümü). Orta–büyük iş.
+- **Karar:** takımla görüşülecek. O zamana dek açık model korunuyor ve SRS'te
+  "future work" olarak işaretli.
+
+## 6. Hızlı çalıştırma
 
 ```bash
 # Altyapı (WSL veya PowerShell, Docker gerekli)

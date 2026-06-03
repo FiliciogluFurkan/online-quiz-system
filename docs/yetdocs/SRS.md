@@ -19,7 +19,7 @@ The target system supports three main user roles:
 - Instructor
 - Admin
 
-The current prototype mainly implements Student and Instructor workflows. Admin is represented in the role model and Keycloak realm role definitions, but admin-specific user interfaces and backend management features are not fully implemented yet.
+The current prototype implements Student, Instructor, and Admin workflows. The Admin role has a dedicated panel (system statistics, user-role distribution, exam/question/submission listing and deletion, and an audit log). Some advanced admin features — in-app user activation/deactivation and role assignment — are still handled via the Keycloak admin console.
 
 ### 1.3 Definitions, Acronyms, and Abbreviations
 
@@ -85,7 +85,7 @@ Instructors use the system to manage question banks, create exams, publish exams
 
 #### Admin
 
-Admins manage system-wide users, roles, categories, and reports. Admin functionality is part of the target system scope, but the current prototype does not yet include a complete admin panel.
+Admins manage system-wide content and monitor activity. The prototype includes an admin panel with system statistics, user-role distribution, exam/question/submission management, and an audit log. In-app user activation and role assignment remain future work (currently performed via Keycloak).
 
 #### System
 
@@ -137,17 +137,17 @@ Requirement status labels:
 
 - FR-001: The system shall authenticate users through Keycloak. Status: Implemented.
 - FR-002: The system shall store and read user roles from authentication tokens. Status: Implemented.
-- FR-003: The system shall display role-based navigation options. Status: Partial.
-- FR-004: The system shall support Student, Instructor, and Admin roles. Status: Partial.
-- FR-005: The system shall allow admins to assign roles to users. Status: Planned.
+- FR-003: The system shall display role-based navigation options. Status: Implemented. (Role-aware sidebar/shell per Student/Instructor/Admin.)
+- FR-004: The system shall support Student, Instructor, and Admin roles. Status: Implemented. (All three roles have dedicated panels.)
+- FR-005: The system shall allow admins to assign roles to users. Status: Planned. (Role assignment is currently performed in the Keycloak admin console, not in the app UI.)
 
 ### 3.2 Question Bank Management
 
-- FR-006: The system shall allow instructors to create questions. Status: Implemented.
+- FR-006: The system shall allow instructors to create, edit and delete questions (with ownership checks). Status: Implemented.
 - FR-007: The system shall support multiple-choice questions. Status: Implemented.
 - FR-008: The system shall support true/false questions. Status: Implemented.
-- FR-009: The system shall support short-answer questions. Status: Partial.
-- FR-010: The system shall allow questions to be associated with categories. Status: Partial.
+- FR-009: The system shall support short-answer questions. Status: Implemented. (Create, take, and manual grading supported.)
+- FR-010: The system shall allow questions to be associated with categories. Status: Implemented.
 - FR-011: The system shall allow instructors to view their own questions. Status: Implemented.
 
 ### 3.3 Exam Management
@@ -155,49 +155,60 @@ Requirement status labels:
 - FR-012: The system shall allow instructors to create exams. Status: Implemented.
 - FR-013: The system shall allow instructors to define exam title, description, duration, start time, and end time. Status: Implemented.
 - FR-014: The system shall allow instructors to add questions to exams. Status: Implemented.
-- FR-015: The system shall allow instructors to publish exams. Status: Implemented.
-- FR-016: The system shall support optional question randomization. Status: Partial.
-- FR-017: The system shall prevent unauthorized users from modifying exams. Status: Partial.
+- FR-015: The system shall allow instructors to publish exams (and unpublish; publishing requires at least one question). Status: Implemented.
+- FR-016: The system shall support a question pool that delivers a random subset of questions per student. Status: Implemented.
+- FR-017: The system shall prevent unauthorized users from modifying exams. Status: Implemented. (Role guards + instructor ownership checks; active-exam critical fields locked.)
 
 ### 3.4 Exam Taking
 
 - FR-018: The system shall allow students to view published exams. Status: Implemented.
-- FR-019: The system shall allow students to start an exam attempt. Status: Implemented.
+- FR-019: The system shall allow students to start an exam attempt (only within the exam's time window). Status: Implemented.
 - FR-020: The system shall allow students to continue an in-progress attempt. Status: Implemented.
 - FR-021: The system shall prevent students from retaking an already submitted or graded exam. Status: Implemented.
 - FR-022: The system shall allow students to submit answers. Status: Implemented.
-- FR-023: The system shall provide real-time auto-save during exams. Status: Planned.
+- FR-023: The system shall auto-save in-progress answers. Status: Implemented. (Client-side localStorage; restored on reload. Server-side persistence is future work.)
 
 ### 3.5 Grading and Results
 
 - FR-024: The system shall automatically grade multiple-choice answers. Status: Implemented.
 - FR-025: The system shall automatically grade true/false answers. Status: Implemented.
-- FR-026: The system shall support manual grading for short-answer questions. Status: Planned.
+- FR-026: The system shall support manual grading for short-answer questions. Status: Implemented. (Per-answer grading with feedback; total score updates automatically.)
 - FR-027: The system shall calculate and store exam scores. Status: Implemented.
-- FR-028: The system shall allow students to view their exam result. Status: Implemented.
+- FR-028: The system shall allow students to view their exam result (with per-question detail and PDF export). Status: Implemented.
 - FR-029: The system shall allow instructors to view results for an exam. Status: Implemented.
 
 ### 3.6 Reporting and Analytics
 
 - FR-030: The system shall show result summaries for student attempts. Status: Implemented.
-- FR-031: The system shall provide question-level statistics. Status: Planned.
-- FR-032: The system shall provide instructor-facing analytics for exam performance. Status: Planned.
-- FR-033: The system shall provide admin-facing system reports. Status: Planned.
+- FR-031: The system shall provide question-level statistics (difficulty, discrimination, distractor analysis). Status: Implemented.
+- FR-032: The system shall provide instructor-facing analytics (per-exam stats, class aggregate, category breakdown). Status: Implemented.
+- FR-033: The system shall provide admin-facing system reports. Status: Partial. (System totals + audit log exist; a full reporting suite is future work.)
 
 ### 3.7 Administration
 
-- FR-034: The system shall allow admins to view users. Status: Planned.
+- FR-034: The system shall allow admins to view system-wide users, exams, questions and submissions. Status: Partial. (Role counts + participation/submission lists exist; a full user-management list is future work.)
 - FR-035: The system shall allow admins to activate or deactivate users. Status: Planned.
-- FR-036: The system shall allow admins to manage user roles. Status: Planned.
-- FR-037: The system shall allow admins to manage global categories. Status: Planned.
-- FR-038: The system shall allow admins to monitor system activity. Status: Planned.
+- FR-036: The system shall allow admins to manage user roles. Status: Planned. (Currently via Keycloak admin console.)
+- FR-037: The system shall allow admins to manage global categories. Status: Implemented. (Admins can delete; instructors create/edit.)
+- FR-038: The system shall allow admins to monitor system activity. Status: Implemented. (Key actions are recorded in an audit log; admins can view it.)
 
 ### 3.8 Academic Integrity and Reliability
 
-- FR-039: The system shall support randomized question delivery to reduce cheating. Status: Partial.
+- FR-039: The system shall support randomized question delivery to reduce cheating. Status: Implemented. (Per-student pool selection.)
 - FR-040: The system shall support monitoring or proctoring mechanisms. Status: Planned.
-- FR-041: The system shall preserve exam progress during temporary interruptions. Status: Planned.
-- FR-042: The system shall prevent data loss during answer submission. Status: Partial.
+- FR-041: The system shall preserve exam progress during temporary interruptions. Status: Implemented. (In-progress attempt resume + client-side auto-save.)
+- FR-042: The system shall prevent data loss during answer submission. Status: Implemented. (Atomic submission endpoint; time-expiry auto-submit.)
+
+### 3.9 Notifications
+
+- FR-043: The system shall notify users of relevant events (e.g., an exam being graded). Status: Implemented.
+- FR-044: The system shall show an unread notification count. Status: Implemented.
+- FR-045: The system shall allow users to mark notifications as read (individually and all at once). Status: Implemented.
+
+### 3.10 Bulk Operations and Export
+
+- FR-046: The system shall allow instructors to bulk-import questions via CSV. Status: Implemented.
+- FR-047: The system shall allow result pages to be exported as PDF. Status: Implemented. (Browser print-to-PDF with print-friendly styles.)
 
 ## 4. External Interface Requirements
 
@@ -212,8 +223,10 @@ The system shall provide browser-based interfaces for:
 - Exam creation and editing.
 - Exam detail and question assignment.
 - Exam-taking screen.
-- Result pages.
-- Future admin dashboard.
+- Result pages (with PDF export).
+- Manual grading and exam statistics.
+- Notifications.
+- Admin dashboard.
 
 ### 4.2 Software Interfaces
 
@@ -536,13 +549,11 @@ Status: Planned.
 
 ## 8. Current Prototype Gaps
 
-The current prototype is useful for demonstrating the main assessment flow, but the following target requirements need additional implementation:
+The current prototype covers the full assessment lifecycle: question bank (with bulk import), exam creation with optional question pools, exam taking with timer and auto-save, automatic and manual grading, student/instructor results, question- and exam-level analytics, notifications, an audit log, and a role-aware redesigned UI. The following items remain as future work:
 
-- Complete Admin dashboard and backend management endpoints.
-- Stronger backend authorization for all protected APIs.
-- Manual grading workflow for short-answer questions.
-- Real-time auto-save and session resilience during exams.
-- Advanced reporting and analytics.
-- Proctoring or monitoring features.
-- More complete category management.
-- Updated root documentation with correct encoding and current setup information.
+- In-app user management (activate/deactivate users, assign roles) — currently via the Keycloak admin console.
+- Server-side persistence of in-progress answers (current auto-save is client-side localStorage).
+- Proctoring / live monitoring during exams.
+- An advanced admin reporting suite beyond current system totals and the audit log.
+- Server-clock synchronization for exam time windows (browser time is used in places).
+- Applying the new design to remaining secondary screens (Manual Grading, Bulk Import, My Results, Notifications, Admin Exam Detail) and the Keycloak login theme rollout.
