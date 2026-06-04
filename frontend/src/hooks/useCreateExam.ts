@@ -117,6 +117,17 @@ export function useCreateExam(navigate: NavigateFunction, examId?: string) {
       alert('Başlangıç zamanını seçmen gerekiyor.');
       return;
     }
+    const start = new Date(formData.startTime);
+    if (isNaN(start.getTime())) {
+      alert('Geçerli bir başlangıç zamanı seçmen gerekiyor.');
+      return;
+    }
+    // Yayında ve katılımcısı olan bir sınavın geçmiş tarihi korunabilir; aksi halde
+    // (yeni sınav veya taslak düzenleme) başlangıç şu andan ileride olmalı.
+    if ((!isEditMode || !formData.published) && start.getTime() <= Date.now()) {
+      alert('Başlangıç tarihi şu andan ileri bir zaman olmalıdır.');
+      return;
+    }
     if (formData.questionPoolEnabled) {
       if (!formData.poolSize || formData.poolSize < 1) {
         alert('Havuz boyutu en az 1 olmalı.');
@@ -145,7 +156,8 @@ export function useCreateExam(navigate: NavigateFunction, examId?: string) {
         navigate('/instructor');
       }
     } catch (error) {
-      const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message
+      const data = (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data;
+      const msg = data?.error || data?.message
         || 'Hata oluştu! Form veriniz korundu, tekrar deneyebilirsin.';
       alert(msg);
       console.error(error);

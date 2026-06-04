@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Download, CheckCircle2, AlertCircle, FileText } from 'lucide-react';
+import { ArrowLeft, Upload, Download, CheckCircle2, AlertCircle, FileText, FolderOpen } from 'lucide-react';
 import api from '../api/axios';
 import {
   tokens, PageShell, Crumbs, Kicker, HeroTitle, SectionHeader, Btn,
@@ -11,11 +11,19 @@ interface ImportResult {
   errors: string[];
 }
 
+interface Category { id: number; name: string; }
+
 export default function BulkImport() {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState<string>('');
+
+  useEffect(() => {
+    api.get('/categories').then(res => setCategories(res.data)).catch(() => setCategories([]));
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -32,8 +40,9 @@ export default function BulkImport() {
     setUploading(true);
     const formData = new FormData();
     formData.append('file', file);
+    const url = categoryId ? `/questions/bulk-import?categoryId=${categoryId}` : '/questions/bulk-import';
     try {
-      const res = await api.post('/questions/bulk-import', formData, {
+      const res = await api.post(url, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setResult(res.data);
@@ -157,6 +166,31 @@ export default function BulkImport() {
 
       <section style={{ marginBottom: 32 }}>
         <SectionHeader kicker="02" title="Dosya yükle" />
+
+        {/* Opsiyonel kategori seçimi */}
+        <div style={{
+          marginBottom: 16, padding: 18, background: '#fff',
+          border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+          display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' as const,
+        }}>
+          <span style={{ width: 38, height: 38, borderRadius: 10, background: tokens.indigoSoft, color: tokens.indigo, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+            <FolderOpen size={18} />
+          </span>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: tokens.ink }}>Kategori <span style={{ color: tokens.subtle, fontWeight: 400, fontSize: 12.5 }}>(opsiyonel)</span></div>
+            <div style={{ fontSize: 12.5, color: tokens.muted, marginTop: 2 }}>Seçersen, içe aktarılan tüm sorular bu kategoriye eklenir (CSV'deki Kategori ID kolonunu geçersiz kılar).</div>
+          </div>
+          <select value={categoryId} onChange={e => setCategoryId(e.target.value)}
+            style={{
+              padding: '10px 14px', background: '#fff',
+              border: `1px solid ${tokens.hairline}`, borderRadius: 10,
+              color: tokens.ink, fontFamily: 'inherit', fontSize: 14,
+              outline: 'none', cursor: 'pointer', minWidth: 220,
+            }}>
+            <option value="">Kategori seçme (CSV'ye göre)</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
 
         <div
           onClick={() => document.getElementById('fileInput')?.click()}

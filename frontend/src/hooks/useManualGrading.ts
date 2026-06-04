@@ -94,7 +94,7 @@ export function useManualGrading(studentExamId: string | undefined) {
 
   const manualAnswers = useMemo(() => {
     if (!result) return [];
-    return result.answers.filter((a) => a.question.type === 'SHORT_ANSWER' || a.isCorrect === null);
+    return result.answers.filter((a) => a.question.type === 'SHORT_ANSWER');
   }, [result]);
 
   const totalPossiblePoints = useMemo(() => {

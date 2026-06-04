@@ -25,6 +25,13 @@ export default function CreateExam() {
 
   const backTo = isEditMode ? `/instructor/exam/${id}` : '/instructor';
   const pool = formData.questionPoolEnabled;
+  // Yayındaki bir sınav düzenlenirken geçmiş başlangıç korunabilir; diğer hallerde
+  // tarih seçicide "şimdi"den öncesi seçilemez.
+  const minStart = (isEditMode && formData.published) ? undefined : (() => {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  })();
 
   return (
     <div style={{ minHeight: '100vh', background: tokens.bg, fontFamily: tokens.sans, color: tokens.ink }}>
@@ -67,7 +74,7 @@ export default function CreateExam() {
                 </div>
                 <div>
                   <label style={labelStyle}>Başlangıç Tarihi</label>
-                  <input type="datetime-local" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} style={inputStyle} />
+                  <input type="datetime-local" required min={minStart} value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Bitiş Tarihi <span style={{ color: tokens.subtle, fontWeight: 400, fontSize: 12 }}>(otomatik)</span></label>

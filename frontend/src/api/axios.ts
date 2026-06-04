@@ -7,8 +7,10 @@ declare module 'axios' {
   }
 }
 
+export const API_ORIGIN = 'http://localhost:8080';
+
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL: `${API_ORIGIN}/api`,
   headers: { 'Content-Type': 'application/json' },
 });
 

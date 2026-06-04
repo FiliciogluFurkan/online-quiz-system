@@ -503,7 +503,6 @@ const SIDE_NAV: Record<'STUDENT' | 'INSTRUCTOR' | 'ADMIN', RoleNav> = {
   INSTRUCTOR: {
     items: [
       { label: 'Panel', href: '/instructor', icon: <LayoutDashboard size={18} /> },
-      { label: 'Sınavlar', href: '/instructor', icon: <ClipboardList size={18} /> },
       { label: 'Sınıflarım', href: '/instructor/classes', icon: <Users size={18} /> },
       { label: 'Soru Bankası', href: '/instructor/questions', icon: <Database size={18} /> },
       { label: 'Kategoriler', href: '/instructor/categories', icon: <FolderOpen size={18} /> },
@@ -617,7 +616,7 @@ export function Sidebar() {
           </button>
         )}
         <div style={{ height: 1, background: tokens.hairline, margin: '6px 2px' }} />
-        <button type="button" style={navItemStyle(false)} title="Ayarlar (yakında)">
+        <button type="button" onClick={() => navigate('/settings')} style={navItemStyle(location.pathname === '/settings')} title="Ayarlar">
           <Settings size={18} />Ayarlar
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px' }}>

@@ -205,7 +205,8 @@ export default function ExamDetail() {
       await api.put(`/exams/${id}`, { ...exam, published: true });
       navigate('/instructor');
     } catch (error) {
-      const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Sınav yayınlanırken hata oluştu.';
+      const data = (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data;
+      const msg = data?.error || data?.message || 'Sınav yayınlanırken hata oluştu.';
       alert(msg);
       console.error(error);
     } finally {

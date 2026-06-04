@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Clock, Send, AlertTriangle } from 'lucide-react';
 import api from '../api/axios';
+import { resolveImageUrl } from '../api/images';
 import type { Exam, Question } from '../types';
 import Toast from '../components/Toast';
 import { tokens, Btn } from '../components/academic-ui';
@@ -85,25 +86,35 @@ export default function TakeExam() {
       const questionsRes = await api.get(`/exam-questions/exam/${id}`);
       setQuestions(questionsRes.data);
 
+      // Mevcut bir kayıt var mı? (tamamlanmış / devam eden)
+      let existingData: { id?: number; status?: string } | null = null;
       try {
         const existing = await api.get(`/student-exams/check/${id}`);
-        if (existing.data && ['SUBMITTED', 'GRADED'].includes(existing.data.status)) {
-          alert('Bu sınavı zaten tamamladınız!');
-          navigate('/student');
-          return;
-        }
-        if (existing.data && existing.data.status === 'IN_PROGRESS') {
-          setStudentExamId(existing.data.id);
-          setTimeRemaining(examRes.data.duration * 60);
-        } else {
+        existingData = existing.data ?? null;
+      } catch { /* kayıt yok say, başlatmayı dene */ }
+
+      if (existingData && ['SUBMITTED', 'GRADED'].includes(existingData.status ?? '')) {
+        alert('Bu sınavı zaten tamamladınız!');
+        navigate('/student');
+        return;
+      }
+
+      if (existingData && existingData.status === 'IN_PROGRESS' && existingData.id != null) {
+        setStudentExamId(existingData.id);
+        setTimeRemaining(examRes.data.duration * 60);
+      } else {
+        // Yeni başlatma: backend süre/erişim kontrollerini burada uygular
+        // (örn. "Sınavın süresi doldu", "Sınav henüz başlamadı").
+        try {
           const studentExamRes = await api.post('/student-exams', { exam: { id: parseInt(id!) }, status: 'IN_PROGRESS' });
           setStudentExamId(studentExamRes.data.id);
           setTimeRemaining(examRes.data.duration * 60);
+        } catch (startErr) {
+          const data = (startErr as { response?: { data?: { error?: string; message?: string } } })?.response?.data;
+          alert(data?.error || data?.message || 'Sınav başlatılamadı.');
+          navigate('/student');
+          return;
         }
-      } catch {
-        const studentExamRes = await api.post('/student-exams', { exam: { id: parseInt(id!) }, status: 'IN_PROGRESS' });
-        setStudentExamId(studentExamRes.data.id);
-        setTimeRemaining(examRes.data.duration * 60);
       }
 
       let initialAnswers: Answer[] = questionsRes.data.map((eq: ExamQuestion) => ({ questionId: eq.question.id, answerText: '' }));
@@ -203,6 +214,11 @@ export default function TakeExam() {
           </div>
 
           <div style={{ fontSize: 19, lineHeight: 1.5, color: tokens.ink, padding: '20px 0 8px', fontWeight: 500 }}>{currentQ.question.questionText}</div>
+
+          {currentQ.question.imageUrl && (
+            <img src={resolveImageUrl(currentQ.question.imageUrl)} alt="Soru görseli"
+              style={{ maxWidth: '100%', maxHeight: 360, borderRadius: 12, border: `1px solid ${tokens.hairline}`, objectFit: 'contain', display: 'block', margin: '4px 0 8px' }} />
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
             {currentQ.question.type === 'MULTIPLE_CHOICE' && currentQ.question.options &&

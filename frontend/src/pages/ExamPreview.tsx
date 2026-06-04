@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, Check, X, RotateCcw } from 'lucide-react';
 import api from '../api/axios';
+import { resolveImageUrl } from '../api/images';
 import type { Exam, Question } from '../types';
 import {
   tokens, PageShell, Crumbs, Kicker, Btn, CodeTag, SectionHeader,
@@ -301,6 +302,11 @@ export default function ExamPreview() {
                   fontSize: 22, fontWeight: 400, lineHeight: 1.4,
                   letterSpacing: '-0.01em', color: tokens.ink,
                 }}>{q.questionText}</h2>
+
+                {q.imageUrl && (
+                  <img src={resolveImageUrl(q.imageUrl)} alt="Soru görseli"
+                    style={{ marginTop: 16, maxWidth: '100%', maxHeight: 320, borderRadius: 10, border: `1px solid ${tokens.hairline}`, objectFit: 'contain', display: 'block' }} />
+                )}
 
                 <div style={{ marginTop: 22, display: 'grid', gap: 10 }}>
                   {q.type === 'MULTIPLE_CHOICE' && parsedOptions.map((opt, oIdx) => {

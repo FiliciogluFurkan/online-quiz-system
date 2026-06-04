@@ -64,6 +64,7 @@ export type Question = {
   options?: string;
   points: number;
   correctAnswer?: string;
+  imageUrl?: string | null;
   category?: { id: number; name: string };
 };
 

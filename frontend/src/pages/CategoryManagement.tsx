@@ -1,6 +1,23 @@
-import { Plus, Save, Pencil, Trash2, X, FolderOpen, FileText, SquarePen, Tag } from 'lucide-react';
+import { Plus, Save, Pencil, Trash2, X, FolderOpen, FileText, SquarePen, Tag, FolderInput, Inbox } from 'lucide-react';
 import { useCategoryManagement } from '../hooks/useCategoryManagement';
 import { tokens, Btn } from '../components/academic-ui';
+
+function qTypeBadge(type: string): { label: string; bg: string; fg: string } {
+  if (type === 'MULTIPLE_CHOICE') return { label: 'ÇS', bg: '#c9e6ff', fg: '#004c6e' };
+  if (type === 'TRUE_FALSE') return { label: 'D/Y', bg: '#e2dfff', fg: '#3323cc' };
+  return { label: 'KC', bg: '#d3e4fe', fg: '#444651' };
+}
+
+function formatAns(type: string, correctAnswer?: string): string {
+  const a = (correctAnswer ?? '').trim();
+  if (!a) return '—';
+  if (type === 'TRUE_FALSE') {
+    const low = a.toLowerCase();
+    if (['true', 'doğru', 'd', '1', 'evet'].includes(low)) return 'Doğru';
+    if (['false', 'yanlış', 'y', '0', 'hayır'].includes(low)) return 'Yanlış';
+  }
+  return a;
+}
 
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 13.5, fontWeight: 600, color: tokens.text, marginBottom: 8,
@@ -16,6 +33,7 @@ export default function CategoryManagement() {
     categories, showForm, setShowForm, editingCategory,
     formData, setFormData,
     handleSubmit, handleEdit, handleDelete, handleCancel,
+    uncategorized, categoryQuestions, selectedQuestionIds, toggleQuestion, assignSelectedToCategory, assigning,
   } = useCategoryManagement();
 
   const described = categories.filter(c => c.description?.trim()).length;
@@ -69,6 +87,94 @@ export default function CategoryManagement() {
                   <Btn type="submit" variant="primary" icon={<Save size={15} />}>{editingCategory ? 'Güncelle' : 'Kaydet'}</Btn>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Bu kategoriye ait sorular (yalnızca düzenleme modunda) */}
+        {showForm && editingCategory && (
+          <div style={{ background: tokens.card, border: `1px solid ${tokens.hairline}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 4px 20px rgba(30,58,138,0.06)' }}>
+            <div style={{ height: 6, background: tokens.navy }} />
+            <div style={{ padding: '20px 24px', borderBottom: categoryQuestions.length > 0 ? `1px solid ${tokens.hairline}` : 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Tag size={18} style={{ color: tokens.navy }} />
+              <h3 style={{ margin: 0, fontSize: 19, fontWeight: 700 }}>
+                "{editingCategory.name}" kategorisindeki sorular <span style={{ color: tokens.subtle, fontWeight: 600 }}>({categoryQuestions.length})</span>
+              </h3>
+            </div>
+            {categoryQuestions.length === 0 ? (
+              <div style={{ padding: '32px 24px', textAlign: 'center', color: tokens.subtle, fontSize: 13.5 }}>Bu kategoride henüz soru yok. Aşağıdan kategorisiz soruları ekleyebilirsin.</div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: tokens.ivory, borderBottom: `1px solid ${tokens.hairline}` }}>
+                      {['#', 'Tip', 'Puan', 'Soru Önizleme', 'Doğru Cevap'].map((h) => (
+                        <th key={h} style={{ textAlign: 'left', padding: '12px 24px', fontSize: 11.5, fontWeight: 700, color: tokens.muted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categoryQuestions.map((q, idx) => {
+                      const b = qTypeBadge(q.type);
+                      return (
+                        <tr key={q.id} style={{ borderBottom: `1px solid ${tokens.hairlineSoft}` }}>
+                          <td style={{ padding: '14px 24px', color: tokens.subtle, fontWeight: 600 }}>{idx + 1}</td>
+                          <td style={{ padding: '14px 24px' }}>
+                            <span style={{ display: 'inline-flex', padding: '3px 8px', borderRadius: 5, background: b.bg, color: b.fg, fontSize: 11, fontWeight: 800, letterSpacing: '0.04em' }}>{b.label}</span>
+                          </td>
+                          <td style={{ padding: '14px 24px', fontSize: 13.5, color: tokens.text }}>{q.points} Puan</td>
+                          <td style={{ padding: '14px 24px', fontSize: 13.5, color: tokens.text, maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.questionText}</td>
+                          <td style={{ padding: '14px 24px', fontSize: 13.5, fontWeight: 600, color: tokens.navy, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatAns(q.type, q.correctAnswer)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Kategoriye soru ekleme (yalnızca düzenleme modunda) */}
+        {showForm && editingCategory && (
+          <div style={{ background: tokens.card, border: `1px solid ${tokens.hairline}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 4px 20px rgba(30,58,138,0.06)' }}>
+            <div style={{ height: 6, background: tokens.indigo }} />
+            <div style={{ padding: 28 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 6 }}>
+                <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <FolderInput size={20} style={{ color: tokens.indigo }} />"{editingCategory.name}" kategorisine soru ekle
+                </h3>
+                <Btn variant="primary" onClick={assignSelectedToCategory} disabled={assigning || selectedQuestionIds.size === 0} icon={<Plus size={15} />}>
+                  {assigning ? 'Ekleniyor…' : `Seçilenleri Ekle (${selectedQuestionIds.size})`}
+                </Btn>
+              </div>
+              <p style={{ margin: '0 0 18px', fontSize: 13.5, color: tokens.muted }}>Aşağıda yalnızca <strong>henüz hiçbir kategoriye atanmamış</strong> sorular listelenir.</p>
+
+              {uncategorized.length === 0 ? (
+                <div style={{ padding: '32px 24px', textAlign: 'center', background: tokens.ivory, border: `1px dashed ${tokens.hairline}`, borderRadius: 12 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: tokens.card, color: tokens.subtle, display: 'grid', placeItems: 'center', margin: '0 auto 12px' }}>
+                    <Inbox size={22} />
+                  </div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: tokens.text, marginBottom: 4 }}>Kategorisiz soru yok</div>
+                  <div style={{ fontSize: 13, color: tokens.subtle }}>Tüm sorular bir kategoriye atanmış durumda.</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
+                  {uncategorized.map(q => {
+                    const b = qTypeBadge(q.type);
+                    const checked = selectedQuestionIds.has(q.id);
+                    return (
+                      <label key={q.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 10, cursor: 'pointer', border: `1px solid ${checked ? tokens.indigo : tokens.hairline}`, background: checked ? '#eef2ff' : tokens.card }}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleQuestion(q.id)}
+                          style={{ width: 16, height: 16, cursor: 'pointer', accentColor: tokens.indigo, flexShrink: 0 }} />
+                        <span style={{ display: 'inline-flex', padding: '3px 8px', borderRadius: 5, background: b.bg, color: b.fg, fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', flexShrink: 0 }}>{b.label}</span>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: tokens.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.questionText}</span>
+                        <span style={{ fontSize: 12.5, color: tokens.subtle, fontWeight: 600, flexShrink: 0 }}>{q.points} Puan</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -14,12 +14,13 @@ interface StudentExam {
   submittedAt: string;
 }
 
-type ExamState = 'live' | 'upcoming' | 'available';
+type ExamState = 'live' | 'upcoming' | 'ended' | 'available';
 
 function getExamState(exam: Exam): ExamState {
   const now = new Date();
   const start = exam.startTime ? new Date(exam.startTime) : null;
   const end = exam.endTime ? new Date(exam.endTime) : null;
+  if (end && now > end) return 'ended';
   if (start && end) {
     if (now >= start && now <= end) return 'live';
     if (now < start) return 'upcoming';
@@ -60,7 +61,13 @@ function StudentStat({ icon, accent, label, value, caption }: {
 
 function AvailableCard({ exam, onStart }: { exam: Exam; onStart: () => void }) {
   const state = getExamState(exam);
+  const isEnded = state === 'ended';
   const isLive = state === 'live' || state === 'available';
+  const badge = isEnded
+    ? { text: 'Süresi Doldu', bg: '#fde8e8', fg: '#93000a', dot: '#c0392b' }
+    : isLive
+    ? { text: 'Açık', bg: '#dce1ff', fg: '#00164e', dot: tokens.navy }
+    : { text: 'Yaklaşan', bg: '#eef1f7', fg: tokens.muted, dot: tokens.subtle };
 
   return (
     <article style={{
@@ -68,17 +75,17 @@ function AvailableCard({ exam, onStart }: { exam: Exam; onStart: () => void }) {
       overflow: 'hidden', display: 'flex', flexDirection: 'column',
       boxShadow: '0 4px 12px rgba(30,58,138,0.04)',
     }}>
-      <div style={{ height: 4, background: isLive ? tokens.navy : tokens.subtle }} />
+      <div style={{ height: 4, background: isEnded ? tokens.subtle : isLive ? tokens.navy : tokens.subtle }} />
       <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, lineHeight: 1.3, color: tokens.ink }}>{exam.title}</h3>
           <span style={{
             flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 700,
-            background: isLive ? '#dce1ff' : '#eef1f7', color: isLive ? '#00164e' : tokens.muted,
+            background: badge.bg, color: badge.fg,
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: isLive ? tokens.navy : tokens.subtle }} />
-            {isLive ? 'Açık' : 'Yaklaşan'}
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: badge.dot }} />
+            {badge.text}
           </span>
         </div>
 
@@ -107,9 +114,10 @@ function AvailableCard({ exam, onStart }: { exam: Exam; onStart: () => void }) {
           </div>
         </div>
 
-        <Btn variant={isLive ? 'primary' : 'outline'} onClick={onStart} iconR={<ArrowRight size={15} />}
+        <Btn variant={isLive ? 'primary' : 'outline'} disabled={isEnded} onClick={isEnded ? undefined : onStart}
+          iconR={isEnded ? undefined : <ArrowRight size={15} />}
           style={{ width: '100%', justifyContent: 'center', padding: '12px 16px', fontSize: 14 }}>
-          {isLive ? 'Sınava Başla' : 'Sınav Detayı'}
+          {isEnded ? 'Süresi Doldu' : isLive ? 'Sınava Başla' : 'Sınav Detayı'}
         </Btn>
       </div>
     </article>

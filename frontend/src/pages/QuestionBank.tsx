@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Upload, X, Save, Search, Pencil, Trash2, Sigma, List, Scale, PenLine, SquarePen, Info } from 'lucide-react';
+import { Plus, Upload, X, Save, Search, Pencil, Trash2, Sigma, List, Scale, PenLine, SquarePen, Info, FolderInput, CheckSquare, Image as ImageIcon } from 'lucide-react';
 import api from '../api/axios';
+import { uploadQuestionImage, resolveImageUrl } from '../api/images';
 import type { Question } from '../types';
 import { tokens, Btn } from '../components/academic-ui';
 
@@ -23,12 +24,24 @@ const initialFormState = {
   correctAnswer: '',
   points: 1,
   categoryId: null as number | null,
+  imageUrl: '' as string,
 };
 
 function typeBadge(type: string): { label: string; bg: string; fg: string } {
   if (type === 'MULTIPLE_CHOICE') return { label: 'ÇS', bg: '#c9e6ff', fg: '#004c6e' };
   if (type === 'TRUE_FALSE') return { label: 'D/Y', bg: '#e2dfff', fg: '#3323cc' };
   return { label: 'KC', bg: '#d3e4fe', fg: '#444651' };
+}
+
+function formatAnswer(q: Question): string {
+  const a = (q.correctAnswer ?? '').trim();
+  if (!a) return '—';
+  if (q.type === 'TRUE_FALSE') {
+    const low = a.toLowerCase();
+    if (['true', 'doğru', 'd', '1', 'evet'].includes(low)) return 'Doğru';
+    if (['false', 'yanlış', 'y', '0', 'hayır'].includes(low)) return 'Yanlış';
+  }
+  return a;
 }
 
 export default function QuestionBank() {
@@ -40,13 +53,18 @@ export default function QuestionBank() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(initialFormState);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkCategoryId, setBulkCategoryId] = useState<string>('');
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     loadQuestions();
     loadCategories();
   }, []);
 
-  const loadQuestions = () => api.get('/questions').then(res => setQuestions(res.data));
+  // Doğru cevabı da içeren eğitmen listesi (correctAnswer entity'de WRITE_ONLY)
+  const loadQuestions = () => api.get('/questions/manage').then(res => setQuestions(res.data));
   const loadCategories = () => api.get('/categories').then(res => setCategories(res.data));
 
   const stats = useMemo(() => ({
@@ -73,6 +91,7 @@ export default function QuestionBank() {
       correctAnswer: q.correctAnswer || '',
       points: q.points ?? 1,
       categoryId: q.category?.id ?? null,
+      imageUrl: q.imageUrl || '',
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -85,6 +104,84 @@ export default function QuestionBank() {
     } catch (error) {
       alert('Soru silinemedi. Bu soru bir sınavda kullanılıyor olabilir.');
       console.error(error);
+    }
+  };
+
+  // ─── Toplu seçim ───
+  const toggleOne = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const allFilteredSelected = filtered.length > 0 && filtered.every(q => selectedIds.has(q.id));
+  const toggleAll = () => {
+    setSelectedIds(prev => {
+      if (filtered.every(q => prev.has(q.id))) {
+        const next = new Set(prev);
+        filtered.forEach(q => next.delete(q.id));
+        return next;
+      }
+      const next = new Set(prev);
+      filtered.forEach(q => next.add(q.id));
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (!window.confirm(`${ids.length} soruyu silmek istediğinden emin misin? Bu işlem geri alınamaz.`)) return;
+    setBulkBusy(true);
+    try {
+      const res = await api.post('/questions/bulk-delete', { questionIds: ids });
+      const { deleted, failed } = res.data as { deleted: number; failed: number[] };
+      clearSelection();
+      await loadQuestions();
+      if (failed?.length) {
+        alert(`${deleted} soru silindi. ${failed.length} soru silinemedi (bir sınavda kullanılıyor olabilir).`);
+      }
+    } catch (error) {
+      alert('Toplu silme sırasında hata oluştu.');
+      console.error(error);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkAssignCategory = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (!bulkCategoryId) { alert('Önce eklenecek kategoriyi seç.'); return; }
+    setBulkBusy(true);
+    try {
+      const res = await api.put('/questions/bulk-category', { questionIds: ids, categoryId: parseInt(bulkCategoryId) });
+      const { updated } = res.data as { updated: number };
+      clearSelection();
+      setBulkCategoryId('');
+      await loadQuestions();
+      alert(`${updated} soru seçilen kategoriye eklendi.`);
+    } catch (error) {
+      alert('Kategoriye ekleme sırasında hata oluştu.');
+      console.error(error);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleImagePick = async (file: File | undefined) => {
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const url = await uploadQuestionImage(file);
+      setFormData(prev => ({ ...prev, imageUrl: url }));
+    } catch (error) {
+      alert('Görsel yüklenemedi. (En fazla 5 MB, yalnızca görsel dosyaları)');
+      console.error(error);
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -223,6 +320,25 @@ export default function QuestionBank() {
                 </div>
               </div>
 
+              {/* Görsel (opsiyonel) */}
+              <div>
+                <label style={labelStyle}>Soru Görseli <span style={{ color: tokens.subtle, fontWeight: 400, fontSize: 12 }}>(opsiyonel)</span></label>
+                {formData.imageUrl ? (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                    <img src={resolveImageUrl(formData.imageUrl)} alt="Soru görseli"
+                      style={{ maxWidth: 220, maxHeight: 150, borderRadius: 10, border: `1px solid ${tokens.hairline}`, objectFit: 'contain', background: tokens.ivory }} />
+                    <Btn type="button" variant="danger" onClick={() => setFormData({ ...formData, imageUrl: '' })} icon={<X size={14} />}>Görseli Kaldır</Btn>
+                  </div>
+                ) : (
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 10, border: `1px dashed ${tokens.hairline}`, background: tokens.ivory, color: tokens.muted, fontSize: 13.5, fontWeight: 600, cursor: uploadingImage ? 'wait' : 'pointer' }}>
+                    <ImageIcon size={16} />{uploadingImage ? 'Yükleniyor…' : 'Görsel Seç'}
+                    <input type="file" accept="image/*" disabled={uploadingImage}
+                      onChange={e => { handleImagePick(e.target.files?.[0]); e.target.value = ''; }}
+                      style={{ display: 'none' }} />
+                  </label>
+                )}
+              </div>
+
               {/* Actions */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, paddingTop: 16, borderTop: `1px solid ${tokens.hairline}` }}>
                 <Btn type="button" onClick={resetForm} icon={<X size={15} />}>İptal</Btn>
@@ -250,6 +366,25 @@ export default function QuestionBank() {
             </div>
           </div>
 
+          {/* Toplu işlem çubuğu */}
+          {selectedIds.size > 0 && (
+            <div style={{ padding: '12px 24px', background: '#eef2ff', borderBottom: `1px solid ${tokens.hairline}`, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 700, color: tokens.navy }}>
+                <CheckSquare size={16} />{selectedIds.size} soru seçildi
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
+                <select value={bulkCategoryId} onChange={e => setBulkCategoryId(e.target.value)}
+                  style={{ padding: '8px 12px', background: tokens.card, border: `1px solid ${tokens.hairline}`, borderRadius: 10, color: tokens.ink, fontFamily: 'inherit', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
+                  <option value="">Kategori seç…</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <Btn onClick={handleBulkAssignCategory} disabled={bulkBusy} icon={<FolderInput size={15} />}>Kategoriye Ekle</Btn>
+                <Btn variant="danger" onClick={handleBulkDelete} disabled={bulkBusy} icon={<Trash2 size={15} />}>Seçilenleri Sil</Btn>
+                <Btn type="button" onClick={clearSelection} icon={<X size={15} />}>Seçimi Temizle</Btn>
+              </div>
+            </div>
+          )}
+
           {filtered.length === 0 ? (
             <div style={{ padding: '48px 24px', textAlign: 'center' }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: tokens.text, marginBottom: 6 }}>{questions.length === 0 ? 'Henüz soru yok' : 'Sonuç bulunamadı'}</div>
@@ -261,24 +396,48 @@ export default function QuestionBank() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: tokens.ivory, borderBottom: `1px solid ${tokens.hairline}` }}>
-                      {['#', 'Tip', 'Puan', 'Soru Önizleme', 'İşlemler'].map((h, i) => (
-                        <th key={h} style={{ textAlign: i === 4 ? 'right' : 'left', padding: '12px 24px', fontSize: 11.5, fontWeight: 700, color: tokens.muted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                      <th style={{ textAlign: 'left', padding: '12px 16px 12px 24px', width: 40 }}>
+                        <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} title="Tümünü seç"
+                          style={{ width: 16, height: 16, cursor: 'pointer', accentColor: tokens.navy }} />
+                      </th>
+                      {['#', 'Tip', 'Puan', 'Soru Önizleme', 'Kategori', 'Doğru Cevap', 'İşlemler'].map((h, i, arr) => (
+                        <th key={h} style={{ textAlign: i === arr.length - 1 ? 'right' : 'left', padding: '12px 24px', fontSize: 11.5, fontWeight: 700, color: tokens.muted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map((q, idx) => {
                       const b = typeBadge(q.type);
+                      const checked = selectedIds.has(q.id);
                       return (
-                        <tr key={q.id} style={{ borderBottom: `1px solid ${tokens.hairlineSoft}` }}
-                          onMouseEnter={e => (e.currentTarget.style.background = tokens.ivory)}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        <tr key={q.id} style={{ borderBottom: `1px solid ${tokens.hairlineSoft}`, background: checked ? '#f4f7ff' : 'transparent' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = checked ? '#eef2ff' : tokens.ivory)}
+                          onMouseLeave={e => (e.currentTarget.style.background = checked ? '#f4f7ff' : 'transparent')}>
+                          <td style={{ padding: '14px 16px 14px 24px' }}>
+                            <input type="checkbox" checked={checked} onChange={() => toggleOne(q.id)}
+                              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: tokens.navy }} />
+                          </td>
                           <td style={{ padding: '14px 24px', color: tokens.subtle, fontWeight: 600 }}>{idx + 1}</td>
                           <td style={{ padding: '14px 24px' }}>
                             <span style={{ display: 'inline-flex', padding: '3px 8px', borderRadius: 5, background: b.bg, color: b.fg, fontSize: 11, fontWeight: 800, letterSpacing: '0.04em' }}>{b.label}</span>
                           </td>
                           <td style={{ padding: '14px 24px', fontSize: 13.5, color: tokens.text }}>{q.points} Puan</td>
-                          <td style={{ padding: '14px 24px', fontSize: 13.5, color: tokens.text, maxWidth: 460, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.questionText}</td>
+                          <td style={{ padding: '14px 24px', fontSize: 13.5, color: tokens.text, maxWidth: 320 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              {q.imageUrl && (
+                                <img src={resolveImageUrl(q.imageUrl)} alt="" style={{ width: 34, height: 34, borderRadius: 6, objectFit: 'cover', border: `1px solid ${tokens.hairline}`, flexShrink: 0 }} />
+                              )}
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.questionText}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 24px' }}>
+                            {q.category?.name ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 999, background: '#e5eeff', color: tokens.navy, fontSize: 12, fontWeight: 600, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.category.name}</span>
+                            ) : (
+                              <span style={{ fontSize: 13, color: tokens.subtle }}>—</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '14px 24px', fontSize: 13.5, fontWeight: 600, color: tokens.navy, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatAnswer(q)}</td>
                           <td style={{ padding: '14px 24px', textAlign: 'right' }}>
                             <div style={{ display: 'inline-flex', gap: 6 }}>
                               <button type="button" onClick={() => startEdit(q)} title="Düzenle" style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', color: tokens.muted, cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Pencil size={17} /></button>
