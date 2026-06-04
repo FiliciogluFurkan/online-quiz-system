@@ -6,6 +6,8 @@ export type User = {
   active: boolean;
 };
 
+export type ExamVisibility = 'PUBLIC' | 'CLASSES';
+
 export type Exam = {
   id: number;
   title: string;
@@ -14,8 +16,45 @@ export type Exam = {
   startTime: string;
   endTime: string;
   published: boolean;
+  visibility?: ExamVisibility;
   instructor?: User | null;
   createdAt?: string;
+};
+
+// ─── Sınıf / enrollment ───
+
+export type Classroom = {
+  id: number;
+  name: string;
+  description?: string | null;
+  joinCode: string;
+  active?: boolean;
+  createdAt?: string;
+};
+
+// GET /classrooms (eğitmen) satırı
+export type ClassroomRow = {
+  classroom: Classroom;
+  enrolledCount: number;
+  examCount: number;
+};
+
+// GET /classrooms/{id} üye satırı
+export type ClassMember = {
+  enrollmentId: number;
+  keycloakUserId: string;
+  fullName: string | null;
+  email: string | null;
+  enrolledAt: string;
+};
+
+// GET /classrooms/my (öğrenci) satırı
+export type EnrolledClass = {
+  classroomId: number;
+  name: string;
+  description?: string | null;
+  instructorName?: string | null;
+  enrolledAt: string;
 };
 
 export type Question = {

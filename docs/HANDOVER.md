@@ -2,7 +2,7 @@
 
 > **Yeni sohbete bu dosyayı okutarak başla.** Önceki sohbetin tüm bağlamını,
 > çalışma tarzını, mevcut durumu ve sıradaki işi özetler.
-> Tarih: 2026-06-03 · Branch: `yetb`
+> Tarih: 2026-06-04 · Branch: `yetb`
 
 ---
 
@@ -63,18 +63,41 @@ EOF
 git push
 ```
 
-## 4. SIRADAKİ KONU (yeni sohbetin ana işi): Sınıf + Enrollment
+## 4. Sınıf + Enrollment + Sınav Atama — ✅ UYGULANDI + CANLI DOĞRULANDI (2026-06-04)
 
-**Karar bekleyen ÖNEMLİ mimari konu** (detayı `docs/REDESIGN_OZETI.md` §5.1):
-- **Mevcut:** Yayındaki **her** sınav **her** öğrenciye açık (koşullar: published + zaman
-  penceresi + tekrar yok + STUDENT). Ders/sınıf/enrollment/öğrenci-sınav ataması YOK.
-- **Hedef:** Eğitmen **sınıf** oluşturur → öğrencileri **kaydeder (enrollment)** → sınavı sınıfa
-  **atar** → öğrenci yalnızca **atanan** sınavları görür/girer.
-- **Yeni sohbette yapılacak:** Bu konuyu **detaylı konuşup plan hazırla**, sonra **uygula**.
-  Gereken: yeni entity'ler (Class/Section, Enrollment, Exam–Class ataması) + repository/service +
-  controller endpoint'leri + frontend (eğitmen: sınıf/öğrenci yönetimi & sınav atama; öğrenci:
-  "atanan sınavlarım" görünümü). `/exams/published`'in sınıf-bazlı filtrelenmesi.
-- Not: Kategori (soru) ≠ Sınıf (öğrenci); sınıf modeli kategoriyi değiştirmez.
+Karar: **MVP · Hibrit görünürlük · Katılım kodu · M:N atama**. Detay `docs/REDESIGN_OZETI.md` §5.1.
+
+**Backend (build yeşil):**
+- Entity: `Classroom`, `Enrollment`, `ExamAssignment`; `Exam.visibility` (PUBLIC|CLASSES, default PUBLIC).
+- Repo: Classroom/Enrollment/ExamAssignment repository'leri.
+- `ClassroomService`: 6 haneli benzersiz katılım kodu, erişim süzme/guard, bildirim hedefleme.
+- `ClassroomController` (`/api/classrooms`): create/list/detail/update/delete, `DELETE .../enrollments/{id}`,
+  `POST /join`, `GET /my`.
+- `ExamController`: `GET|PUT /exams/{id}/assignments`; `/exams/published` öğrenciye göre süzülür;
+  `deleteExam` atamaları temizler.
+- `StudentExamController.startExam`: CLASSES sınavında kayıtsız öğrenciyi reddeden guard.
+- `NotificationService.notifyNewExamPublished`: CLASSES → atanan sınıf öğrencileri, PUBLIC → herkes.
+- `ExamVisibilityBackfill`: eski sınavlarda null görünürlüğü PUBLIC'e çeker.
+
+**Frontend (build yeşil):**
+- Yeni sayfalar: `InstructorClasses.tsx` (`/instructor/classes`), `ClassDetail.tsx`
+  (`/instructor/classes/:id`), `StudentClasses.tsx` (`/student/classes`).
+- `ExamDetail.tsx`: "Görünürlük & Sınıflar" paneli (radio + sınıf çoklu-seçim + kaydet).
+- `academic-ui.tsx` sidebar: eğitmen ve öğrenci için "Sınıflarım".
+- `types.ts`: `ExamVisibility`, `Classroom`, `ClassroomRow`, `ClassMember`, `EnrolledClass`.
+
+**SRS (`docs/yetdocs/SRS.md`):** FR-018/019 güncellendi; §3.11 (FR-048…FR-054); UC-019…UC-021; traceability.
+
+**Karar:** Yeni sınav varsayılan görünürlüğü `PUBLIC` (geri uyumlu); kategori ≠ sınıf.
+
+**Canlı doğrulama (2026-06-04):** Uçtan uca akış denendi ve **çalışıyor** — sınıf oluştur → kod →
+öğrenciyle katıl → sınava CLASSES atan → öğrenci yalnız atananı görür. Build + canlı akış yeşil.
+
+> **Önemli operasyon notu:** Backend'de `spring-boot-devtools` YOK → kod değişince **otomatik
+> reload olmaz**. Yeni controller/entity ekledikten sonra çalışan `spring-boot:run` sürecini
+> **elle yeniden başlat** (Ctrl+C → `.\mvnw spring-boot:run`); yoksa eski kod servis edilir
+> ("Sınıf oluşturulurken hata oluştu" gibi). Yeni tablolar (`classrooms`, `enrollments`,
+> `exam_assignments`) ve `exams.visibility` kolonu açılışta `ddl-auto=update` ile oluşur.
 
 ## 5. Diğer açık işler (future work / cila)
 

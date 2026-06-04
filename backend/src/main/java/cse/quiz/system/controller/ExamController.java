@@ -1,15 +1,21 @@
 package cse.quiz.system.controller;
 
+import cse.quiz.system.dto.AssignmentRequest;
+import cse.quiz.system.entity.Classroom;
 import cse.quiz.system.entity.Exam;
+import cse.quiz.system.entity.ExamAssignment;
 import cse.quiz.system.entity.StudentExam;
 import cse.quiz.system.exception.ConflictException;
 import cse.quiz.system.exception.NotFoundException;
 import cse.quiz.system.exception.UnauthorizedException;
+import cse.quiz.system.repository.ClassroomRepository;
+import cse.quiz.system.repository.ExamAssignmentRepository;
 import cse.quiz.system.repository.ExamQuestionRepository;
 import cse.quiz.system.repository.ExamRepository;
 import cse.quiz.system.repository.StudentExamRepository;
 import cse.quiz.system.repository.UserRepository;
 import cse.quiz.system.service.AuditLogService;
+import cse.quiz.system.service.ClassroomService;
 import cse.quiz.system.service.NotificationService;
 import cse.quiz.system.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +37,9 @@ public class ExamController {
     private final StudentExamRepository studentExamRepository;
     private final ExamQuestionRepository examQuestionRepository;
     private final AuditLogService auditLogService;
+    private final ClassroomService classroomService;
+    private final ClassroomRepository classroomRepository;
+    private final ExamAssignmentRepository examAssignmentRepository;
 
     @GetMapping
     public List<Exam> getAllExams() {
@@ -47,8 +56,13 @@ public class ExamController {
 
     @GetMapping("/published")
     public List<Exam> getPublishedExams() {
-        // Öğrenciler için: Sadece yayınlanmış sınavlar
-        return examRepository.findByPublishedTrue();
+        // Öğrenciler için: yayınlanmış + erişebildiği (PUBLIC veya kayıtlı sınıfına atanmış) sınavlar
+        List<Exam> published = examRepository.findByPublishedTrue();
+        String currentUserId = SecurityUtils.getCurrentUserId();
+        if (currentUserId == null) {
+            return published;
+        }
+        return classroomService.filterAccessibleForStudent(published, currentUserId);
     }
 
     @GetMapping("/with-stats")
@@ -166,6 +180,75 @@ public class ExamController {
         return savedExam;
     }
 
+    @GetMapping("/{id}/assignments")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
+    public Map<String, Object> getAssignments(@PathVariable Long id) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Sınav bulunamadı"));
+        requireExamOwner(exam);
+
+        List<Map<String, Object>> classes = new ArrayList<>();
+        for (ExamAssignment a : examAssignmentRepository.findByExamId(id)) {
+            Classroom c = a.getClassroom();
+            Map<String, Object> row = new HashMap<>();
+            row.put("id", c.getId());
+            row.put("name", c.getName());
+            classes.add(row);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("visibility", exam.getVisibility() != null
+                ? exam.getVisibility().name() : Exam.Visibility.PUBLIC.name());
+        result.put("classes", classes);
+        return result;
+    }
+
+    @PutMapping("/{id}/assignments")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
+    public Map<String, Object> updateAssignments(@PathVariable Long id, @RequestBody AssignmentRequest req) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Sınav bulunamadı"));
+        requireExamOwner(exam);
+
+        Exam.Visibility visibility;
+        try {
+            visibility = Exam.Visibility.valueOf(req.visibility());
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            throw new ConflictException("Geçersiz görünürlük değeri");
+        }
+
+        List<Long> classIds = req.classIds() != null ? req.classIds() : List.of();
+        if (visibility == Exam.Visibility.CLASSES && classIds.isEmpty()) {
+            throw new ConflictException("Sınıf bazlı görünürlük için en az bir sınıf seçilmelidir");
+        }
+
+        // Mevcut atamaları sil, yeni seti kur
+        examAssignmentRepository.deleteAll(examAssignmentRepository.findByExamId(id));
+        if (visibility == Exam.Visibility.CLASSES) {
+            String currentUserId = SecurityUtils.getCurrentUserId();
+            boolean isAdmin = SecurityUtils.hasAnyRole("ADMIN");
+            for (Long classId : classIds) {
+                Classroom c = classroomRepository.findById(classId)
+                        .orElseThrow(() -> new NotFoundException("Sınıf bulunamadı: " + classId));
+                if (!isAdmin && (currentUserId == null
+                        || !currentUserId.equals(c.getKeycloakInstructorId()))) {
+                    throw new UnauthorizedException("Bu sınıfa atama yetkiniz yok: " + classId);
+                }
+                ExamAssignment a = new ExamAssignment();
+                a.setExam(exam);
+                a.setClassroom(c);
+                examAssignmentRepository.save(a);
+            }
+        }
+
+        exam.setVisibility(visibility);
+        examRepository.save(exam);
+        auditLogService.record("Exam", id, "ASSIGN",
+                "visibility=" + visibility + ", classes=" + classIds);
+
+        return getAssignments(id);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
     public void deleteExam(@PathVariable Long id) {
@@ -183,7 +266,18 @@ public class ExamController {
             throw new ConflictException("Öğrencilerin girdiği sınavlar silinemez");
         }
 
+        // sınıf atamalarını temizle (FK)
+        examAssignmentRepository.deleteAll(examAssignmentRepository.findByExamId(id));
         examRepository.delete(existing);
         auditLogService.record("Exam", id, "DELETE", "title=" + existing.getTitle());
+    }
+
+    private void requireExamOwner(Exam exam) {
+        String currentUserId = SecurityUtils.getCurrentUserId();
+        boolean isAdmin = SecurityUtils.hasAnyRole("ADMIN");
+        if (!isAdmin && (currentUserId == null
+                || !currentUserId.equals(exam.getKeycloakInstructorId()))) {
+            throw new UnauthorizedException("Bu sınav üzerinde yetkiniz yok");
+        }
     }
 }

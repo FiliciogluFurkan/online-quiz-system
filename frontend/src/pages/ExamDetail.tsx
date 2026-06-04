@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Eye, BarChart3, FileText, Send, Pencil, MoreVertical, CheckCircle2, SlidersHorizontal } from 'lucide-react';
+import { Plus, Eye, BarChart3, FileText, Send, Pencil, MoreVertical, CheckCircle2, SlidersHorizontal, Globe, Users } from 'lucide-react';
 import api from '../api/axios';
-import type { Exam, Question } from '../types';
-import { tokens, formatTrDate } from '../components/academic-ui';
+import type { Exam, Question, ClassroomRow, ExamVisibility } from '../types';
+import { tokens, formatTrDate, Btn } from '../components/academic-ui';
 
 interface ExamQuestion {
   id: number;
@@ -47,6 +47,132 @@ function buildOptions(q: Question): Opt[] {
     const text = raw.replace(/^\s*[A-Za-z]\s*[).\-:]\s*/, '').trim() || raw;
     return { label: letter, text, correct: isCorrectMC(letter, text, q.correctAnswer) };
   });
+}
+
+function AssignmentPanel({ examId }: { examId: string }) {
+  const [visibility, setVisibility] = useState<ExamVisibility>('PUBLIC');
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [classes, setClasses] = useState<ClassroomRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState(false);
+
+  useEffect(() => {
+    Promise.allSettled([
+      api.get(`/exams/${examId}/assignments`),
+      api.get('/classrooms'),
+    ]).then(([assignRes, classRes]) => {
+      if (assignRes.status === 'fulfilled') {
+        setVisibility(assignRes.value.data.visibility === 'CLASSES' ? 'CLASSES' : 'PUBLIC');
+        const ids = (assignRes.value.data.classes ?? []).map((c: { id: number }) => c.id);
+        setSelected(new Set(ids));
+      }
+      if (classRes.status === 'fulfilled') setClasses(classRes.value.data);
+      setLoading(false);
+    });
+  }, [examId]);
+
+  const toggle = (id: number) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelected(next);
+    setSavedAt(false);
+  };
+
+  const save = async () => {
+    if (saving) return;
+    if (visibility === 'CLASSES' && selected.size === 0) {
+      alert('Sınıf bazlı görünürlük için en az bir sınıf seçmelisin.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.put(`/exams/${examId}/assignments`, {
+        visibility,
+        classIds: visibility === 'CLASSES' ? Array.from(selected) : [],
+      });
+      setSavedAt(true);
+      setTimeout(() => setSavedAt(false), 2000);
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        || 'Görünürlük kaydedilirken hata oluştu.';
+      alert(msg);
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const opt = (val: ExamVisibility, icon: React.ReactNode, title: string, desc: string) => {
+    const sel = visibility === val;
+    return (
+      <div onClick={() => { setVisibility(val); setSavedAt(false); }}
+        style={{ cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 12, padding: 16, borderRadius: 10, border: sel ? `2px solid ${tokens.navy}` : `1px solid ${tokens.hairline}`, background: sel ? '#f0f3ff' : tokens.card }}>
+        <span style={{ color: sel ? tokens.navy : tokens.subtle, marginTop: 1 }}>{icon}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: tokens.ink, marginBottom: 3 }}>{title}</div>
+          <div style={{ fontSize: 13, color: tokens.muted, lineHeight: 1.5 }}>{desc}</div>
+        </div>
+        <CheckCircle2 size={20} style={{ color: sel ? tokens.navy : tokens.hairline, flexShrink: 0 }} />
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ background: tokens.card, border: `1px solid ${tokens.hairline}`, borderRadius: 16, padding: 28, marginBottom: 32, boxShadow: '0 4px 12px rgba(30,58,138,0.04)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, paddingBottom: 16, borderBottom: `1px solid ${tokens.hairline}` }}>
+        <span style={{ width: 40, height: 40, borderRadius: 10, background: '#e5eeff', color: tokens.navy, display: 'grid', placeItems: 'center' }}><Globe size={20} /></span>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 19, fontWeight: 700 }}>Görünürlük & Sınıflar</h3>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: tokens.muted }}>Bu sınava kimlerin erişebileceğini belirle.</p>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ color: tokens.muted, padding: 12 }}>Yükleniyor…</div>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            {opt('PUBLIC', <Globe size={18} />, 'Herkese Açık', 'Tüm öğrenciler bu sınavı görebilir ve girebilir.')}
+            {opt('CLASSES', <Users size={18} />, 'Seçili Sınıflara', 'Yalnızca atadığın sınıflardaki öğrenciler erişir.')}
+          </div>
+
+          {visibility === 'CLASSES' && (
+            <div style={{ marginTop: 18 }}>
+              {classes.length === 0 ? (
+                <div style={{ padding: '16px 18px', background: tokens.ivory, border: `1px solid ${tokens.hairline}`, borderRadius: 10, fontSize: 13.5, color: tokens.muted }}>
+                  Henüz sınıfın yok. Önce <strong>Sınıflarım</strong> sayfasından sınıf oluştur.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+                  {classes.map(({ classroom, enrolledCount }) => {
+                    const sel = selected.has(classroom.id);
+                    return (
+                      <div key={classroom.id} onClick={() => toggle(classroom.id)}
+                        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 10, border: sel ? `2px solid ${tokens.navy}` : `1px solid ${tokens.hairline}`, background: sel ? '#f0f3ff' : tokens.card }}>
+                        <span style={{ width: 20, height: 20, borderRadius: 6, border: sel ? 'none' : `1.5px solid ${tokens.subtle}`, background: sel ? tokens.navy : 'transparent', color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                          {sel && <CheckCircle2 size={14} />}
+                        </span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: tokens.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{classroom.name}</div>
+                          <div style={{ fontSize: 12, color: tokens.subtle }}>{enrolledCount} öğrenci</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 20 }}>
+            <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Kaydediliyor…' : 'Görünürlüğü Kaydet'}</Btn>
+            {savedAt && <span style={{ fontSize: 13, color: tokens.good, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><CheckCircle2 size={15} />Kaydedildi</span>}
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 export default function ExamDetail() {
@@ -181,6 +307,9 @@ export default function ExamDetail() {
             {secBtn(<BarChart3 size={16} />, 'İstatistikler', () => navigate(`/instructor/exam/${id}/statistics`))}
           </div>
         </div>
+
+        {/* Görünürlük & Sınıflar */}
+        <AssignmentPanel examId={String(id)} />
 
         {/* Questions */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>

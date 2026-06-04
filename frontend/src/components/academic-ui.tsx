@@ -495,6 +495,7 @@ const SIDE_NAV: Record<'STUDENT' | 'INSTRUCTOR' | 'ADMIN', RoleNav> = {
   STUDENT: {
     items: [
       { label: 'Sınavlarım', href: '/student', icon: <ClipboardList size={18} /> },
+      { label: 'Sınıflarım', href: '/student/classes', icon: <Users size={18} /> },
       { label: 'Sonuçlar', href: '/student/my-results', icon: <Award size={18} /> },
       { label: 'Bildirimler', href: '/notifications', icon: <Bell size={18} />, dot: true },
     ],
@@ -503,6 +504,7 @@ const SIDE_NAV: Record<'STUDENT' | 'INSTRUCTOR' | 'ADMIN', RoleNav> = {
     items: [
       { label: 'Panel', href: '/instructor', icon: <LayoutDashboard size={18} /> },
       { label: 'Sınavlar', href: '/instructor', icon: <ClipboardList size={18} /> },
+      { label: 'Sınıflarım', href: '/instructor/classes', icon: <Users size={18} /> },
       { label: 'Soru Bankası', href: '/instructor/questions', icon: <Database size={18} /> },
       { label: 'Kategoriler', href: '/instructor/categories', icon: <FolderOpen size={18} /> },
       { label: 'Bildirimler', href: '/notifications', icon: <Bell size={18} />, dot: true },

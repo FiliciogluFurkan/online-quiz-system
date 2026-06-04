@@ -4,6 +4,9 @@ import { AppShell } from './components/academic-ui';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import StudentDashboard from './pages/StudentDashboard';
+import StudentClasses from './pages/StudentClasses';
+import InstructorClasses from './pages/InstructorClasses';
+import ClassDetail from './pages/ClassDetail';
 import MyResults from './pages/MyResults';
 import NotificationList from './pages/NotificationList';
 import InstructorDashboard from './pages/InstructorDashboard';
@@ -33,6 +36,7 @@ function App() {
 
           {/* Student routes */}
           <Route path="/student" element={<ProtectedRoute roles={['STUDENT']}><StudentDashboard /></ProtectedRoute>} />
+          <Route path="/student/classes" element={<ProtectedRoute roles={['STUDENT']}><StudentClasses /></ProtectedRoute>} />
           <Route path="/student/my-results" element={<ProtectedRoute roles={['STUDENT']}><MyResults /></ProtectedRoute>} />
           <Route path="/student/notifications" element={<ProtectedRoute roles={['STUDENT', 'INSTRUCTOR', 'ADMIN']}><NotificationList /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute roles={['STUDENT', 'INSTRUCTOR', 'ADMIN']}><NotificationList /></ProtectedRoute>} />
@@ -42,6 +46,8 @@ function App() {
           {/* Instructor routes */}
           <Route path="/instructor" element={<ProtectedRoute roles={['INSTRUCTOR']}><InstructorDashboard /></ProtectedRoute>} />
           <Route path="/instructor/create-exam" element={<ProtectedRoute roles={['INSTRUCTOR']}><CreateExam /></ProtectedRoute>} />
+          <Route path="/instructor/classes" element={<ProtectedRoute roles={['INSTRUCTOR']}><InstructorClasses /></ProtectedRoute>} />
+          <Route path="/instructor/classes/:id" element={<ProtectedRoute roles={['INSTRUCTOR']}><ClassDetail /></ProtectedRoute>} />
           <Route path="/instructor/exam/:id/edit" element={<ProtectedRoute roles={['INSTRUCTOR']}><CreateExam /></ProtectedRoute>} />
           <Route path="/instructor/exam/:id" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamDetail /></ProtectedRoute>} />
           <Route path="/instructor/exam/:id/preview" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamPreview /></ProtectedRoute>} />

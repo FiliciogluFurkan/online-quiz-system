@@ -66,6 +66,8 @@ The target system provides the following high-level functions:
 - Allow instructors to create and manage questions.
 - Allow instructors to create and publish exams.
 - Allow instructors to add questions to exams.
+- Allow instructors to organize students into classes and assign exams to them.
+- Allow students to join classes via a join code and see exams assigned to them.
 - Allow students to view available exams.
 - Allow students to take and submit exams.
 - Store student answers.
@@ -77,11 +79,11 @@ The target system provides the following high-level functions:
 
 #### Student
 
-Students use the system to view available exams, take exams, submit answers, and review their results. They need a simple and reliable interface, especially during active exams.
+Students use the system to view available exams, take exams, submit answers, and review their results. They can also join an instructor's class with a join code so that class-restricted exams become available to them. They need a simple and reliable interface, especially during active exams.
 
 #### Instructor
 
-Instructors use the system to manage question banks, create exams, publish exams, and review student results. They need efficient workflows for assessment preparation and evaluation.
+Instructors use the system to manage question banks, create exams, publish exams, organize students into classes, assign exams to classes, and review student results. They need efficient workflows for assessment preparation and evaluation.
 
 #### Admin
 
@@ -161,8 +163,8 @@ Requirement status labels:
 
 ### 3.4 Exam Taking
 
-- FR-018: The system shall allow students to view published exams. Status: Implemented.
-- FR-019: The system shall allow students to start an exam attempt (only within the exam's time window). Status: Implemented.
+- FR-018: The system shall allow students to view the published exams available to them, i.e. exams with PUBLIC visibility or exams assigned to a class in which the student is enrolled. Status: Implemented. (Server-side filtering on `/exams/published`.)
+- FR-019: The system shall allow students to start an exam attempt only within the exam's time window and only if the student has access to the exam (PUBLIC visibility or enrolled in an assigned class). Status: Implemented. (Server-side access guard on attempt start.)
 - FR-020: The system shall allow students to continue an in-progress attempt. Status: Implemented.
 - FR-021: The system shall prevent students from retaking an already submitted or graded exam. Status: Implemented.
 - FR-022: The system shall allow students to submit answers. Status: Implemented.
@@ -210,6 +212,18 @@ Requirement status labels:
 - FR-046: The system shall allow instructors to bulk-import questions via CSV. Status: Implemented.
 - FR-047: The system shall allow result pages to be exported as PDF. Status: Implemented. (Browser print-to-PDF with print-friendly styles.)
 
+### 3.11 Classes, Enrollment, and Exam Assignment
+
+This feature lets instructors group students into classes and control which students can access an exam. It complements (does not replace) question categories: a category groups *questions*, while a class groups *students*.
+
+- FR-048: The system shall allow instructors to create, edit, and delete classes that they own. Status: Implemented. (A class with assigned exams cannot be deleted until its assignments are removed.)
+- FR-049: The system shall generate a unique join code for each class. Status: Implemented. (6-character code using an unambiguous alphabet.)
+- FR-050: The system shall allow students to enroll in a class by entering its join code, and shall prevent duplicate enrollment in the same class. Status: Implemented.
+- FR-051: The system shall allow instructors to view the students enrolled in a class and to remove a student from a class. Status: Implemented.
+- FR-052: The system shall let each exam have a visibility setting of either PUBLIC (all students) or CLASSES (only assigned classes), and shall allow an exam to be assigned to one or more classes. Status: Implemented. (Existing exams default to PUBLIC for backward compatibility.)
+- FR-053: The system shall enforce class-based exam access on the server for both listing available exams and starting an attempt, so that students cannot access exams of classes they are not enrolled in. Status: Implemented.
+- FR-054: The system shall target the "new exam published" notification to enrolled students of the assigned classes when an exam's visibility is CLASSES, and to all students when it is PUBLIC. Status: Implemented.
+
 ## 4. External Interface Requirements
 
 ### 4.1 User Interfaces
@@ -221,7 +235,9 @@ The system shall provide browser-based interfaces for:
 - Instructor dashboard.
 - Question bank.
 - Exam creation and editing.
-- Exam detail and question assignment.
+- Exam detail, question assignment, and exam visibility/class assignment.
+- Class management (instructor): class list, class detail with join code, members, and assigned exams.
+- Class enrollment (student): join a class by code and list enrolled classes.
 - Exam-taking screen.
 - Result pages (with PDF export).
 - Manual grading and exam statistics.
@@ -524,6 +540,51 @@ Main flow:
 
 Status: Planned.
 
+### UC-019 - Create and Manage a Class
+
+Actor: Instructor
+
+Goal: Group students for targeted exam assignment.
+
+Main flow:
+
+1. The instructor opens the classes page.
+2. The instructor creates a class with a name (and optional description).
+3. The system stores the class and generates a unique join code.
+4. The instructor shares the join code with students and can later view members, remove a student, or delete the class.
+
+Status: Implemented.
+
+### UC-020 - Join a Class
+
+Actor: Student
+
+Goal: Enroll in an instructor's class.
+
+Main flow:
+
+1. The student opens the classes page.
+2. The student enters a join code.
+3. The system validates the code and records the enrollment (rejecting duplicates).
+4. Exams assigned to that class become visible to the student.
+
+Status: Implemented.
+
+### UC-021 - Assign an Exam to Classes
+
+Actor: Instructor
+
+Goal: Restrict an exam to specific classes.
+
+Main flow:
+
+1. The instructor opens an exam detail page.
+2. The instructor sets visibility to "Selected classes" and selects one or more owned classes (or chooses "Public").
+3. The system saves the visibility and the class assignments.
+4. Only enrolled students of the assigned classes can list and start the exam (when visibility is CLASSES).
+
+Status: Implemented.
+
 ## 7. Requirement Traceability
 
 | Use Case | Related Requirements |
@@ -535,8 +596,8 @@ Status: Planned.
 | UC-005 | FR-012, FR-013, FR-017 |
 | UC-006 | FR-014 |
 | UC-007 | FR-015 |
-| UC-008 | FR-018 |
-| UC-009 | FR-019, FR-020, FR-021 |
+| UC-008 | FR-018, FR-053 |
+| UC-009 | FR-019, FR-020, FR-021, FR-053 |
 | UC-010 | FR-022, FR-042 |
 | UC-011 | FR-024, FR-025, FR-026, FR-027 |
 | UC-012 | FR-028, FR-029, FR-030 |
@@ -546,6 +607,9 @@ Status: Planned.
 | UC-016 | FR-037 |
 | UC-017 | FR-038 |
 | UC-018 | FR-033 |
+| UC-019 | FR-048, FR-049, FR-051 |
+| UC-020 | FR-050 |
+| UC-021 | FR-052, FR-053, FR-054 |
 
 ## 8. Current Prototype Gaps
 

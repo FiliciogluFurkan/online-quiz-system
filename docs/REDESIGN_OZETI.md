@@ -108,24 +108,27 @@ Felsefe: *"Ekranda olması gereken öğeyi koy, işlevini sonra yaz."*
 
 ## 5. Açık kararlar (takımla konuşulacak)
 
-### 5.1 Öğrenci–sınav erişimi — ÖNEMLİ
-**Mevcut durum:** Yayındaki **her** sınav **her** öğrenciye açık. Bir öğrencinin
-sınava girmesi için tek koşullar: sınav `published`, **zaman penceresi** içinde
-(`startTime ≤ now ≤ endTime`), öğrenci o sınavı daha önce tamamlamamış, rolü STUDENT.
-Veri modelinde **ders / sınıf / enrollment / öğrenci–sınav ataması yok**
-(`/exams/published` tüm yayınlı sınavları döndürür).
+### 5.1 Öğrenci–sınav erişimi — ✅ ÇÖZÜLDÜ (Sınıf + Enrollment uygulandı)
+**Karar:** Hibrit görünürlük + katılım kodu ile sınıf modeli uygulandı (2026-06-03).
 
-**Tartışılan yön:** **Sınıf (class) + enrollment** modeli — eğitmen sınıf oluşturur,
-öğrencileri kaydeder, sınavı bir sınıfa atar; öğrenci yalnızca **atandığı** sınavları
-görür/girer. Daha gerçekçi bir akademik model.
+**Uygulanan model:**
+- **Görünürlük:** Her sınavın `visibility` alanı var — `PUBLIC` (tüm öğrenciler, geri uyumlu
+  varsayılan) veya `CLASSES` (yalnızca atanan sınıflar). Eski sınavlar `PUBLIC`'e backfill edildi.
+- **Sınıf (Classroom):** Eğitmen sınıf oluşturur, sistem **6 haneli katılım kodu** üretir.
+- **Enrollment:** Öğrenci kodu girerek **kendi kaydolur** (öğrenci-listesi sorunu yok).
+- **Atama (M:N):** Bir sınav birden çok sınıfa atanabilir (`ExamAssignment`).
+- **Erişim (sunucu tarafı):** `/exams/published` öğrenciye göre süzülür; `startExam` guard'ı
+  CLASSES sınavında kayıtsız öğrenciyi reddeder. Bildirim de hedeflenir.
 
-**Notlar:**
-- Kategori (soru kategorisi) ≠ Sınıf (öğrenci grubu); farklı eksenler. Sınıf modeli
-  kategoriyi değiştirmez, ona eklenir.
-- Etki: yeni entity'ler (Class, Enrollment) + endpoint'ler + UI (eğitmen ataması,
-  öğrenci "atanan sınavlar" görünümü). Orta–büyük iş.
-- **Karar:** takımla görüşülecek. O zamana dek açık model korunuyor ve SRS'te
-  "future work" olarak işaretli.
+**Backend:** `Classroom`/`Enrollment`/`ExamAssignment` entity+repo, `ClassroomService`,
+`ClassroomController`, ExamController atama uçları (`GET|PUT /exams/{id}/assignments`),
+`ExamVisibilityBackfill`. **Frontend:** `InstructorClasses`, `ClassDetail`, `StudentClasses`
+sayfaları, ExamDetail "Görünürlük & Sınıflar" paneli, sidebar "Sınıflarım".
+**SRS:** FR-048…FR-054, UC-019…UC-021 eklendi. Backend+frontend build yeşil; uçtan uca akış
+**canlı doğrulandı** (2026-06-04: sınıf oluştur → kodla katıl → CLASSES atan → öğrenci yalnız atananı görür).
+
+**Not:** Kategori (soru kategorisi) ≠ Sınıf (öğrenci grubu); ayrı eksenler, sınıf modeli
+kategoriyi değiştirmedi.
 
 ## 6. Hızlı çalıştırma
 

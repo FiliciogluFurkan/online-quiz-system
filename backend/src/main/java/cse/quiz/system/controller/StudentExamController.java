@@ -8,6 +8,7 @@ import cse.quiz.system.exception.UnauthorizedException;
 import cse.quiz.system.repository.ExamRepository;
 import cse.quiz.system.repository.StudentExamRepository;
 import cse.quiz.system.repository.UserRepository;
+import cse.quiz.system.service.ClassroomService;
 import cse.quiz.system.service.ExamSubmissionService;
 import cse.quiz.system.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class StudentExamController {
     private final ExamSubmissionService examSubmissionService;
     private final UserRepository userRepository;
     private final ExamRepository examRepository;
+    private final ClassroomService classroomService;
 
     @GetMapping("/student/{studentId}")
     @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
@@ -81,6 +83,11 @@ public StudentExam startExam(@RequestBody StudentExam studentExam) {
 
     if (!Boolean.TRUE.equals(exam.getPublished())) {
         throw new ConflictException("Bu sınav henüz yayında değil");
+    }
+
+    // Sınıf-bazlı görünürlük guard'ı: CLASSES ise öğrenci atanmış bir sınıfa kayıtlı olmalı
+    if (currentUserId != null && !classroomService.canStudentAccess(exam, currentUserId)) {
+        throw new ConflictException("Bu sınava erişim yetkiniz yok");
     }
 
     LocalDateTime now = LocalDateTime.now();

@@ -20,6 +20,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final ExamRepository examRepository;
     private final KeycloakService keycloakService;
+    private final ClassroomService classroomService;
 
     @Async
     @Transactional
@@ -27,7 +28,10 @@ public class NotificationService {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new NotFoundException("Exam not found: " + examId));
 
-        List<String> studentIds = keycloakService.getAllStudentIds();
+        // CLASSES görünürlüğünde yalnızca atanmış sınıfların öğrencilerine, aksi halde herkese
+        List<String> studentIds = exam.getVisibility() == Exam.Visibility.CLASSES
+                ? classroomService.studentIdsForExamClasses(examId)
+                : keycloakService.getAllStudentIds();
 
         List<Notification> notifications = new ArrayList<>();
         for (String studentId : studentIds) {
