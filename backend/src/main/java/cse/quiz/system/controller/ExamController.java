@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -116,6 +117,7 @@ public class ExamController {
     @PostMapping
     @PreAuthorize("hasRole('INSTRUCTOR')")
     public Exam createExam(@RequestBody Exam exam) {
+        validateSchedule(exam, true);
         String currentUserId = SecurityUtils.getCurrentUserId();
         if (currentUserId != null) {
             exam.setKeycloakInstructorId(currentUserId);
@@ -156,6 +158,10 @@ public class ExamController {
             existingExam.setDescription(exam.getDescription());
             existingExam.setPublished(exam.getPublished());
         } else {
+            // Takvim/süre güncelleniyor: tutarlılığı doğrula. Geçmiş tarih yalnızca
+            // taslaklarda engellenir; çoktan başlamış (yayındaki) bir sınavın başlığını
+            // düzenlerken eski başlangıç zamanı geçerli sayılır.
+            validateSchedule(exam, wasUnpublished);
             existingExam.setTitle(exam.getTitle());
             existingExam.setDescription(exam.getDescription());
             existingExam.setDuration(exam.getDuration());
@@ -270,6 +276,29 @@ public class ExamController {
         examAssignmentRepository.deleteAll(examAssignmentRepository.findByExamId(id));
         examRepository.delete(existing);
         auditLogService.record("Exam", id, "DELETE", "title=" + existing.getTitle());
+    }
+
+    /**
+     * Sınav takvimini doğrular ve bitiş zamanını başlangıç + süreden yeniden hesaplar.
+     * Başlık, süre ve başlangıç zamanı zorunludur; bitiş her zaman sunucuda hesaplanır
+     * (istemciden gelen değere güvenilmez). enforceFuture true ise başlangıç zamanı
+     * geçmişte olamaz (taslak oluşturma/düzenleme için).
+     */
+    private void validateSchedule(Exam exam, boolean enforceFuture) {
+        if (exam.getTitle() == null || exam.getTitle().isBlank()) {
+            throw new ConflictException("Sınav başlığı zorunludur");
+        }
+        if (exam.getDuration() == null || exam.getDuration() < 1) {
+            throw new ConflictException("Sınav süresi en az 1 dakika olmalıdır");
+        }
+        if (exam.getStartTime() == null) {
+            throw new ConflictException("Başlangıç tarihi zorunludur");
+        }
+        if (enforceFuture && exam.getStartTime().isBefore(LocalDateTime.now().minusMinutes(1))) {
+            throw new ConflictException("Başlangıç tarihi geçmiş bir zaman olamaz");
+        }
+        // Bitiş zamanını her zaman başlangıç + süreden türet (tutarlılık garantisi)
+        exam.setEndTime(exam.getStartTime().plusMinutes(exam.getDuration()));
     }
 
     private void requireExamOwner(Exam exam) {

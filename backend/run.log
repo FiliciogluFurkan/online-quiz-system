@@ -1,0 +1,91 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/D:/apache-maven-3.9.11/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------------< cse.quiz:system >---------------------------
+[INFO] Building  0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:4.0.6:run (default-cli) > test-compile @ system >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ system ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ system ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ system ---
+[INFO] skip non existing resourceDirectory C:\Users\Alper Kaan\Desktop\online-quiz-system\backend\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ system ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] <<< spring-boot:4.0.6:run (default-cli) < test-compile @ system <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:4.0.6:run (default-cli) @ system ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.6)
+
+2026-06-03T14:18:07.620+03:00  INFO 2928 --- [           main] cse.quiz.system.SystemApplication        : Starting SystemApplication using Java 25.0.3 with PID 2928 (C:\Users\Alper Kaan\Desktop\online-quiz-system\backend\target\classes started by AlperKaan in C:\Users\Alper Kaan\Desktop\online-quiz-system\backend)
+2026-06-03T14:18:07.624+03:00  INFO 2928 --- [           main] cse.quiz.system.SystemApplication        : No active profile set, falling back to 1 default profile: "default"
+2026-06-03T14:18:07.691+03:00  INFO 2928 --- [           main] .s.b.d.c.l.DockerComposeLifecycleManager : Using Docker Compose file C:\Users\Alper Kaan\Desktop\online-quiz-system\backend\compose.yaml
+2026-06-03T14:18:08.769+03:00  INFO 2928 --- [           main] .s.b.d.c.l.DockerComposeLifecycleManager : There are already Docker Compose services running, skipping startup
+2026-06-03T14:18:09.978+03:00  INFO 2928 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-06-03T14:18:10.074+03:00  INFO 2928 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 86 ms. Found 11 JPA repository interfaces.
+2026-06-03T14:18:10.685+03:00  INFO 2928 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-06-03T14:18:10.699+03:00  INFO 2928 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-06-03T14:18:10.699+03:00  INFO 2928 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.21]
+2026-06-03T14:18:10.787+03:00  INFO 2928 --- [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 1594 ms
+2026-06-03T14:18:10.929+03:00  INFO 2928 --- [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-06-03T14:18:10.980+03:00  INFO 2928 --- [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-06-03T14:18:11.456+03:00  INFO 2928 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-06-03T14:18:11.490+03:00  INFO 2928 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-06-03T14:18:11.668+03:00  INFO 2928 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@86377d5
+2026-06-03T14:18:11.669+03:00  INFO 2928 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-06-03T14:18:11.712+03:00  WARN 2928 --- [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-06-03T14:18:11.744+03:00  INFO 2928 --- [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://127.0.0.1:5432/quizdb]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 16.13
+	Default catalog/schema: quizdb/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-06-03T14:18:13.149+03:00  INFO 2928 --- [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-06-03T14:18:13.350+03:00  WARN 2928 --- [           main] org.hibernate.orm.jdbc.warn              : HHH000247: ErrorCode: 0, SQLState: 00000
+2026-06-03T14:18:13.350+03:00  WARN 2928 --- [           main] org.hibernate.orm.jdbc.warn              : constraint "uketoqbe1mjqwls3an7lwjaynu7" of relation "users" does not exist, skipping
+2026-06-03T14:18:13.382+03:00  INFO 2928 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-06-03T14:18:13.474+03:00  INFO 2928 --- [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-06-03T14:18:15.095+03:00  WARN 2928 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-06-03T14:18:15.891+03:00  INFO 2928 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-06-03T14:18:15.897+03:00  INFO 2928 --- [           main] cse.quiz.system.SystemApplication        : Started SystemApplication in 8.704 seconds (process running for 9.236)
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:28 min
+[INFO] Finished at: 2026-06-03T14:19:32+03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:4.0.6:run (default-cli) on project system: Process terminated with exit code: 143 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

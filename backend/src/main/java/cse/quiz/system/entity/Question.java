@@ -30,6 +30,9 @@ public class Question {
     @Column(columnDefinition = "TEXT")
     private String options; // JSON format for multiple choice
 
+    @Column(name = "image_url")
+    private String imageUrl; // Soruya ait opsiyonel görselin yolu (/uploads/...)
+
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(columnDefinition = "TEXT")
     private String correctAnswer;

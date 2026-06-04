@@ -30,19 +30,25 @@ public class GradingService {
             Question question = answer.getQuestion();
             
             // Sadece otomatik puanlanabilir soruları değerlendir
-            if (question.getType() == Question.QuestionType.MULTIPLE_CHOICE || 
+            if (question.getType() == Question.QuestionType.MULTIPLE_CHOICE ||
                 question.getType() == Question.QuestionType.TRUE_FALSE) {
-                
-                boolean isCorrect = checkAnswer(answer.getAnswerText(), question.getCorrectAnswer());
-                answer.setIsCorrect(isCorrect);
-                
-                if (isCorrect) {
-                    answer.setPointsEarned(question.getPoints());
-                    totalScore += question.getPoints();
-                } else {
+
+                boolean blank = answer.getAnswerText() == null || answer.getAnswerText().isBlank();
+                if (blank) {
+                    // Boş bırakılan soru: yanlış değil "cevapsız" sayılır (0 puan, isCorrect=null)
+                    answer.setIsCorrect(null);
                     answer.setPointsEarned(0);
+                } else {
+                    boolean isCorrect = checkAnswer(answer.getAnswerText(), question.getCorrectAnswer());
+                    answer.setIsCorrect(isCorrect);
+                    if (isCorrect) {
+                        answer.setPointsEarned(question.getPoints());
+                        totalScore += question.getPoints();
+                    } else {
+                        answer.setPointsEarned(0);
+                    }
                 }
-                
+
                 answerRepository.save(answer);
             }
             // SHORT_ANSWER için manuel değerlendirme gerekli
