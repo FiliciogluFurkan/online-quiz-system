@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html lang="tr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sınavlarım - QuizLab Öğrenci Paneli</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed-dim": "#89ceff",
+                        "on-secondary-container": "#fffbff",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#264191",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#001e2f",
+                        "surface-tint": "#4059aa",
+                        "surface-dim": "#cbdbf5",
+                        "primary-fixed": "#dce1ff",
+                        "surface-variant": "#d3e4fe",
+                        "tertiary": "#002e44",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#eff4ff",
+                        "on-background": "#0b1c30",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#e2dfff",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#004565",
+                        "on-secondary-fixed-variant": "#3323cc",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#004c6e",
+                        "on-primary-fixed": "#00164e",
+                        "inverse-primary": "#b6c4ff",
+                        "surface-container-high": "#dce9ff",
+                        "surface": "#f8f9ff",
+                        "secondary-fixed-dim": "#c3c0ff",
+                        "on-surface": "#0b1c30",
+                        "primary": "#00236f",
+                        "on-primary": "#ffffff",
+                        "secondary": "#4b41e1",
+                        "on-secondary-fixed": "#0f0069",
+                        "on-primary-container": "#90a8ff",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "on-surface-variant": "#444651",
+                        "on-tertiary-container": "#36b6fb",
+                        "outline-variant": "#c5c5d3",
+                        "inverse-surface": "#213145",
+                        "surface-container": "#e5eeff",
+                        "outline": "#757682",
+                        "surface-container-highest": "#d3e4fe",
+                        "background": "#f8f9ff",
+                        "tertiary-fixed": "#c9e6ff",
+                        "secondary-container": "#645efb",
+                        "primary-container": "#1e3a8a",
+                        "surface-bright": "#f8f9ff",
+                        "inverse-on-surface": "#eaf1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-max": "1280px",
+                        "margin-desktop": "40px",
+                        "unit": "8px",
+                        "margin-mobile": "16px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "display-lg": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "button-text": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "button-text": ["16px", { "lineHeight": "1", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="hidden md:flex docked h-full left-0 w-64 fixed left-0 top-0 h-full flex-col py-6 border-r border-outline-variant bg-surface">
+<div class="px-6 mb-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">QuizLab</h1>
+<p class="font-label-md text-label-md text-on-surface-variant mt-1">Öğrenci Paneli</p>
+</div>
+<div class="flex-1 px-4 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-primary font-bold bg-primary-fixed/20 transition-all scale-95 duration-200" href="#">
+<span class="material-symbols-outlined fill text-primary">quiz</span>
+<span class="font-label-md text-label-md">Sınavlarım</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md">Sonuçlar</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="font-label-md text-label-md">Bildirimler</span>
+</a>
+</div>
+<div class="px-4 mt-auto space-y-2 border-t border-outline-variant pt-4">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="font-label-md text-label-md">Profil</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Ayarlar</span>
+</a>
+<div class="flex items-center gap-3 px-4 py-3 mt-4 bg-surface-container-low rounded-xl border border-outline-variant">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold">
+                    S
+                </div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">student</p>
+<p class="text-xs text-on-surface-variant">Öğrenci</p>
+</div>
+</div>
+</div>
+</nav>
+<!-- TopNavBar (Mobile Only) -->
+<nav class="md:hidden flex justify-between items-center h-[72px] px-margin-mobile w-full z-50 bg-surface fixed top-0 border-b border-outline-variant">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">QuizLab</h1>
+<div class="flex gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">timer</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-1 md:ml-64 pt-[88px] md:pt-10 px-margin-mobile md:px-margin-desktop pb-24 max-w-container-max mx-auto w-full">
+<!-- Header -->
+<header class="mb-10">
+<h2 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-background">Sınavlarım</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-2">Bu dönem yayında olan sınavlar ve geçmiş sonuçların.</p>
+</header>
+<!-- Stats Row -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+<div class="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl shadow-sm">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-primary-container p-2 bg-surface-container-low rounded-lg">quiz</span>
+<h3 class="font-label-md text-label-md text-on-surface-variant">Mevcut Sınavlar</h3>
+</div>
+<p class="font-display-lg text-display-lg text-on-surface">2</p>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl shadow-sm">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-secondary-container p-2 bg-secondary-fixed rounded-lg">task_alt</span>
+<h3 class="font-label-md text-label-md text-on-surface-variant">Tamamlanan</h3>
+</div>
+<p class="font-display-lg text-display-lg text-on-surface">0</p>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl shadow-sm">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-tertiary-container p-2 bg-tertiary-fixed rounded-lg">analytics</span>
+<h3 class="font-label-md text-label-md text-on-surface-variant">Ortalama Puan</h3>
+</div>
+<div class="flex items-baseline gap-2">
+<p class="font-display-lg text-display-lg text-on-surface">—</p>
+<span class="text-sm text-on-surface-variant">Henüz değerlendirilmedi</span>
+</div>
+</div>
+</div>
+<!-- Current Exams Section -->
+<section class="mb-16">
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+<h3 class="font-headline-md text-headline-md text-on-surface">Mevcut Sınavlar (2)</h3>
+<div class="flex w-full sm:w-auto gap-3">
+<div class="relative w-full sm:w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Sınav ara..." type="text"/>
+</div>
+<button class="flex items-center justify-center p-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Exam Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-[0_4px_12px_rgba(30,58,138,0.04)] hover:shadow-[0_8px_24px_rgba(30,58,138,0.08)] transition-all flex flex-col">
+<div class="h-2 w-full bg-primary"></div>
+<div class="p-6 flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<h4 class="font-headline-md text-headline-md text-on-surface line-clamp-2 leading-tight">Yazılım Mühendisliğine Giriş - Vize</h4>
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-fixed text-on-primary-fixed border border-primary-fixed-dim">
+                                Açık
+                            </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 flex-1 line-clamp-3">Temel yazılım yaşam döngüsü modelleri, gereksinim analizi ve sistem tasarımı prensipleri üzerine 1. ara sınav değerlendirmesi.</p>
+<div class="grid grid-cols-2 gap-4 mb-6 pt-4 border-t border-outline-variant/50">
+<div>
+<p class="text-xs text-on-surface-variant mb-1">Süre</p>
+<p class="font-label-md text-label-md text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">schedule</span> 45 Dakika
+                                </p>
+</div>
+<div>
+<p class="text-xs text-on-surface-variant mb-1">Son Katılım</p>
+<p class="font-label-md text-label-md text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">event</span> 24 Eki, 23:59
+                                </p>
+</div>
+</div>
+<button class="w-full bg-primary hover:bg-primary-container text-on-primary font-button-text text-button-text py-3 rounded-lg flex items-center justify-center gap-2 transition-colors mt-auto">
+                            Sınava Başla <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Exam Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-[0_4px_12px_rgba(30,58,138,0.04)] hover:shadow-[0_8px_24px_rgba(30,58,138,0.08)] transition-all flex flex-col">
+<div class="h-2 w-full bg-primary"></div>
+<div class="p-6 flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<h4 class="font-headline-md text-headline-md text-on-surface line-clamp-2 leading-tight">Veritabanı Yönetim Sistemleri - Kısa Sınav 2</h4>
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-fixed text-on-primary-fixed border border-primary-fixed-dim">
+                                Açık
+                            </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 flex-1 line-clamp-3">SQL sorgulama dilleri, normalizasyon kuralları ve ilişkisel veritabanı tasarımı konularını kapsayan kısa değerlendirme.</p>
+<div class="grid grid-cols-2 gap-4 mb-6 pt-4 border-t border-outline-variant/50">
+<div>
+<p class="text-xs text-on-surface-variant mb-1">Süre</p>
+<p class="font-label-md text-label-md text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">schedule</span> 20 Dakika
+                                </p>
+</div>
+<div>
+<p class="text-xs text-on-surface-variant mb-1">Son Katılım</p>
+<p class="font-label-md text-label-md text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">event</span> 26 Eki, 17:00
+                                </p>
+</div>
+</div>
+<button class="w-full bg-primary hover:bg-primary-container text-on-primary font-button-text text-button-text py-3 rounded-lg flex items-center justify-center gap-2 transition-colors mt-auto">
+                            Sınava Başla <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Completed Exams Section -->
+<section>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-6">Tamamlanan Sınavlar (0)</h3>
+<!-- Empty State -->
+<div class="bg-surface-container-lowest border border-outline-variant border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center">
+<div class="w-16 h-16 bg-surface-variant rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-3xl text-outline">assignment_turned_in</span>
+</div>
+<h4 class="font-label-md text-label-md text-on-surface mb-2">Gösterilecek Sonuç Yok</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Henüz tamamlanan sınav bulunmuyor.</p>
+</div>
+</section>
+</main>
+</body></html>

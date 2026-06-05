@@ -2,11 +2,14 @@ package cse.quiz.system.controller;
 
 import cse.quiz.system.entity.Answer;
 import cse.quiz.system.entity.Category;
+import cse.quiz.system.entity.ExamQuestion;
 import cse.quiz.system.entity.Question;
 import cse.quiz.system.entity.StudentExam;
 import cse.quiz.system.exception.NotFoundException;
 import cse.quiz.system.exception.UnauthorizedException;
 import cse.quiz.system.repository.AnswerRepository;
+import cse.quiz.system.repository.ExamQuestionRepository;
+import cse.quiz.system.repository.StudentExamQuestionRepository;
 import cse.quiz.system.repository.StudentExamRepository;
 import cse.quiz.system.service.AuditLogService;
 import cse.quiz.system.service.GradingService;
@@ -28,8 +31,24 @@ import java.util.Map;
 public class ResultController {
     private final StudentExamRepository studentExamRepository;
     private final AnswerRepository answerRepository;
+    private final ExamQuestionRepository examQuestionRepository;
+    private final StudentExamQuestionRepository studentExamQuestionRepository;
     private final GradingService gradingService;
     private final AuditLogService auditLogService;
+
+    /** Sınavın toplam puanı: öğrencinin soru kümesindeki soruların puan toplamı. */
+    private double totalPointsFor(StudentExam se) {
+        List<Question> qs;
+        if (studentExamQuestionRepository.existsByStudentExamId(se.getId())) {
+            qs = studentExamQuestionRepository.findQuestionsByStudentExamId(se.getId());
+        } else if (se.getExam() != null) {
+            qs = examQuestionRepository.findByExamId(se.getExam().getId()).stream()
+                    .map(ExamQuestion::getQuestion).toList();
+        } else {
+            qs = List.of();
+        }
+        return qs.stream().mapToInt(q -> q.getPoints() != null ? q.getPoints() : 0).sum();
+    }
 
     @PostMapping("/grade/{studentExamId}")
     @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
@@ -88,8 +107,31 @@ public class ResultController {
 
     @GetMapping("/exam/{examId}")
     @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
-    public List<StudentExam> getExamResults(@PathVariable Long examId) {
-        return studentExamRepository.findByExamId(examId);
+    public List<Map<String, Object>> getExamResults(@PathVariable Long examId) {
+        List<StudentExam> studentExams = studentExamRepository.findByExamId(examId);
+        
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (StudentExam se : studentExams) {
+            Map<String, Object> dto = new HashMap<>();
+            dto.put("id", se.getId());
+            dto.put("status", se.getStatus());
+            dto.put("score", se.getScore());
+            dto.put("startedAt", se.getStartedAt());
+            dto.put("submittedAt", se.getSubmittedAt());
+            dto.put("student", se.getStudent());
+            
+            // Calculate maxScore from answers
+            List<Answer> answers = answerRepository.findByStudentExamId(se.getId());
+            int maxScore = answers.stream()
+                    .mapToInt(a -> a.getQuestion() != null && a.getQuestion().getPoints() != null 
+                              ? a.getQuestion().getPoints() : 0)
+                    .sum();
+            
+            dto.put("maxScore", maxScore > 0 ? maxScore : 100);
+            results.add(dto);
+        }
+        
+        return results;
     }
     
     @GetMapping("/exam/{examId}/statistics")
@@ -397,12 +439,36 @@ public class ResultController {
     }
 
     @GetMapping("/my-results")
-    public List<StudentExam> getMyResults() {
+    public List<Map<String, Object>> getMyResults() {
         String currentUserId = SecurityUtils.getCurrentUserId();
         if (currentUserId == null) {
             throw new RuntimeException("User not authenticated");
         }
-        return studentExamRepository.findByKeycloakUserId(currentUserId);
+        
+        List<StudentExam> studentExams = studentExamRepository.findByKeycloakUserId(currentUserId);
+        
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (StudentExam se : studentExams) {
+            Map<String, Object> dto = new HashMap<>();
+            dto.put("id", se.getId());
+            dto.put("status", se.getStatus());
+            dto.put("score", se.getScore());
+            dto.put("startedAt", se.getStartedAt());
+            dto.put("submittedAt", se.getSubmittedAt());
+            dto.put("exam", se.getExam());
+            
+            // Calculate maxScore from answers
+            List<Answer> answers = answerRepository.findByStudentExamId(se.getId());
+            int maxScore = answers.stream()
+                    .mapToInt(a -> a.getQuestion() != null && a.getQuestion().getPoints() != null 
+                              ? a.getQuestion().getPoints() : 0)
+                    .sum();
+            
+            dto.put("maxScore", maxScore > 0 ? maxScore : 100);
+            results.add(dto);
+        }
+        
+        return results;
     }
 
     @PutMapping("/answer/{answerId}/grade")

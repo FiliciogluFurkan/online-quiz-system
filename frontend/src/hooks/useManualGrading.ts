@@ -94,7 +94,11 @@ export function useManualGrading(studentExamId: string | undefined) {
 
   const manualAnswers = useMemo(() => {
     if (!result) return [];
-    return result.answers.filter((a) => a.question.type === 'SHORT_ANSWER' || a.isCorrect === null);
+    // Yalnızca otomatik eşleşmeyen (ve boş olmayan) kısa cevaplar manuel değerlendirmeye düşer.
+    // Eşleşip otomatik doğru olanlar (isCorrect=true) ve boşlar listelenmez.
+    return result.answers.filter((a) =>
+      a.question.type === 'SHORT_ANSWER' && a.isCorrect == null && (a.answerText ?? '').trim() !== ''
+    );
   }, [result]);
 
   const totalPossiblePoints = useMemo(() => {

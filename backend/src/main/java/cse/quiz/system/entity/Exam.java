@@ -33,6 +33,11 @@ public class Exam {
     private Boolean randomizeQuestions = false;
     private Boolean published = false;
 
+    // Görünürlük: PUBLIC = tüm öğrencilere açık, CLASSES = yalnızca atanan sınıflara
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private Visibility visibility = Visibility.PUBLIC;
+
     // Question Pool fields
     @Column(name = "question_pool_enabled")
     private Boolean questionPoolEnabled = false;
@@ -44,4 +49,8 @@ public class Exam {
     private Integer questionsPerStudent; // Her öğrenciye gösterilecek soru sayısı
 
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    public enum Visibility {
+        PUBLIC, CLASSES
+    }
 }

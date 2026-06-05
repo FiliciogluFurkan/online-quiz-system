@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Download, CheckCircle2, AlertCircle, FileText } from 'lucide-react';
+import { ArrowLeft, Upload, Download, CheckCircle2, AlertCircle, FileText, FolderOpen } from 'lucide-react';
 import api from '../api/axios';
 import {
   tokens, PageShell, Crumbs, Kicker, HeroTitle, SectionHeader, Btn,
@@ -11,11 +11,19 @@ interface ImportResult {
   errors: string[];
 }
 
+interface Category { id: number; name: string; }
+
 export default function BulkImport() {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState<string>('');
+
+  useEffect(() => {
+    api.get('/categories').then(res => setCategories(res.data)).catch(() => setCategories([]));
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -32,8 +40,9 @@ export default function BulkImport() {
     setUploading(true);
     const formData = new FormData();
     formData.append('file', file);
+    const url = categoryId ? `/questions/bulk-import?categoryId=${categoryId}` : '/questions/bulk-import';
     try {
-      const res = await api.post('/questions/bulk-import', formData, {
+      const res = await api.post(url, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setResult(res.data);
@@ -48,10 +57,15 @@ export default function BulkImport() {
 
   const downloadTemplate = () => {
     const csvContent = `Soru Metni,Tip,Seçenekler,Doğru Cevap,Puan,Kategori ID
-"2+2 kaç eder?",MULTIPLE_CHOICE,"A) 3\nB) 4\nC) 5\nD) 6",B,1,
-"Türkiye'nin başkenti Ankara'dır",TRUE_FALSE,,true,1,
-"Osmanlı İmparatorluğu hangi yılda kuruldu?",SHORT_ANSWER,,1299,2,1`;
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+"Aşağıdakilerden hangisi bir programlama dilidir?",MULTIPLE_CHOICE,"A) HTML\\nB) CSS\\nC) Python\\nD) JSON",C,2,
+"HTTP protokolü durumsuz (stateless) bir protokoldür.",TRUE_FALSE,,true,1,
+"Java'da bir sınıf tanımlamak için kullanılan anahtar kelime nedir?",SHORT_ANSWER,,class,3,
+"2 + 2 * 2 işleminin sonucu nedir?",MULTIPLE_CHOICE,"A) 8\\nB) 6\\nC) 4\\nD) 2",B,1,
+"Türkiye'nin başkenti Ankara'dır.",TRUE_FALSE,,true,1,
+"HTML'de link oluşturmak için kullanılan etiket nedir?",SHORT_ANSWER,,a,1,
+`;
+    const BOM = '﻿';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'soru_sablonu.csv';
@@ -107,24 +121,76 @@ export default function BulkImport() {
             background: tokens.ivory, border: `1px solid ${tokens.hairlineSoft}`,
             borderRadius: 10,
           }}>
-            <Kicker>CSV formatı</Kicker>
+            <Kicker>Sütun düzeni</Kicker>
             <ul style={{
               margin: '10px 0 0', padding: '0 0 0 16px',
               fontSize: 13, color: tokens.text, lineHeight: 1.8,
             }}>
-              <li><strong style={{ color: tokens.ink }}>Soru Metni:</strong> Sorunun kendisi</li>
-              <li><strong style={{ color: tokens.ink }}>Tip:</strong> MULTIPLE_CHOICE, TRUE_FALSE veya SHORT_ANSWER</li>
-              <li><strong style={{ color: tokens.ink }}>Seçenekler:</strong> Çoktan seçmeli için (her satır \n ile ayrılır)</li>
-              <li><strong style={{ color: tokens.ink }}>Doğru Cevap:</strong> Çoktan seçmeli için harf (A, B, C…)</li>
-              <li><strong style={{ color: tokens.ink }}>Puan:</strong> Soru puanı (varsayılan 1)</li>
-              <li><strong style={{ color: tokens.ink }}>Kategori ID:</strong> Opsiyonel</li>
+              <li><strong style={{ color: tokens.ink }}>Soru Metni:</strong> Sorunun kendisi (zorunlu)</li>
+              <li><strong style={{ color: tokens.ink }}>Tip:</strong> <code>MULTIPLE_CHOICE</code>, <code>TRUE_FALSE</code> veya <code>SHORT_ANSWER</code> (zorunlu, büyük harf)</li>
+              <li><strong style={{ color: tokens.ink }}>Seçenekler:</strong> Sadece çoktan seçmeli için; her şık arasına <code>{'\\n'}</code> koy ve tüm seçenekleri çift tırnak içine al</li>
+              <li><strong style={{ color: tokens.ink }}>Doğru Cevap:</strong> MC için harf (<code>A</code>, <code>B</code>...), TF için <code>true</code>/<code>false</code>, SA için cevabın kendisi</li>
+              <li><strong style={{ color: tokens.ink }}>Puan:</strong> Tam sayı (varsayılan 1)</li>
+              <li><strong style={{ color: tokens.ink }}>Kategori ID:</strong> Boş bırakılabilir, ID girilirse o kategoriye atanır</li>
             </ul>
+          </div>
+
+          <div style={{
+            marginTop: 14, padding: 16,
+            background: '#fff', border: `1px solid ${tokens.hairline}`,
+            borderRadius: 10,
+          }}>
+            <Kicker>Örnek satırlar</Kicker>
+            <pre style={{
+              margin: '10px 0 0', padding: 12,
+              background: '#fafafb', border: `1px solid ${tokens.hairlineSoft}`,
+              borderRadius: 8, fontFamily: tokens.mono, fontSize: 12,
+              color: tokens.text, lineHeight: 1.7,
+              whiteSpace: 'pre-wrap' as const, overflowX: 'auto' as const,
+            }}>{`"Türkiye'nin başkenti neresidir?",MULTIPLE_CHOICE,"A) İstanbul\\nB) Ankara\\nC) İzmir",B,2,
+"HTML bir programlama dilidir.",TRUE_FALSE,,false,1,
+"HTTP açılımı nedir?",SHORT_ANSWER,,HyperText Transfer Protocol,3,`}</pre>
+          </div>
+
+          <div style={{
+            marginTop: 14, padding: 12,
+            background: '#fff7ed', border: '1px solid #fed7aa',
+            borderRadius: 10, fontSize: 12.5, color: '#9a3412', lineHeight: 1.55,
+          }}>
+            <strong>İpucu:</strong> Excel'de aç(ıl)dığında Türkçe karakterler bozulursa
+            dosyayı VS Code veya Notepad++ ile düzenleyebilirsin (UTF-8 destekler).
+            Excel için "Veri → Metinden/CSV'den" yolunu seçip UTF-8 kodlaması ile aç.
           </div>
         </div>
       </section>
 
       <section style={{ marginBottom: 32 }}>
         <SectionHeader kicker="02" title="Dosya yükle" />
+
+        {/* Opsiyonel kategori seçimi */}
+        <div style={{
+          marginBottom: 16, padding: 18, background: '#fff',
+          border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+          display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' as const,
+        }}>
+          <span style={{ width: 38, height: 38, borderRadius: 10, background: tokens.indigoSoft, color: tokens.indigo, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+            <FolderOpen size={18} />
+          </span>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: tokens.ink }}>Kategori <span style={{ color: tokens.subtle, fontWeight: 400, fontSize: 12.5 }}>(opsiyonel)</span></div>
+            <div style={{ fontSize: 12.5, color: tokens.muted, marginTop: 2 }}>Seçersen, içe aktarılan tüm sorular bu kategoriye eklenir (CSV'deki Kategori ID kolonunu geçersiz kılar).</div>
+          </div>
+          <select value={categoryId} onChange={e => setCategoryId(e.target.value)}
+            style={{
+              padding: '10px 14px', background: '#fff',
+              border: `1px solid ${tokens.hairline}`, borderRadius: 10,
+              color: tokens.ink, fontFamily: 'inherit', fontSize: 14,
+              outline: 'none', cursor: 'pointer', minWidth: 220,
+            }}>
+            <option value="">Kategori seçme (CSV'ye göre)</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
 
         <div
           onClick={() => document.getElementById('fileInput')?.click()}

@@ -7,12 +7,13 @@ public record QuestionStudentDto(
         Question.QuestionType type,
         String questionText,
         String options,
+        String imageUrl,
         Integer points
 ) {
     public static QuestionStudentDto from(Question q) {
         return new QuestionStudentDto(
                 q.getId(), q.getType(), q.getQuestionText(),
-                q.getOptions(), q.getPoints()
+                q.getOptions(), q.getImageUrl(), q.getPoints()
         );
     }
 }

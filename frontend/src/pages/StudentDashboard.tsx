@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Search, SlidersHorizontal } from 'lucide-react';
+import { ArrowRight, Search, SlidersHorizontal, X, Calendar, Clock, User } from 'lucide-react';
 import api from '../api/axios';
 import type { Exam } from '../types';
 import {
-  tokens, PageShell, LiveDot, Stat, SectionHeader, Btn, Kicker,
+  tokens, PageShell, Kicker, Stat, SectionHeader, Btn,
   scoreLabel, formatTrDateShort,
 } from '../components/academic-ui';
 
@@ -17,12 +17,15 @@ interface StudentExam {
   submittedAt: string;
 }
 
-type ExamState = 'live' | 'upcoming' | 'available';
+type ExamState = 'live' | 'upcoming' | 'available' | 'ended';
 
 function getExamState(exam: Exam): ExamState {
   const now = new Date();
   const start = exam.startTime ? new Date(exam.startTime) : null;
   const end = exam.endTime ? new Date(exam.endTime) : null;
+  
+  if (end && now > end) return 'ended';
+  
   if (start && end) {
     if (now >= start && now <= end) return 'live';
     if (now < start) return 'upcoming';
@@ -41,33 +44,178 @@ function deadlineLabel(exam: Exam): string {
   return `${diffDays} gün kaldı`;
 }
 
-function AvailableCard({ exam, onStart }: { exam: Exam; onStart: () => void }) {
+function ExamModal({ exam, onClose }: { exam: Exam; onClose: () => void }) {
+  const navigate = useNavigate();
   const state = getExamState(exam);
   const isLive = state === 'live' || state === 'available';
 
   return (
+    <div
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1000, padding: 20,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: '#fff', borderRadius: 16, maxWidth: 560, width: '100%', padding: 32,
+          position: 'relative', maxHeight: '90vh', overflowY: 'auto',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute', top: 20, right: 20, background: 'transparent',
+            border: 'none', cursor: 'pointer', padding: 8, color: tokens.subtle,
+          }}
+        >
+          <X size={20} />
+        </button>
+
+        <div style={{ marginBottom: 24 }}>
+          <span
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px', borderRadius: 999,
+              background: isLive ? tokens.indigoSoft : '#f4f4f7',
+              color: isLive ? tokens.indigo : tokens.muted,
+              fontSize: 12, fontWeight: 600,
+              border: `1px solid ${isLive ? tokens.indigoBorder : '#e7e7ec'}`,
+              marginBottom: 16,
+            }}
+          >
+            <Calendar size={13} />
+            {isLive ? 'Sınav Açık' : 'Yaklaşan Sınav'}
+          </span>
+
+          <h2
+            style={{
+              margin: 0, fontFamily: tokens.serif, fontSize: 28, fontWeight: 400,
+              color: tokens.ink, letterSpacing: '-0.02em', marginBottom: 12,
+            }}
+          >
+            {exam.title}
+          </h2>
+
+          {exam.instructor?.fullName && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: tokens.subtle, fontSize: 14 }}>
+              <User size={14} />
+              {exam.instructor.fullName}
+            </div>
+          )}
+        </div>
+
+        {exam.description && (
+          <div style={{ padding: 16, background: tokens.ivory, borderRadius: 10, marginBottom: 24 }}>
+            <div style={{
+              fontFamily: tokens.mono, fontSize: 10, color: tokens.subtle,
+              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8,
+            }}>Açıklama</div>
+            <p style={{ margin: 0, fontSize: 14, color: tokens.muted, lineHeight: 1.6 }}>
+              {exam.description}
+            </p>
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 24 }}>
+          <div style={{ padding: 16, background: '#fafafa', borderRadius: 10, border: `1px solid ${tokens.hairline}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Clock size={14} style={{ color: tokens.subtle }} />
+              <span style={{
+                fontFamily: tokens.mono, fontSize: 10, color: tokens.subtle,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+              }}>Süre</span>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 600, color: tokens.ink }}>
+              {exam.duration} dakika
+            </div>
+          </div>
+
+          <div style={{ padding: 16, background: '#fafafa', borderRadius: 10, border: `1px solid ${tokens.hairline}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Calendar size={14} style={{ color: tokens.subtle }} />
+              <span style={{
+                fontFamily: tokens.mono, fontSize: 10, color: tokens.subtle,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+              }}>Son Tarih</span>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: tokens.ink }}>
+              {deadlineLabel(exam)}
+            </div>
+          </div>
+        </div>
+
+        {exam.startTime && (
+          <div style={{
+            padding: 16, background: '#f0f9ff', border: '1px solid #bfdbfe',
+            borderRadius: 10, marginBottom: 24,
+          }}>
+            <div style={{ fontSize: 13, color: '#1e40af', lineHeight: 1.5 }}>
+              <strong>Başlangıç:</strong>{' '}
+              {new Date(exam.startTime).toLocaleString('tr-TR', {
+                day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+              })}
+            </div>
+            {exam.endTime && (
+              <div style={{ fontSize: 13, color: '#1e40af', lineHeight: 1.5, marginTop: 4 }}>
+                <strong>Bitiş:</strong>{' '}
+                {new Date(exam.endTime).toLocaleString('tr-TR', {
+                  day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 12 }}>
+          <Btn variant="outline" onClick={onClose} style={{ flex: 1, justifyContent: 'center' }}>
+            Kapat
+          </Btn>
+          {isLive && (
+            <Btn
+              variant="primary"
+              onClick={() => {
+                onClose();
+                navigate(`/student/exam/${exam.id}`);
+              }}
+              iconR={<ArrowRight size={15} />}
+              style={{ flex: 1, justifyContent: 'center' }}
+            >
+              Sınava Başla
+            </Btn>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AvailableCard({ exam, onStart }: { exam: Exam; onStart: () => void }) {
+  const state = getExamState(exam);
+  const isLive = state === 'live' || state === 'available';
+  const isEnded = state === 'ended';
+
+  return (
     <article style={{
-      background: tokens.card,
-      border: `1px solid ${tokens.hairline}`,
-      borderRadius: 14,
-      padding: 22,
-      display: 'flex', flexDirection: 'column', gap: 16,
-      position: 'relative',
+      background: tokens.card, border: `1px solid ${tokens.hairline}`, borderRadius: 14,
+      padding: 22, display: 'flex', flexDirection: 'column', gap: 16, position: 'relative',
+      opacity: isEnded ? 0.6 : 1,
     }}>
       {isLive && (
         <div style={{
           position: 'absolute', top: -1, left: 22, right: 22, height: 2,
-          background: 'linear-gradient(90deg, #4f46e5, #818cf8 60%, transparent)',
-          borderRadius: 2,
+          background: 'linear-gradient(90deg, #4f46e5, #818cf8 60%, transparent)', borderRadius: 2,
         }} />
       )}
 
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3 style={{
-            margin: 0, fontFamily: tokens.serif,
-            fontSize: 20, lineHeight: 1.25, color: tokens.ink, fontWeight: 400,
-            letterSpacing: '-0.01em',
+            margin: 0, fontFamily: tokens.serif, fontSize: 20, lineHeight: 1.25,
+            color: tokens.ink, fontWeight: 400, letterSpacing: '-0.01em',
           }}>{exam.title}</h3>
           {exam.instructor?.fullName && (
             <div style={{
@@ -85,18 +233,26 @@ function AvailableCard({ exam, onStart }: { exam: Exam; onStart: () => void }) {
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '5px 9px', borderRadius: 999,
-          background: isLive ? tokens.indigoSoft : '#f4f4f7',
-          color: isLive ? tokens.indigo : tokens.muted,
+          background: isEnded ? '#fee2e2' : isLive ? tokens.indigoSoft : '#f4f4f7',
+          color: isEnded ? '#991b1b' : isLive ? tokens.indigo : tokens.muted,
           fontSize: 11, fontWeight: 600, letterSpacing: '0.02em',
-          border: `1px solid ${isLive ? tokens.indigoBorder : '#e7e7ec'}`,
+          border: `1px solid ${isEnded ? '#fecaca' : isLive ? tokens.indigoBorder : '#e7e7ec'}`,
           flexShrink: 0,
         }}>
-          {isLive ? <LiveDot /> : (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          {isEnded ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          ) : isLive ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+            </svg>
+          ) : (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" />
             </svg>
           )}
-          {isLive ? 'Açık' : 'Yaklaşan'}
+          {isEnded ? 'Süresi Doldu' : isLive ? 'Açık' : 'Yaklaşan'}
         </span>
       </header>
 
@@ -120,9 +276,8 @@ function AvailableCard({ exam, onStart }: { exam: Exam; onStart: () => void }) {
             borderLeft: i === 0 ? 'none' : `1px solid ${tokens.hairlineSoft}`,
           }}>
             <div style={{
-              fontFamily: tokens.mono,
-              fontSize: 10, color: tokens.subtle,
-              textTransform: 'uppercase' as const, letterSpacing: '0.08em',
+              fontFamily: tokens.mono, fontSize: 10, color: tokens.subtle,
+              textTransform: 'uppercase', letterSpacing: '0.08em',
             }}>{k}</div>
             <div style={{ fontSize: 14, color: '#2a2a36', fontWeight: 500, marginTop: 3 }}>{v}</div>
           </div>
@@ -130,15 +285,17 @@ function AvailableCard({ exam, onStart }: { exam: Exam; onStart: () => void }) {
       </div>
 
       <Btn
-        variant={isLive ? 'primary' : 'outline'}
+        variant={isEnded ? 'outline' : isLive ? 'primary' : 'outline'}
         onClick={onStart}
         iconR={<ArrowRight size={15} />}
-        style={{
-          width: '100%', justifyContent: 'center',
-          padding: '12px 16px', fontSize: 14,
+        style={{ 
+          width: '100%', justifyContent: 'center', padding: '12px 16px', fontSize: 14,
+          opacity: isEnded ? 0.5 : 1,
+          cursor: isEnded ? 'not-allowed' : 'pointer',
         }}
+        disabled={isEnded}
       >
-        {isLive ? 'Sınava Başla' : 'Sınav Detayı'}
+        {isEnded ? 'Süre Doldu' : isLive ? 'Sınava Başla' : 'Sınav Detayı'}
       </Btn>
     </article>
   );
@@ -152,35 +309,31 @@ function CompletedRow({ result, onView }: { result: StudentExam; onView: () => v
 
   return (
     <article style={{
-      display: 'grid', gridTemplateColumns: '1fr auto auto',
-      alignItems: 'center', gap: 24,
-      padding: '18px 22px',
-      background: tokens.ivory,
-      border: `1px solid ${tokens.hairline}`,
-      borderRadius: 12,
+      display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', gap: 24,
+      padding: '18px 22px', background: tokens.ivory,
+      border: `1px solid ${tokens.hairline}`, borderRadius: 12,
     }}>
       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={{ fontSize: 12, color: tokens.subtle }}>{formatTrDateShort(result.submittedAt)}</span>
         <h4 style={{
-          margin: 0, fontFamily: tokens.serif,
-          fontSize: 18, fontWeight: 400, color: '#2a2a36', letterSpacing: '-0.01em',
+          margin: 0, fontFamily: tokens.serif, fontSize: 18, fontWeight: 400,
+          color: '#2a2a36', letterSpacing: '-0.01em',
         }}>{result.exam.title}</h4>
       </div>
 
-      <div style={{ textAlign: 'right' as const }}>
+      <div style={{ textAlign: 'right' }}>
         {graded && result.score != null ? (
           <>
             <div style={{
-              fontFamily: tokens.serif,
-              fontSize: 32, lineHeight: 1, color: tokens.ink, letterSpacing: '-0.02em',
+              fontFamily: tokens.serif, fontSize: 32, lineHeight: 1,
+              color: tokens.ink, letterSpacing: '-0.02em',
             }}>
               {result.score}
               <span style={{ fontSize: 16, color: tokens.subtle }}> / {maxScore}</span>
             </div>
             {perf && (
               <div style={{
-                fontFamily: tokens.mono,
-                fontSize: 10.5, color: perf.color,
+                fontFamily: tokens.mono, fontSize: 10.5, color: perf.color,
                 marginTop: 4, fontWeight: 600, letterSpacing: '0.04em',
               }}>{perf.text}</div>
             )}
@@ -192,7 +345,7 @@ function CompletedRow({ result, onView }: { result: StudentExam; onView: () => v
             background: '#fff', border: '1px solid #e7e7ec',
             color: tokens.muted, fontSize: 12, fontWeight: 500,
           }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
             </svg>
             Değerlendiriliyor
@@ -212,8 +365,10 @@ export default function StudentDashboard() {
   const location = useLocation();
 
   const [availableExams, setAvailableExams] = useState<Exam[]>([]);
+  const [expiredExams, setExpiredExams] = useState<Exam[]>([]);
   const [completedResults, setCompletedResults] = useState<StudentExam[]>([]);
   const [search, setSearch] = useState('');
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
 
   useEffect(() => {
     loadData();
@@ -233,12 +388,18 @@ export default function StudentDashboard() {
       if (resultsRes.status === 'fulfilled') results = resultsRes.value.data;
 
       const doneIds = new Set<number>(
-        results
-          .filter(r => ['SUBMITTED', 'GRADED'].includes(r.status))
-          .map(r => r.exam.id)
+        results.filter(r => ['SUBMITTED', 'GRADED'].includes(r.status)).map(r => r.exam.id)
       );
 
-      setAvailableExams(exams.filter(e => !doneIds.has(e.id)));
+      // Tamamlanmamış sınavları ayır
+      const notDoneExams = exams.filter(e => !doneIds.has(e.id));
+      
+      // Süresi dolmamış ve dolmuş olarak ayır
+      const active = notDoneExams.filter(e => getExamState(e) !== 'ended');
+      const expired = notDoneExams.filter(e => getExamState(e) === 'ended');
+
+      setAvailableExams(active);
+      setExpiredExams(expired);
       setCompletedResults(results.filter(r => ['SUBMITTED', 'GRADED'].includes(r.status)));
     } catch (err) {
       console.error('Error loading dashboard data', err);
@@ -246,6 +407,10 @@ export default function StudentDashboard() {
   };
 
   const filteredAvailable = availableExams.filter(e =>
+    `${e.title} ${e.description ?? ''}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredExpired = expiredExams.filter(e =>
     `${e.title} ${e.description ?? ''}`.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -260,15 +425,31 @@ export default function StudentDashboard() {
   }).length;
   const upcomingCount = availableExams.filter(e => getExamState(e) === 'upcoming').length;
 
+  const handleExamClick = (exam: Exam) => {
+    const state = getExamState(exam);
+    if (state === 'ended') {
+      // Süresi dolmuş sınavlara tıklanmasın
+      return;
+    }
+    if (state === 'upcoming') {
+      setSelectedExam(exam);
+    } else {
+      navigate(`/student/exam/${exam.id}`);
+    }
+  };
+
   return (
     <PageShell>
+      {selectedExam && (
+        <ExamModal exam={selectedExam} onClose={() => setSelectedExam(null)} />
+      )}
+
       <section style={{ marginBottom: 36 }}>
         <Kicker>Bahar Dönemi · 2025–26</Kicker>
         <div style={{ marginTop: 8 }}>
           <h1 style={{
-            margin: 0, fontFamily: tokens.serif,
-            fontSize: 52, fontWeight: 400, color: tokens.ink,
-            letterSpacing: '-0.025em', lineHeight: 1,
+            margin: 0, fontFamily: tokens.serif, fontSize: 52, fontWeight: 400,
+            color: tokens.ink, letterSpacing: '-0.025em', lineHeight: 1,
           }}>Sınavlarım<span style={{ color: tokens.indigo }}>.</span></h1>
         </div>
         <p style={{
@@ -280,10 +461,7 @@ export default function StudentDashboard() {
         </p>
       </section>
 
-      <section style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16,
-        marginBottom: 48,
-      }}>
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 48 }}>
         <Stat
           label="Mevcut"
           value={String(availableExams.length).padStart(2, '0')}
@@ -296,9 +474,9 @@ export default function StudentDashboard() {
           sub="Bu dönem"
         />
         <Stat
-          label="Ortalama Puan"
-          value={avgScore != null ? String(avgScore) : '—'}
-          sub={gradedResults.length > 0 ? `/ 100 · ${gradedResults.length} sınav` : 'Henüz değerlendirilmedi'}
+          label="Süresi Geçen"
+          value={String(expiredExams.length).padStart(2, '0')}
+          sub="Tamamlanamayan sınavlar"
         />
       </section>
 
@@ -310,8 +488,7 @@ export default function StudentDashboard() {
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 12px',
+                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
                 background: '#fff', border: `1px solid ${tokens.hairline}`, borderRadius: 10,
                 color: tokens.subtle, minWidth: 260,
               }}>
@@ -333,33 +510,63 @@ export default function StudentDashboard() {
 
         {filteredAvailable.length === 0 ? (
           <div style={{
-            padding: '48px 24px', textAlign: 'center' as const,
+            padding: '64px 24px', textAlign: 'center',
             background: '#fff', border: `1px solid ${tokens.hairline}`, borderRadius: 14,
-            color: tokens.subtle,
           }}>
-            <div style={{ fontFamily: tokens.serif, fontSize: 22, color: tokens.muted, marginBottom: 8 }}>
-              Sınav bulunamadı
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #e0e7ff 0%, #f0f4ff 100%)',
+              margin: '0 auto 20px',
+              display: 'grid', placeItems: 'center',
+            }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={tokens.indigo} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
             </div>
-            <div style={{ fontSize: 13.5 }}>
-              {search ? 'Farklı bir arama terimi deneyin.' : 'Şu an aktif bir sınav yok.'}
-            </div>
+            <h3 style={{
+              margin: '0 0 8px', fontFamily: tokens.serif,
+              fontSize: 22, fontWeight: 400, color: tokens.ink,
+            }}>
+              {search ? 'Sınav bulunamadı' : 'Şu an aktif bir sınav yok'}
+            </h3>
+            <p style={{ margin: 0, fontSize: 14, color: tokens.muted, maxWidth: 420, marginLeft: 'auto', marginRight: 'auto' }}>
+              {search
+                ? 'Farklı bir arama terimi deneyin veya filtreyi temizleyin.'
+                : 'Eğitmeniniz yeni bir sınav yayınladığında burada görünecek.'}
+            </p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
             {filteredAvailable.map(exam => (
-              <AvailableCard
-                key={exam.id}
-                exam={exam}
-                onStart={() => navigate(`/student/exam/${exam.id}`)}
-              />
+              <AvailableCard key={exam.id} exam={exam} onStart={() => handleExamClick(exam)} />
             ))}
           </div>
         )}
       </section>
 
+      {filteredExpired.length > 0 && (
+        <section style={{ marginBottom: 56 }}>
+          <SectionHeader
+            kicker="02 — Süresi Geçen"
+            title="Tamamlanamayan Sınavlar"
+            count={filteredExpired.length}
+          />
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            {filteredExpired.map(exam => (
+              <AvailableCard key={exam.id} exam={exam} onStart={() => {}} />
+            ))}
+          </div>
+        </section>
+      )}
+
       <section>
         <SectionHeader
-          kicker="02 — Geçmiş"
+          kicker="03 — Geçmiş"
           title="Tamamlanan Sınavlar"
           count={completedResults.length}
           action={
@@ -372,7 +579,7 @@ export default function StudentDashboard() {
 
         {completedResults.length === 0 ? (
           <div style={{
-            padding: '32px 24px', textAlign: 'center' as const,
+            padding: '32px 24px', textAlign: 'center',
             background: tokens.ivory, border: `1px solid ${tokens.hairline}`, borderRadius: 12,
             color: tokens.subtle, fontSize: 13.5,
           }}>
@@ -394,8 +601,7 @@ export default function StudentDashboard() {
       <footer style={{
         marginTop: 64, paddingTop: 24, borderTop: `1px solid ${tokens.hairline}`,
         display: 'flex', justifyContent: 'space-between',
-        fontFamily: tokens.mono,
-        fontSize: 11, color: tokens.subtle, letterSpacing: '0.06em',
+        fontFamily: tokens.mono, fontSize: 11, color: tokens.subtle, letterSpacing: '0.06em',
       }}>
         <span>ONLINE QUIZ SYSTEM · AKADEMİK</span>
         <span>Son güncelleme · {new Date().toLocaleString('tr-TR', {

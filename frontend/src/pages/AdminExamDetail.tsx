@@ -39,7 +39,7 @@ export default function AdminExamDetail() {
   useEffect(() => {
     Promise.allSettled([
       api.get(`/admin/exams/${id}`),
-      api.get(`/exam-questions/exam/${id}`),
+      api.get(`/exam-questions/exam/${id}/full`),
       api.get(`/admin/exams/${id}/audit-log`),
     ])
       .then(([examRes, qsRes, auditRes]) => {

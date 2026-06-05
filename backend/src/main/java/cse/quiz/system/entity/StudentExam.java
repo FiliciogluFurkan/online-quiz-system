@@ -5,7 +5,12 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "student_exams")
+@Table(
+    name = "student_exams",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"keycloak_user_id", "exam_id"})
+    }
+)
 @Data
 public class StudentExam {
     @Id
@@ -30,6 +35,10 @@ public class StudentExam {
     private ExamStatus status = ExamStatus.NOT_STARTED;
 
     private Double score;
+
+    // Kalıcı değil: sınavın toplam puanı (soruların puan toplamı). Sonuç yanıtlarında doldurulur.
+    @Transient
+    private Double maxScore;
 
     public enum ExamStatus {
         NOT_STARTED, IN_PROGRESS, SUBMITTED, GRADED

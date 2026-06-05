@@ -35,12 +35,22 @@ export default function NotificationList() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadNotifications = () => {
+    setLoading(true);
+    setError(null);
     api.get('/notifications')
       .then(res => setNotifications(res.data))
-      .catch(err => console.error('Error loading notifications:', err))
+      .catch(err => {
+        console.error('Error loading notifications:', err);
+        setError('Bildirimler yüklenemedi. Bağlantıyı kontrol edip tekrar dene.');
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadNotifications();
   }, []);
 
   const handleClick = async (n: Notification) => {
@@ -52,6 +62,7 @@ export default function NotificationList() {
         );
       } catch (err) {
         console.error('Error marking as read:', err);
+        setError('Okundu işaretlenemedi, lütfen tekrar dene.');
       }
     }
   };
@@ -62,6 +73,7 @@ export default function NotificationList() {
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (err) {
       console.error('Error marking all as read:', err);
+      setError('Tümünü okundu işaretleme başarısız oldu.');
     }
   };
 
@@ -107,6 +119,25 @@ export default function NotificationList() {
         </CodeTag>
         <CodeTag tone="slate">{notifications.length} TOPLAM</CodeTag>
       </div>
+
+      {error && (
+        <div style={{
+          padding: '12px 16px', marginBottom: 20,
+          background: '#fef2f2', border: '1px solid #fecaca',
+          borderRadius: 10, color: '#991b1b', fontSize: 13.5,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+        }}>
+          <span>{error}</span>
+          <button
+            onClick={() => { setError(null); loadNotifications(); }}
+            style={{
+              padding: '6px 12px', background: '#fff',
+              border: '1px solid #fecaca', borderRadius: 6,
+              color: '#991b1b', fontSize: 12, fontWeight: 500,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>Tekrar dene</button>
+        </div>
+      )}
 
       {loading ? (
         <div style={{

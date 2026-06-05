@@ -1,30 +1,31 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Bell, LogOut } from 'lucide-react';
+import { Bell, LogOut, LayoutDashboard, ClipboardList, Database, FolderOpen, Award, GraduationCap, FileQuestion, Users, Plus, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
 
 export const tokens = {
-  bg: '#fbfaf7',
-  ivory: '#faf9f6',
+  bg: '#f8f9ff',
+  ivory: '#eff4ff',
   card: '#ffffff',
-  ink: '#13131f',
-  text: '#3a3a48',
-  muted: '#6b6b78',
-  subtle: '#9a9aa6',
-  hairline: '#ececf0',
-  hairlineSoft: '#f0f0f3',
+  ink: '#0b1c30',
+  text: '#3a4250',
+  muted: '#5f6a78',
+  subtle: '#8792a2',
+  hairline: '#e2e8f0',
+  hairlineSoft: '#eef1f7',
   indigo: '#4f46e5',
   indigoSoft: '#eef0fb',
   indigoBorder: '#dadcf5',
+  navy: '#1e3a8a',
   good: '#15803d',
   warn: '#b45309',
-  bad: '#b91c1c',
-  serif: '"Instrument Serif", Georgia, serif',
-  sans: '"Inter Tight", Inter, system-ui, sans-serif',
-  mono: '"JetBrains Mono", ui-monospace, monospace',
+  bad: '#ba1a1a',
+  serif: '"Manrope", system-ui, sans-serif',
+  sans: '"Manrope", system-ui, sans-serif',
+  mono: '"Manrope", system-ui, sans-serif',
 };
 
 // ─── Page shell ─────────────────────────────────────────────────────────────
@@ -299,7 +300,7 @@ export function Stat({ label, value, sub, accent }: {
       <div style={{
         fontFamily: tokens.serif,
         fontSize: 40, lineHeight: 1, color: tokens.ink,
-        letterSpacing: '-0.02em', marginTop: 2,
+        letterSpacing: '-0.02em', marginTop: 2, fontWeight: 800,
       }}>{value}</div>
       {sub && (
         <div style={{ fontSize: 12.5, color: '#7a7a87', marginTop: 4 }}>{sub}</div>
@@ -327,7 +328,7 @@ export function SectionHeader({ kicker, title, count, action, sub }: {
         )}
         <h2 style={{
           margin: 0, fontFamily: tokens.serif,
-          fontSize: 28, fontWeight: 400, color: tokens.ink,
+          fontSize: 28, fontWeight: 700, color: tokens.ink,
           letterSpacing: '-0.02em',
           display: 'flex', alignItems: 'baseline', gap: 10,
         }}>
@@ -384,7 +385,7 @@ export function Btn({
   title?: string;
 }) {
   const variants: Record<BtnVariant, { bg: string; fg: string; br: string }> = {
-    primary: { bg: tokens.indigo, fg: '#fff', br: tokens.indigo },
+    primary: { bg: tokens.navy, fg: '#fff', br: tokens.navy },
     ghost:   { bg: '#fff', fg: tokens.text, br: '#e2e2e8' },
     outline: { bg: '#fff', fg: tokens.indigo, br: '#d8dafd' },
     danger:  { bg: '#fff', fg: tokens.bad, br: '#fecaca' },
@@ -411,7 +412,7 @@ export function HeroTitle({ children, accent = true }: { children: ReactNode; ac
   return (
     <h1 style={{
       margin: 0, fontFamily: tokens.serif,
-      fontSize: 48, fontWeight: 400, color: tokens.ink,
+      fontSize: 48, fontWeight: 800, color: tokens.ink,
       letterSpacing: '-0.025em', lineHeight: 1.05,
     }}>
       {children}
@@ -483,4 +484,181 @@ export function formatTrDateShort(value?: string | null): string {
   return new Date(value).toLocaleDateString('tr-TR', {
     day: 'numeric', month: 'short', year: 'numeric',
   });
+}
+
+// ─── Sidebar app shell (role-aware) ───────────────────────────────────
+
+type SideItem = { label: string; href: string; icon: ReactNode; dot?: boolean };
+type RoleNav = { items: SideItem[]; cta?: { label: string; href: string } };
+
+const SIDE_NAV: Record<'STUDENT' | 'INSTRUCTOR' | 'ADMIN', RoleNav> = {
+  STUDENT: {
+    items: [
+      { label: 'Sınavlarım', href: '/student', icon: <ClipboardList size={18} /> },
+      { label: 'Sınıflarım', href: '/student/classes', icon: <Users size={18} /> },
+      { label: 'Sonuçlar', href: '/student/my-results', icon: <Award size={18} /> },
+      { label: 'Bildirimler', href: '/notifications', icon: <Bell size={18} />, dot: true },
+    ],
+  },
+  INSTRUCTOR: {
+    items: [
+      { label: 'Panel', href: '/instructor', icon: <LayoutDashboard size={18} /> },
+      { label: 'Sınıflarım', href: '/instructor/classes', icon: <Users size={18} /> },
+      { label: 'Soru Bankası', href: '/instructor/questions', icon: <Database size={18} /> },
+      { label: 'Kategoriler', href: '/instructor/categories', icon: <FolderOpen size={18} /> },
+      { label: 'Bildirimler', href: '/notifications', icon: <Bell size={18} />, dot: true },
+    ],
+    cta: { label: 'Yeni Sınav', href: '/instructor/create-exam' },
+  },
+  ADMIN: {
+    items: [
+      { label: 'Genel Bakış', href: '/admin', icon: <LayoutDashboard size={18} /> },
+      { label: 'Sınavlar', href: '/admin?tab=exams', icon: <ClipboardList size={18} /> },
+      { label: 'Sorular', href: '/admin?tab=questions', icon: <FileQuestion size={18} /> },
+      { label: 'Katılımlar', href: '/admin?tab=submissions', icon: <Users size={18} /> },
+      { label: 'Bildirimler', href: '/notifications', icon: <Bell size={18} />, dot: true },
+    ],
+  },
+};
+
+function panelLabel(role: 'STUDENT' | 'INSTRUCTOR' | 'ADMIN'): string {
+  if (role === 'ADMIN') return 'Yönetici Paneli';
+  if (role === 'INSTRUCTOR') return 'Eğitmen Paneli';
+  return 'Öğrenci Paneli';
+}
+
+export const SIDEBAR_WIDTH = 256;
+
+export function Sidebar() {
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const role = pickRole(user?.roles || []);
+  const { items, cta } = SIDE_NAV[role];
+
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    api.get('/notifications/unread-count')
+      .then(res => setUnread(res.data?.count ?? res.data ?? 0))
+      .catch(() => {});
+  }, [location.pathname]);
+
+  const isActive = (href: string) => {
+    const [path, query] = href.split('?');
+    if (query !== undefined) return (location.pathname + location.search) === href;
+    return location.pathname === path && !location.search;
+  };
+  const activeIdx = items.findIndex(it => isActive(it.href));
+
+  const navItemStyle = (active: boolean): CSSProperties => ({
+    position: 'relative',
+    display: 'flex', alignItems: 'center', gap: 12,
+    padding: '11px 14px', borderRadius: 10,
+    textDecoration: 'none', fontSize: 14,
+    background: active ? '#e9eeff' : 'transparent',
+    color: active ? tokens.navy : tokens.text,
+    fontWeight: active ? 700 : 500,
+    cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left', fontFamily: 'inherit',
+  });
+
+  return (
+    <aside style={{
+      position: 'fixed', left: 0, top: 0, bottom: 0, width: SIDEBAR_WIDTH,
+      background: tokens.card, borderRight: `1px solid ${tokens.hairline}`,
+      display: 'flex', flexDirection: 'column', zIndex: 50,
+      fontFamily: tokens.sans,
+    }}>
+      {/* Brand */}
+      <Link to={`/${role.toLowerCase()}`} style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '20px', textDecoration: 'none', color: tokens.ink,
+      }}>
+        <div style={{
+          width: 38, height: 38, borderRadius: 11, background: tokens.navy, color: '#fff',
+          display: 'grid', placeItems: 'center',
+        }}><GraduationCap size={20} /></div>
+        <div style={{ lineHeight: 1.2 }}>
+          <strong style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em', display: 'block' }}>QuizLab</strong>
+          <span style={{ fontSize: 11, color: tokens.subtle, fontWeight: 600 }}>{panelLabel(role)}</span>
+        </div>
+      </Link>
+
+      {/* Nav */}
+      <nav style={{ flex: 1, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto' }}>
+        {items.map((item, idx) => {
+          const active = idx === activeIdx;
+          return (
+            <Link key={item.label} to={item.href} style={navItemStyle(active)}>
+              {active && <span style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: 4, height: 22, background: tokens.navy, borderRadius: '0 3px 3px 0' }} />}
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                {item.icon}
+                {item.dot && unread > 0 && (
+                  <span style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, borderRadius: '50%', background: tokens.bad, border: `2px solid ${tokens.card}` }} />
+                )}
+              </span>
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Bottom: CTA + settings + user */}
+      <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {cta && (
+          <button type="button" onClick={() => navigate(cta.href)} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            width: '100%', padding: '12px 14px', borderRadius: 12,
+            background: tokens.navy, color: '#fff', border: 'none',
+            fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            boxShadow: '0 4px 12px rgba(30,58,138,0.18)',
+          }}>
+            <Plus size={18} />{cta.label}
+          </button>
+        )}
+        <div style={{ height: 1, background: tokens.hairline, margin: '6px 2px' }} />
+        <button type="button" onClick={() => navigate('/settings')} style={navItemStyle(location.pathname === '/settings')} title="Ayarlar">
+          <Settings size={18} />Ayarlar
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px' }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%', background: tokens.indigoSoft, color: tokens.indigo,
+            display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 13,
+          }}>{initialsFor(user?.username)}</div>
+          <div style={{ lineHeight: 1.2, flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontSize: 13.5, fontWeight: 600, color: tokens.ink,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{user?.username || 'Kullanıcı'}</div>
+            <div style={{ fontSize: 11, color: tokens.subtle, fontWeight: 600 }}>{panelLabel(role).replace(' Paneli', '')}</div>
+          </div>
+          <button type="button" onClick={logout} title="Çıkış Yap" style={{
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+            background: 'transparent', border: `1px solid ${tokens.hairline}`,
+            color: tokens.bad, display: 'grid', placeItems: 'center', cursor: 'pointer',
+          }}>
+            <LogOut size={15} />
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  // No sidebar on the public landing or the focused exam-taking screen.
+  if (!isAuthenticated || isHidden(location.pathname)) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: tokens.bg }}>
+      <Sidebar />
+      <main style={{ marginLeft: SIDEBAR_WIDTH, minHeight: '100vh' }}>
+        {children}
+      </main>
+    </div>
+  );
 }

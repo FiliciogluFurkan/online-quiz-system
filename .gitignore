@@ -1,0 +1,5 @@
+# Claude Code workspace settings
+.claude/
+
+# Yüklenen soru görselleri
+backend/uploads/

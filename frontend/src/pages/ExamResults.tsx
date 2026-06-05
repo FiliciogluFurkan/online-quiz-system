@@ -11,6 +11,7 @@ interface StudentExam {
   id: number;
   status: string;
   score: number | null;
+  maxScore?: number;
   startedAt: string;
   submittedAt: string | null;
   student?: {
@@ -34,6 +35,7 @@ export default function ExamResults() {
   const navigate = useNavigate();
   const [results, setResults] = useState<StudentExam[]>([]);
   const [examTitle, setExamTitle] = useState('');
+  const [maxScore, setMaxScore] = useState<number>(100);
 
   useEffect(() => {
     Promise.all([
@@ -43,6 +45,11 @@ export default function ExamResults() {
       .then(([examRes, resultsRes]) => {
         setExamTitle(examRes.data.title);
         setResults(resultsRes.data);
+        
+        // Calculate max score from first result's maxScore, or fallback to 100
+        if (resultsRes.data.length > 0 && resultsRes.data[0].maxScore) {
+          setMaxScore(resultsRes.data[0].maxScore);
+        }
       })
       .catch(console.error);
   }, [id]);
@@ -89,7 +96,7 @@ export default function ExamResults() {
         <Stat label="Katılımcı" value={String(results.length).padStart(2, '0')} accent={tokens.indigo} />
         <Stat label="Tamamlanan" value={String(completed.length).padStart(2, '0')} sub={`${inProgress.length} devam ediyor`} />
         <Stat label="Ortalama" value={avgScore != null ? String(avgScore) : '—'} sub={graded.length > 0 ? `${graded.length} değerlendirildi` : 'henüz puan yok'} />
-        <Stat label="En Yüksek" value={graded.length > 0 ? String(Math.max(...graded.map(r => r.score!))) : '—'} sub={graded.length > 0 ? '/ 100' : 'henüz puan yok'} />
+        <Stat label="En Yüksek" value={graded.length > 0 ? String(Math.max(...graded.map(r => r.score!))) : '—'} sub={graded.length > 0 ? `/ ${maxScore}` : 'henüz puan yok'} />
       </section>
 
       <section>

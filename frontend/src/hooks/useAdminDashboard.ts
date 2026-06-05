@@ -5,6 +5,7 @@ import type { Exam, Question } from '../types';
 interface Stats {
   totalExams: number;
   totalQuestions: number;
+  totalClassrooms: number;
   totalStudentExams: number;
   completedExams: number;
   activeUsers?: number;
@@ -22,6 +23,7 @@ interface StudentExam {
   id: number;
   exam: Exam;
   keycloakUserId: string;
+  student?: { username?: string; email?: string; fullName?: string } | null;
   status: string;
   score: number;
   startedAt: string;
@@ -82,12 +84,18 @@ export function useAdminDashboard() {
     if (!confirm('Bu soruyu silmek istediğinize emin misiniz?')) return;
 
     try {
-      await api.delete(`/admin/questions/${id}`);
-      alert('Soru silindi!');
-      loadData();
-    } catch (error) {
+      const response = await api.delete(`/admin/questions/${id}`);
+      
+      if (response.data.success === false) {
+        alert(response.data.message || 'Soru silinemedi!');
+      } else {
+        alert('Soru silindi!');
+        loadData();
+      }
+    } catch (error: any) {
       console.error('Error deleting question:', error);
-      alert('Soru silinirken hata oluştu!');
+      const message = error.response?.data?.message || 'Soru silinirken hata oluştu!';
+      alert(message);
     }
   };
 
@@ -102,11 +110,12 @@ export function useAdminDashboard() {
   }, [questions, search]);
 
   const filteredStudentExams = useMemo(() => {
-    return studentExams.filter((item) =>
-      `${item.exam?.title || ''} ${item.keycloakUserId || ''} ${item.status || ''}`
+    return studentExams.filter((item) => {
+      const name = item.student?.fullName || item.student?.username || item.student?.email || '';
+      return `${item.exam?.title || ''} ${name} ${item.status || ''}`
         .toLowerCase()
-        .includes(search.toLowerCase())
-    );
+        .includes(search.toLowerCase());
+    });
   }, [studentExams, search]);
 
   return {

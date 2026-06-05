@@ -40,4 +40,36 @@ public class KeycloakService {
             return List.of();
         }
     }
+
+    /**
+     * Keycloak'taki tüm kullanıcıları getirir
+     */
+    public List<UserRepresentation> getAllUsers() {
+        try {
+            return keycloak.realm(realm).users().list();
+        } catch (Exception e) {
+            System.err.println("Error fetching all users from Keycloak: " + e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Belirli bir kullanıcının realm rollerini getirir
+     */
+    public List<String> getUserRoles(String userId) {
+        try {
+            return keycloak.realm(realm)
+                    .users()
+                    .get(userId)
+                    .roles()
+                    .realmLevel()
+                    .listEffective()
+                    .stream()
+                    .map(role -> role.getName())
+                    .toList();
+        } catch (Exception e) {
+            System.err.println("Error fetching user roles from Keycloak: " + e.getMessage());
+            return List.of();
+        }
+    }
 }

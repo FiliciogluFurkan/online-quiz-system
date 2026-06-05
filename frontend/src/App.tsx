@@ -1,9 +1,12 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { TopBar } from './components/academic-ui';
+import { AppShell } from './components/academic-ui';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import StudentDashboard from './pages/StudentDashboard';
+import StudentClasses from './pages/StudentClasses';
+import InstructorClasses from './pages/InstructorClasses';
+import ClassDetail from './pages/ClassDetail';
 import MyResults from './pages/MyResults';
 import NotificationList from './pages/NotificationList';
 import InstructorDashboard from './pages/InstructorDashboard';
@@ -21,18 +24,24 @@ import TakeExam from './pages/TakeExam';
 import ExamResult from './pages/ExamResult';
 import ExamResults from './pages/ExamResults';
 import ManualGrading from './pages/ManualGrading';
+import AllExams from './pages/AllExams';
+import Settings from './pages/Settings';
 import './App.css';
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <TopBar />
+        <AppShell>
         <Routes>
           <Route path="/" element={<Home />} />
 
+          {/* Tüm roller: ayarlar */}
+          <Route path="/settings" element={<ProtectedRoute roles={['STUDENT', 'INSTRUCTOR', 'ADMIN']}><Settings /></ProtectedRoute>} />
+
           {/* Student routes */}
           <Route path="/student" element={<ProtectedRoute roles={['STUDENT']}><StudentDashboard /></ProtectedRoute>} />
+          <Route path="/student/classes" element={<ProtectedRoute roles={['STUDENT']}><StudentClasses /></ProtectedRoute>} />
           <Route path="/student/my-results" element={<ProtectedRoute roles={['STUDENT']}><MyResults /></ProtectedRoute>} />
           <Route path="/student/notifications" element={<ProtectedRoute roles={['STUDENT', 'INSTRUCTOR', 'ADMIN']}><NotificationList /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute roles={['STUDENT', 'INSTRUCTOR', 'ADMIN']}><NotificationList /></ProtectedRoute>} />
@@ -41,7 +50,11 @@ function App() {
 
           {/* Instructor routes */}
           <Route path="/instructor" element={<ProtectedRoute roles={['INSTRUCTOR']}><InstructorDashboard /></ProtectedRoute>} />
+          <Route path="/instructor/exams" element={<ProtectedRoute roles={['INSTRUCTOR']}><AllExams /></ProtectedRoute>} />
           <Route path="/instructor/create-exam" element={<ProtectedRoute roles={['INSTRUCTOR']}><CreateExam /></ProtectedRoute>} />
+          <Route path="/instructor/classes" element={<ProtectedRoute roles={['INSTRUCTOR']}><InstructorClasses /></ProtectedRoute>} />
+          <Route path="/instructor/classes/:id" element={<ProtectedRoute roles={['INSTRUCTOR']}><ClassDetail /></ProtectedRoute>} />
+          <Route path="/instructor/exam/:id/edit" element={<ProtectedRoute roles={['INSTRUCTOR']}><CreateExam /></ProtectedRoute>} />
           <Route path="/instructor/exam/:id" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamDetail /></ProtectedRoute>} />
           <Route path="/instructor/exam/:id/preview" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamPreview /></ProtectedRoute>} />
           <Route path="/instructor/exam/:id/results" element={<ProtectedRoute roles={['INSTRUCTOR']}><ExamResults /></ProtectedRoute>} />
@@ -57,6 +70,7 @@ function App() {
           <Route path="/admin" element={<ProtectedRoute roles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/exam/:id" element={<ProtectedRoute roles={['ADMIN']}><AdminExamDetail /></ProtectedRoute>} />
         </Routes>
+        </AppShell>
       </BrowserRouter>
     </AuthProvider>
   );

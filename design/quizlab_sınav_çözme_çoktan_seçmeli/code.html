@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html class="light" lang="tr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sınav Çözme - QuizLab</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed-dim": "#89ceff",
+                        "on-secondary-container": "#fffbff",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#264191",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#001e2f",
+                        "surface-tint": "#4059aa",
+                        "surface-dim": "#cbdbf5",
+                        "primary-fixed": "#dce1ff",
+                        "surface-variant": "#d3e4fe",
+                        "tertiary": "#002e44",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#eff4ff",
+                        "on-background": "#0b1c30",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#e2dfff",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#004565",
+                        "on-secondary-fixed-variant": "#3323cc",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#004c6e",
+                        "on-primary-fixed": "#00164e",
+                        "inverse-primary": "#b6c4ff",
+                        "surface-container-high": "#dce9ff",
+                        "surface": "#f8f9ff",
+                        "secondary-fixed-dim": "#c3c0ff",
+                        "on-surface": "#0b1c30",
+                        "primary": "#00236f",
+                        "on-primary": "#ffffff",
+                        "secondary": "#4b41e1",
+                        "on-secondary-fixed": "#0f0069",
+                        "on-primary-container": "#90a8ff",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "on-surface-variant": "#444651",
+                        "on-tertiary-container": "#36b6fb",
+                        "outline-variant": "#c5c5d3",
+                        "inverse-surface": "#213145",
+                        "surface-container": "#e5eeff",
+                        "outline": "#757682",
+                        "surface-container-highest": "#d3e4fe",
+                        "background": "#f8f9ff",
+                        "tertiary-fixed": "#c9e6ff",
+                        "secondary-container": "#645efb",
+                        "primary-container": "#1e3a8a",
+                        "surface-bright": "#f8f9ff",
+                        "inverse-on-surface": "#eaf1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-max": "1280px",
+                        "margin-desktop": "40px",
+                        "unit": "8px",
+                        "margin-mobile": "16px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "display-lg": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "button-text": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- Top Bar -->
+<header class="bg-surface border-b border-outline-variant flex justify-between items-center h-[72px] px-8 w-full z-50 sticky top-0 shadow-sm shadow-primary/5">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-error tracking-wider uppercase">SINAV DEVAM EDİYOR</span>
+<span class="font-headline-md text-headline-md text-on-surface">Genel Kültür</span>
+</div>
+<div class="flex items-center gap-2 bg-error-container text-on-error-container px-4 py-2 rounded-full font-label-md text-label-md">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">timer</span>
+            KALAN SÜRE 24:18
+        </div>
+<div class="font-label-md text-label-md text-on-surface-variant">
+            1/4 cevaplandı
+        </div>
+</header>
+<!-- Main Focus Container -->
+<main class="flex-grow max-w-container-max mx-auto w-full px-margin-mobile md:px-margin-desktop py-8">
+<div class="flex flex-col lg:flex-row gap-gutter">
+<!-- Left: Question Card (Focus Area) -->
+<div class="flex-grow max-w-[800px] flex flex-col gap-6">
+<!-- Question Meta -->
+<div class="flex justify-between items-center pb-4 border-b border-outline-variant">
+<span class="font-headline-md text-headline-md text-on-surface">SORU 01 / 4</span>
+<div class="flex gap-4 font-label-md text-label-md text-on-surface-variant">
+<span>Çoktan Seçmeli</span>
+<span>5 puan</span>
+</div>
+</div>
+<!-- Question Text -->
+<div class="font-body-lg text-body-lg text-on-surface py-4">
+                    Türkiye'nin başkenti neresidir?
+                </div>
+<!-- Options -->
+<div class="flex flex-col gap-4">
+<label class="flex items-center gap-4 p-4 rounded-lg border border-outline-variant bg-surface hover:border-primary cursor-pointer transition-colors">
+<input class="w-5 h-5 text-primary border-outline-variant focus:ring-primary" name="q1" type="radio" value="A"/>
+<span class="font-body-md text-body-md"><strong class="mr-2">A:</strong> İstanbul</span>
+</label>
+<label class="flex items-center gap-4 p-4 rounded-lg border border-outline-variant bg-surface hover:border-primary cursor-pointer transition-colors">
+<input class="w-5 h-5 text-primary border-outline-variant focus:ring-primary" name="q1" type="radio" value="B"/>
+<span class="font-body-md text-body-md"><strong class="mr-2">B:</strong> Bursa</span>
+</label>
+<label class="flex items-center gap-4 p-4 rounded-lg border-2 border-primary bg-primary-fixed/20 cursor-pointer transition-colors">
+<input checked="" class="w-5 h-5 text-primary border-outline-variant focus:ring-primary" name="q1" type="radio" value="C"/>
+<span class="font-body-md text-body-md text-primary"><strong class="mr-2">C:</strong> Ankara</span>
+</label>
+<label class="flex items-center gap-4 p-4 rounded-lg border border-outline-variant bg-surface hover:border-primary cursor-pointer transition-colors">
+<input class="w-5 h-5 text-primary border-outline-variant focus:ring-primary" name="q1" type="radio" value="D"/>
+<span class="font-body-md text-body-md"><strong class="mr-2">D:</strong> Konya</span>
+</label>
+</div>
+<!-- Question Navigation Footer -->
+<div class="mt-8 flex justify-between items-center pt-6 border-t border-outline-variant">
+<button class="font-button-text text-button-text text-on-surface-variant/50 flex items-center gap-2 cursor-not-allowed" disabled="">
+<span class="material-symbols-outlined">arrow_back</span> Önceki Soru
+                    </button>
+<span class="font-label-md text-label-md text-on-surface-variant">01 / 04</span>
+<button class="font-button-text text-button-text text-primary flex items-center gap-2 hover:text-primary-container transition-colors">
+                        Sonraki Soru <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Right: Progress & Submit Sidebar -->
+<aside class="lg:w-[320px] shrink-0 flex flex-col gap-6">
+<!-- Soru Haritası Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm shadow-primary/5">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Soru Haritası</h3>
+<p class="font-label-md text-label-md text-on-surface-variant mb-6">1/4 cevaplandı</p>
+<!-- Grid -->
+<div class="grid grid-cols-4 gap-2 mb-6">
+<button class="w-10 h-10 rounded-lg bg-primary text-on-primary font-label-md flex justify-center items-center">1</button>
+<button class="w-10 h-10 rounded-lg bg-surface border border-outline-variant text-on-surface-variant hover:border-primary font-label-md flex justify-center items-center">2</button>
+<button class="w-10 h-10 rounded-lg bg-surface border border-outline-variant text-on-surface-variant hover:border-primary font-label-md flex justify-center items-center">3</button>
+<button class="w-10 h-10 rounded-lg bg-surface border border-outline-variant text-on-surface-variant hover:border-primary font-label-md flex justify-center items-center">4</button>
+</div>
+<!-- Legend -->
+<div class="flex flex-col gap-2 font-body-md text-body-md text-on-surface-variant">
+<div class="flex items-center gap-2">
+<div class="w-4 h-4 rounded bg-primary"></div> Mevcut soru
+                        </div>
+<div class="flex items-center gap-2">
+<div class="w-4 h-4 rounded bg-surface border-2 border-primary"></div> Cevaplanmış
+                        </div>
+<div class="flex items-center gap-2">
+<div class="w-4 h-4 rounded bg-surface border border-outline-variant"></div> Boş
+                        </div>
+</div>
+</div>
+<!-- Submit Area -->
+<div class="flex flex-col gap-4">
+<button class="w-full bg-primary text-on-primary py-3 rounded-lg font-button-text text-button-text shadow-sm hover:bg-primary-container transition-colors">
+                        Sınavı Bitir
+                    </button>
+<p class="font-label-md text-label-md text-on-surface-variant text-center">
+                        Teslim ettikten sonra değişiklik yapamazsın.
+                    </p>
+<!-- Warning -->
+<div class="mt-4 bg-error-container/50 text-on-error-container p-4 rounded-lg flex gap-3 items-start border border-error-container">
+<span class="material-symbols-outlined shrink-0">warning</span>
+<span class="font-body-md text-body-md">Süre azalıyor — cevaplarını kontrol et.</span>
+</div>
+</div>
+</aside>
+</div>
+</main>
+</body></html>
