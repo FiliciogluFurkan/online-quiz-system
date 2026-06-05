@@ -84,12 +84,18 @@ export function useAdminDashboard() {
     if (!confirm('Bu soruyu silmek istediğinize emin misiniz?')) return;
 
     try {
-      await api.delete(`/admin/questions/${id}`);
-      alert('Soru silindi!');
-      loadData();
-    } catch (error) {
+      const response = await api.delete(`/admin/questions/${id}`);
+      
+      if (response.data.success === false) {
+        alert(response.data.message || 'Soru silinemedi!');
+      } else {
+        alert('Soru silindi!');
+        loadData();
+      }
+    } catch (error: any) {
       console.error('Error deleting question:', error);
-      alert('Soru silinirken hata oluştu!');
+      const message = error.response?.data?.message || 'Soru silinirken hata oluştu!';
+      alert(message);
     }
   };
 

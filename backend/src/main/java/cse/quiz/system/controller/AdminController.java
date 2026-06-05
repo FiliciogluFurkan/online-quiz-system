@@ -119,8 +119,6 @@ public class AdminController {
             return error;
         }
     }
-        auditLogService.record("Question", id, "DELETE", null);
-    }
 
     @GetMapping("/exams/{id}/audit-log")
     public List<AuditLog> getExamAuditLog(@PathVariable Long id) {

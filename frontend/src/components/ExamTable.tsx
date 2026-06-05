@@ -3,16 +3,45 @@ import { FileText, MoreVertical } from 'lucide-react';
 import type { ExamWithStats } from '../types';
 import { tokens } from './academic-ui';
 
-export function StatusPill({ published }: { published: boolean }) {
-  if (published) {
+export function StatusPill({ published, endTime }: { published: boolean; endTime?: string | null }) {
+  const now = new Date();
+  const end = endTime ? new Date(endTime) : null;
+  const isExpired = end && now > end;
+
+  if (isExpired) {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, background: '#d1fae5', color: '#047857', border: '1px solid #a7f3d0' }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#047857' }} />Yayında
+      <span style={{ 
+        display: 'inline-flex', alignItems: 'center', gap: 6, 
+        padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, 
+        background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' 
+      }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#991b1b' }} />
+        Süresi Doldu
       </span>
     );
   }
+
+  if (published) {
+    return (
+      <span style={{ 
+        display: 'inline-flex', alignItems: 'center', gap: 6, 
+        padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, 
+        background: '#d1fae5', color: '#047857', border: '1px solid #a7f3d0' 
+      }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#047857' }} />
+        Yayında
+      </span>
+    );
+  }
+  
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>Taslak</span>
+    <span style={{ 
+      display: 'inline-flex', alignItems: 'center', gap: 6, 
+      padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, 
+      background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' 
+    }}>
+      Taslak
+    </span>
   );
 }
 
@@ -49,7 +78,7 @@ export function ExamTable({ rows }: { rows: ExamWithStats[] }) {
                 </td>
                 <td style={{ padding: '16px 24px', fontSize: 13.5, color: tokens.muted }}>{row.questionCount != null ? `${row.questionCount} Soru` : '—'}</td>
                 <td style={{ padding: '16px 24px', fontSize: 13.5, color: tokens.muted }}>{exam.duration} Dk</td>
-                <td style={{ padding: '16px 24px' }}><StatusPill published={!!exam.published} /></td>
+                <td style={{ padding: '16px 24px' }}><StatusPill published={!!exam.published} endTime={exam.endTime} /></td>
                 <td style={{ padding: '16px 24px' }}>
                   {enrolled > 0 ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

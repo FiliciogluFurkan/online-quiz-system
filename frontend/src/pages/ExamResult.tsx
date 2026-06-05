@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Download, MessageSquare, CheckCircle2, XCircle, MinusCircle, TrendingUp, Clock } from 'lucide-react';
+import { ArrowLeft, Download, CheckCircle2, XCircle, MinusCircle, TrendingUp, Clock } from 'lucide-react';
 import api from '../api/axios';
 import type { Question, ExamAggregate } from '../types';
 import { tokens } from '../components/academic-ui';
@@ -181,15 +181,18 @@ export default function ExamResult() {
 
         {/* Bottom action */}
         <div style={{ display: 'flex', justifyContent: 'center', borderTop: `1px solid ${tokens.hairline}`, marginTop: 40, paddingTop: 32 }}>
-          {!isInstructor && instructor?.email ? (
-            <button onClick={handleAskInstructor} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 10, border: 'none', background: tokens.navy, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-              <MessageSquare size={18} />Eğitmene Soru Sor
-            </button>
-          ) : (
-            <button onClick={() => isInstructor ? navigate(-1) : navigate('/student?refresh=' + Date.now())} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 10, border: `1px solid ${tokens.hairline}`, background: tokens.card, color: tokens.ink, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-              <ArrowLeft size={18} />{isInstructor ? 'Geri Dön' : 'Sınavlarıma Dön'}
-            </button>
-          )}
+          <button 
+            onClick={() => isInstructor ? navigate(-1) : navigate('/student')} 
+            style={{ 
+              display: 'inline-flex', alignItems: 'center', gap: 8, 
+              padding: '14px 28px', borderRadius: 10, 
+              border: `1px solid ${tokens.hairline}`, background: tokens.card, 
+              color: tokens.ink, fontSize: 15, fontWeight: 700, 
+              cursor: 'pointer', fontFamily: 'inherit' 
+            }}
+          >
+            <ArrowLeft size={18} />{isInstructor ? 'Geri Dön' : 'Sınavlarıma Dön'}
+          </button>
         </div>
       </div>
     </div>

@@ -132,10 +132,6 @@ public class ResultController {
         }
         
         return results;
-    public List<StudentExam> getExamResults(@PathVariable Long examId) {
-        List<StudentExam> list = studentExamRepository.findByExamId(examId);
-        list.forEach(se -> se.setMaxScore(totalPointsFor(se)));
-        return list;
     }
     
     @GetMapping("/exam/{examId}/statistics")
@@ -473,9 +469,6 @@ public class ResultController {
         }
         
         return results;
-        List<StudentExam> list = studentExamRepository.findByKeycloakUserId(currentUserId);
-        list.forEach(se -> se.setMaxScore(totalPointsFor(se)));
-        return list;
     }
 
     @PutMapping("/answer/{answerId}/grade")
