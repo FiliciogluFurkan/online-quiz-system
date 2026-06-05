@@ -107,6 +107,31 @@ public class ResultController {
 
     @GetMapping("/exam/{examId}")
     @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
+    public List<Map<String, Object>> getExamResults(@PathVariable Long examId) {
+        List<StudentExam> studentExams = studentExamRepository.findByExamId(examId);
+        
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (StudentExam se : studentExams) {
+            Map<String, Object> dto = new HashMap<>();
+            dto.put("id", se.getId());
+            dto.put("status", se.getStatus());
+            dto.put("score", se.getScore());
+            dto.put("startedAt", se.getStartedAt());
+            dto.put("submittedAt", se.getSubmittedAt());
+            dto.put("student", se.getStudent());
+            
+            // Calculate maxScore from answers
+            List<Answer> answers = answerRepository.findByStudentExamId(se.getId());
+            int maxScore = answers.stream()
+                    .mapToInt(a -> a.getQuestion() != null && a.getQuestion().getPoints() != null 
+                              ? a.getQuestion().getPoints() : 0)
+                    .sum();
+            
+            dto.put("maxScore", maxScore > 0 ? maxScore : 100);
+            results.add(dto);
+        }
+        
+        return results;
     public List<StudentExam> getExamResults(@PathVariable Long examId) {
         List<StudentExam> list = studentExamRepository.findByExamId(examId);
         list.forEach(se -> se.setMaxScore(totalPointsFor(se)));
@@ -418,11 +443,36 @@ public class ResultController {
     }
 
     @GetMapping("/my-results")
-    public List<StudentExam> getMyResults() {
+    public List<Map<String, Object>> getMyResults() {
         String currentUserId = SecurityUtils.getCurrentUserId();
         if (currentUserId == null) {
             throw new RuntimeException("User not authenticated");
         }
+        
+        List<StudentExam> studentExams = studentExamRepository.findByKeycloakUserId(currentUserId);
+        
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (StudentExam se : studentExams) {
+            Map<String, Object> dto = new HashMap<>();
+            dto.put("id", se.getId());
+            dto.put("status", se.getStatus());
+            dto.put("score", se.getScore());
+            dto.put("startedAt", se.getStartedAt());
+            dto.put("submittedAt", se.getSubmittedAt());
+            dto.put("exam", se.getExam());
+            
+            // Calculate maxScore from answers
+            List<Answer> answers = answerRepository.findByStudentExamId(se.getId());
+            int maxScore = answers.stream()
+                    .mapToInt(a -> a.getQuestion() != null && a.getQuestion().getPoints() != null 
+                              ? a.getQuestion().getPoints() : 0)
+                    .sum();
+            
+            dto.put("maxScore", maxScore > 0 ? maxScore : 100);
+            results.add(dto);
+        }
+        
+        return results;
         List<StudentExam> list = studentExamRepository.findByKeycloakUserId(currentUserId);
         list.forEach(se -> se.setMaxScore(totalPointsFor(se)));
         return list;

@@ -108,11 +108,16 @@ public StudentExam startExam(@RequestBody StudentExam studentExam) {
                            se.getStatus() == StudentExam.ExamStatus.GRADED);
         if (alreadyDone) throw new ConflictException("Bu sınavı zaten tamamladınız!");
 
-        // IN_PROGRESS varsa onu döndür
+        // IN_PROGRESS varsa onu döndür (duplicate önleme)
         Optional<StudentExam> inProgress = existing.stream()
             .filter(se -> se.getStatus() == StudentExam.ExamStatus.IN_PROGRESS)
             .findFirst();
         if (inProgress.isPresent()) return inProgress.get();
+
+        // Herhangi bir kayıt varsa (güvenlik için), ilkini döndür
+        if (!existing.isEmpty()) {
+            return existing.get(0);
+        }
 
         studentExam.setKeycloakUserId(currentUserId);
         userRepository.findByKeycloakUserId(currentUserId).ifPresent(studentExam::setStudent);

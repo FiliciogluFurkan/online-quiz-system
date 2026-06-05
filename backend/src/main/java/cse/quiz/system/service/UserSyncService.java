@@ -3,6 +3,7 @@ package cse.quiz.system.service;
 import cse.quiz.system.entity.User;
 import cse.quiz.system.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserSyncService {
 
     private final UserRepository userRepository;
@@ -21,11 +23,17 @@ public class UserSyncService {
     @Transactional
     public User syncFromJwt(Jwt jwt) {
         String keycloakUserId = jwt.getClaimAsString("sub");
-        if (keycloakUserId == null) return null;
+        if (keycloakUserId == null) {
+            log.warn("No 'sub' claim found in JWT");
+            return null;
+        }
 
         String email = jwt.getClaimAsString("email");
         String fullName = resolveFullName(jwt);
         User.UserRole role = resolveRole(jwt);
+
+        log.info("Syncing user: keycloakUserId={}, email={}, fullName={}, role={}", 
+                 keycloakUserId, email, fullName, role);
 
         Optional<User> existing = userRepository.findByKeycloakUserId(keycloakUserId);
         User user = existing.orElseGet(() -> {
@@ -74,6 +82,7 @@ public class UserSyncService {
         if (changed || touchLogin) {
             user.setUpdatedAt(now);
             user = userRepository.save(user);
+            log.info("User saved: id={}, email={}, role={}", user.getId(), user.getEmail(), user.getRole());
         }
         return user;
     }

@@ -5,7 +5,12 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "student_exams")
+@Table(
+    name = "student_exams",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"keycloak_user_id", "exam_id"})
+    }
+)
 @Data
 public class StudentExam {
     @Id

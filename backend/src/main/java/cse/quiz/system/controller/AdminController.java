@@ -12,6 +12,7 @@ import cse.quiz.system.repository.QuestionRepository;
 import cse.quiz.system.repository.StudentExamRepository;
 import cse.quiz.system.repository.UserRepository;
 import cse.quiz.system.service.AuditLogService;
+import cse.quiz.system.service.KeycloakService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +35,7 @@ public class AdminController {
     private final UserRepository userRepository;
     private final AuditLogRepository auditLogRepository;
     private final AuditLogService auditLogService;
+    private final KeycloakService keycloakService;
     private final ClassroomRepository classroomRepository;
 
     @GetMapping("/stats")
@@ -97,8 +99,26 @@ public class AdminController {
     }
 
     @DeleteMapping("/questions/{id}")
-    public void deleteQuestion(@PathVariable Long id) {
-        questionRepository.deleteById(id);
+    public Map<String, Object> deleteQuestion(@PathVariable Long id) {
+        try {
+            Question question = questionRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Question not found"));
+            
+            questionRepository.deleteById(id);
+            auditLogService.record("Question", id, "DELETE", null);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "Soru başarıyla silindi");
+            return result;
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            error.put("message", "Soru silinemedi. Bu soru bir sınavda kullanılıyor olabilir.");
+            return error;
+        }
+    }
         auditLogService.record("Question", id, "DELETE", null);
     }
 
@@ -117,5 +137,86 @@ public class AdminController {
             return auditLogRepository.findByEntityTypeOrderByCreatedAtDesc(entityType, pageable);
         }
         return auditLogRepository.findAllByOrderByCreatedAtDesc(pageable);
+    }
+
+    @PostMapping("/users/sync-from-keycloak")
+    public Map<String, Object> syncUsersFromKeycloak() {
+        try {
+            List<org.keycloak.representations.idm.UserRepresentation> keycloakUsers = 
+                keycloakService.getAllUsers();
+            
+            int synced = 0;
+            int updated = 0;
+            int created = 0;
+
+            for (org.keycloak.representations.idm.UserRepresentation kcUser : keycloakUsers) {
+                String keycloakUserId = kcUser.getId();
+                String email = kcUser.getEmail();
+                String fullName = resolveFullName(kcUser);
+                User.UserRole role = resolveRoleFromKeycloak(kcUser);
+
+                User user = userRepository.findByKeycloakUserId(keycloakUserId).orElse(null);
+                
+                if (user == null) {
+                    user = new User();
+                    user.setKeycloakUserId(keycloakUserId);
+                    user.setEmail(email != null ? email : keycloakUserId + "@unknown.local");
+                    user.setFullName(fullName);
+                    user.setRole(role);
+                    user.setActive(true);
+                    user.setCreatedAt(LocalDateTime.now());
+                    created++;
+                } else {
+                    user.setEmail(email != null ? email : user.getEmail());
+                    user.setFullName(fullName);
+                    user.setRole(role);
+                    user.setUpdatedAt(LocalDateTime.now());
+                    updated++;
+                }
+                
+                userRepository.save(user);
+                synced++;
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("totalSynced", synced);
+            result.put("created", created);
+            result.put("updated", updated);
+            result.put("message", synced + " kullanıcı Keycloak'tan senkronize edildi");
+            
+            return result;
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return error;
+        }
+    }
+
+    private String resolveFullName(org.keycloak.representations.idm.UserRepresentation kcUser) {
+        String firstName = kcUser.getFirstName();
+        String lastName = kcUser.getLastName();
+        
+        if (firstName != null && lastName != null) {
+            return firstName + " " + lastName;
+        } else if (firstName != null) {
+            return firstName;
+        } else if (lastName != null) {
+            return lastName;
+        } else if (kcUser.getUsername() != null) {
+            return kcUser.getUsername();
+        }
+        return "Unknown User";
+    }
+
+    private User.UserRole resolveRoleFromKeycloak(org.keycloak.representations.idm.UserRepresentation kcUser) {
+        List<String> roles = keycloakService.getUserRoles(kcUser.getId());
+        
+        if (roles.contains("ADMIN")) return User.UserRole.ADMIN;
+        if (roles.contains("INSTRUCTOR")) return User.UserRole.INSTRUCTOR;
+        if (roles.contains("STUDENT")) return User.UserRole.STUDENT;
+        
+        return User.UserRole.STUDENT; // default
     }
 }

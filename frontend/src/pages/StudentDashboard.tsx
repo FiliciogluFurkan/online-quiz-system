@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, Search, SlidersHorizontal, ClipboardList, CheckCircle2, BarChart3, Clock, Calendar, ClipboardCheck } from 'lucide-react';
+import { ArrowRight, Search, SlidersHorizontal, X, Calendar, Clock, User } from 'lucide-react';
 import api from '../api/axios';
 import type { Exam } from '../types';
 import { tokens, Btn, scoreLabel, formatTrDateShort } from '../components/academic-ui';
@@ -50,6 +51,280 @@ function StudentStat({ icon, accent, label, value, caption }: {
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
         <span style={{ fontSize: 42, fontWeight: 800, color: tokens.ink, lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</span>
         {caption && <span style={{ fontSize: 13, color: tokens.subtle }}>{caption}</span>}
+      </div>
+    </div>
+  );
+}
+
+function ExamModal({ exam, onClose }: { exam: Exam; onClose: () => void }) {
+  const navigate = useNavigate();
+  const state = getExamState(exam);
+  const isLive = state === 'live' || state === 'available';
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: 20,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: '#fff',
+          borderRadius: 16,
+          maxWidth: 560,
+          width: '100%',
+          padding: 32,
+          position: 'relative',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: 20,
+            right: 20,
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 8,
+            color: tokens.subtle,
+          }}
+        >
+          <X size={20} />
+        </button>
+
+        <div style={{ marginBottom: 24 }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 12px',
+              borderRadius: 999,
+              background: isLive ? tokens.indigoSoft : '#f4f4f7',
+              color: isLive ? tokens.indigo : tokens.muted,
+              fontSize: 12,
+              fontWeight: 600,
+              border: `1px solid ${isLive ? tokens.indigoBorder : '#e7e7ec'}`,
+              marginBottom: 16,
+            }}
+          >
+            {isLive ? <LiveDot /> : <Calendar size={13} />}
+            {isLive ? 'Sınav Açık' : 'Yaklaşan Sınav'}
+          </span>
+
+          <h2
+            style={{
+              margin: 0,
+              fontFamily: tokens.serif,
+              fontSize: 28,
+              fontWeight: 400,
+              color: tokens.ink,
+              letterSpacing: '-0.02em',
+              marginBottom: 12,
+            }}
+          >
+            {exam.title}
+          </h2>
+
+          {exam.instructor?.fullName && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                color: tokens.subtle,
+                fontSize: 14,
+              }}
+            >
+              <User size={14} />
+              {exam.instructor.fullName}
+            </div>
+          )}
+        </div>
+
+        {exam.description && (
+          <div
+            style={{
+              padding: 16,
+              background: tokens.ivory,
+              borderRadius: 10,
+              marginBottom: 24,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: tokens.mono,
+                fontSize: 10,
+                color: tokens.subtle,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                marginBottom: 8,
+              }}
+            >
+              Açıklama
+            </div>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 14,
+                color: tokens.muted,
+                lineHeight: 1.6,
+              }}
+            >
+              {exam.description}
+            </p>
+          </div>
+        )}
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
+          <div
+            style={{
+              padding: 16,
+              background: '#fafafa',
+              borderRadius: 10,
+              border: `1px solid ${tokens.hairline}`,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                marginBottom: 8,
+              }}
+            >
+              <Clock size={14} style={{ color: tokens.subtle }} />
+              <span
+                style={{
+                  fontFamily: tokens.mono,
+                  fontSize: 10,
+                  color: tokens.subtle,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                Süre
+              </span>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 600, color: tokens.ink }}>
+              {exam.duration} dakika
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: 16,
+              background: '#fafafa',
+              borderRadius: 10,
+              border: `1px solid ${tokens.hairline}`,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                marginBottom: 8,
+              }}
+            >
+              <Calendar size={14} style={{ color: tokens.subtle }} />
+              <span
+                style={{
+                  fontFamily: tokens.mono,
+                  fontSize: 10,
+                  color: tokens.subtle,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                Son Tarih
+              </span>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: tokens.ink }}>
+              {deadlineLabel(exam)}
+            </div>
+          </div>
+        </div>
+
+        {exam.startTime && (
+          <div
+            style={{
+              padding: 16,
+              background: '#f0f9ff',
+              border: '1px solid #bfdbfe',
+              borderRadius: 10,
+              marginBottom: 24,
+            }}
+          >
+            <div style={{ fontSize: 13, color: '#1e40af', lineHeight: 1.5 }}>
+              <strong>Başlangıç:</strong>{' '}
+              {new Date(exam.startTime).toLocaleString('tr-TR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </div>
+            {exam.endTime && (
+              <div style={{ fontSize: 13, color: '#1e40af', lineHeight: 1.5, marginTop: 4 }}>
+                <strong>Bitiş:</strong>{' '}
+                {new Date(exam.endTime).toLocaleString('tr-TR', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 12 }}>
+          <Btn
+            variant="outline"
+            onClick={onClose}
+            style={{ flex: 1, justifyContent: 'center' }}
+          >
+            Kapat
+          </Btn>
+          {isLive && (
+            <Btn
+              variant="primary"
+              onClick={() => {
+                onClose();
+                navigate(`/student/exam/${exam.id}`);
+              }}
+              iconR={<ArrowRight size={15} />}
+              style={{ flex: 1, justifyContent: 'center' }}
+            >
+              Sınava Başla
+            </Btn>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -172,6 +447,7 @@ export default function StudentDashboard() {
   const [availableExams, setAvailableExams] = useState<Exam[]>([]);
   const [completedResults, setCompletedResults] = useState<StudentExam[]>([]);
   const [search, setSearch] = useState('');
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
 
   useEffect(() => {
     loadData();
@@ -217,7 +493,29 @@ export default function StudentDashboard() {
   }).length;
   const upcomingCount = availableExams.filter(e => getExamState(e) === 'upcoming').length;
 
+  const handleExamClick = (exam: Exam) => {
+    const state = getExamState(exam);
+    if (state === 'upcoming') {
+      setSelectedExam(exam);
+    } else {
+      navigate(`/student/exam/${exam.id}`);
+    }
+  };
+
   return (
+    <PageShell>
+      {selectedExam && (
+        <ExamModal exam={selectedExam} onClose={() => setSelectedExam(null)} />
+      )}
+      
+      <section style={{ marginBottom: 36 }}>
+        <Kicker>Bahar Dönemi · 2025–26</Kicker>
+        <div style={{ marginTop: 8 }}>
+          <h1 style={{
+            margin: 0, fontFamily: tokens.serif,
+            fontSize: 52, fontWeight: 400, color: tokens.ink,
+            letterSpacing: '-0.025em', lineHeight: 1,
+          }}>Sınavlarım<span style={{ color: tokens.indigo }}>.</span></h1>
     <div style={{ minHeight: '100vh', background: tokens.bg, fontFamily: tokens.sans, color: tokens.ink }}>
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '36px 40px 64px' }}>
         {/* Header */}
@@ -272,6 +570,19 @@ export default function StudentDashboard() {
                 <AvailableCard key={exam.id} exam={exam} onStart={() => navigate(`/student/exam/${exam.id}`)} />
               ))}
             </div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            {filteredAvailable.map(exam => (
+              <AvailableCard
+                key={exam.id}
+                exam={exam}
+                onStart={() => handleExamClick(exam)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
           )}
         </section>
 
