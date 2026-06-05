@@ -143,7 +143,7 @@ export default function ExamResult() {
         <h2 style={{ margin: '0 0 20px', fontSize: 22, fontWeight: 700 }}>Cevap Detayı</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {result.answers.map((a, i) => {
-            const pending = a.question.type === 'SHORT_ANSWER' && a.isCorrect === null;
+            const pending = a.question.type === 'SHORT_ANSWER' && a.isCorrect === null && (a.answerText ?? '').trim() !== '';
             const correct = a.isCorrect === true;
             const wrong = a.isCorrect === false;
             const borderColor = correct ? '#cdebd7' : wrong ? '#ffcdc6' : tokens.hairline;

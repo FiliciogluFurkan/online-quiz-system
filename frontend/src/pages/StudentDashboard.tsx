@@ -28,15 +28,11 @@ function getExamState(exam: Exam): ExamState {
   return 'available';
 }
 
-function deadlineLabel(exam: Exam): string {
-  if (!exam.endTime) return '—';
-  const end = new Date(exam.endTime);
-  const diffMs = end.getTime() - Date.now();
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays <= 0)
-    return end.toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  if (diffDays === 1) return 'Bugün';
-  return `${diffDays} gün kaldı`;
+function fmtDateTime(iso?: string | null): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function StudentStat({ icon, accent, label, value, caption }: {
@@ -97,28 +93,37 @@ function AvailableCard({ exam, onStart }: { exam: Exam; onStart: () => void }) {
         )}
 
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16,
+          display: 'flex', flexDirection: 'column', gap: 10,
           padding: '14px 0', borderTop: `1px solid ${tokens.hairlineSoft}`, marginTop: 'auto',
         }}>
-          <div>
-            <div style={{ fontSize: 11, color: tokens.subtle, fontWeight: 600, marginBottom: 4 }}>Süre</div>
-            <div style={{ fontSize: 13.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Clock size={14} style={{ color: tokens.muted }} />{exam.duration} dk
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ fontSize: 12, color: tokens.subtle, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Calendar size={14} />Başlangıç</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: tokens.ink }}>{fmtDateTime(exam.startTime)}</span>
           </div>
-          <div>
-            <div style={{ fontSize: 11, color: tokens.subtle, fontWeight: 600, marginBottom: 4 }}>Son</div>
-            <div style={{ fontSize: 13.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Calendar size={14} style={{ color: tokens.muted }} />{deadlineLabel(exam)}
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ fontSize: 12, color: tokens.subtle, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Calendar size={14} />Bitiş</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: tokens.ink }}>{fmtDateTime(exam.endTime)}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ fontSize: 12, color: tokens.subtle, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Clock size={14} />Süre</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: tokens.ink }}>{exam.duration} dk</span>
           </div>
         </div>
 
-        <Btn variant={isLive ? 'primary' : 'outline'} disabled={isEnded} onClick={isEnded ? undefined : onStart}
-          iconR={isEnded ? undefined : <ArrowRight size={15} />}
-          style={{ width: '100%', justifyContent: 'center', padding: '12px 16px', fontSize: 14 }}>
-          {isEnded ? 'Süresi Doldu' : isLive ? 'Sınava Başla' : 'Sınav Detayı'}
-        </Btn>
+        {isLive ? (
+          <Btn variant="primary" onClick={onStart} iconR={<ArrowRight size={15} />}
+            style={{ width: '100%', justifyContent: 'center', padding: '12px 16px', fontSize: 14 }}>
+            Sınava Başla
+          </Btn>
+        ) : (
+          <div style={{
+            width: '100%', textAlign: 'center', padding: '12px 16px', borderRadius: 10,
+            border: `1px solid ${tokens.hairline}`, background: tokens.ivory,
+            color: tokens.subtle, fontSize: 14, fontWeight: 600,
+          }}>
+            {isEnded ? 'Süresi Doldu' : 'Sınav henüz başlamadı'}
+          </div>
+        )}
       </div>
     </article>
   );
@@ -201,8 +206,9 @@ export default function StudentDashboard() {
   );
 
   const gradedResults = completedResults.filter(r => r.status === 'GRADED' && r.score != null);
+  // Sınavların toplam puanları farklı olabileceği için ortalamayı yüzde olarak hesapla
   const avgScore = gradedResults.length > 0
-    ? Math.round(gradedResults.reduce((s, r) => s + r.score, 0) / gradedResults.length)
+    ? Math.round(gradedResults.reduce((s, r) => s + (r.score / (r.maxScore || 100)) * 100, 0) / gradedResults.length)
     : null;
 
   const liveCount = availableExams.filter(e => {

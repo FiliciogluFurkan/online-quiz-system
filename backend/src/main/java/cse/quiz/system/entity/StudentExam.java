@@ -31,6 +31,10 @@ public class StudentExam {
 
     private Double score;
 
+    // Kalıcı değil: sınavın toplam puanı (soruların puan toplamı). Sonuç yanıtlarında doldurulur.
+    @Transient
+    private Double maxScore;
+
     public enum ExamStatus {
         NOT_STARTED, IN_PROGRESS, SUBMITTED, GRADED
     }

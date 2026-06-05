@@ -98,6 +98,14 @@ export default function AddQuestionsToExam() {
     }),
     [questions, search, typeFilter, categoryFilter]);
 
+  const allFilteredSelected = filtered.length > 0 && filtered.every(q => selected.includes(q.id));
+  const toggleSelectAllFiltered = () => {
+    const ids = filtered.map(q => q.id);
+    setSelected(prev => allFilteredSelected
+      ? prev.filter(x => !ids.includes(x))            // filtrelenenlerin hepsini kaldır
+      : Array.from(new Set([...prev, ...ids])));      // filtrelenenlerin hepsini ekle
+  };
+
   const handleCreateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.categoryId) { alert('Lütfen bir kategori seç. Kategori zorunlu.'); return; }
@@ -250,6 +258,23 @@ export default function AddQuestionsToExam() {
             </div>
           }
         />
+
+        {filtered.length > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            margin: '0 0 12px', padding: '10px 14px', background: '#fff',
+            border: `1px solid ${tokens.hairline}`, borderRadius: 10,
+          }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: tokens.ink }}>
+              <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAllFiltered}
+                style={{ width: 16, height: 16, cursor: 'pointer', accentColor: tokens.indigo }} />
+              Tümünü Seç <span style={{ color: tokens.subtle, fontWeight: 400 }}>({filtered.length} soru)</span>
+            </label>
+            <Btn onClick={toggleSelectAllFiltered} icon={<Check size={14} />}>
+              {allFilteredSelected ? 'Seçimi Kaldır' : 'Tümünü Ekle'}
+            </Btn>
+          </div>
+        )}
 
         {filtered.length === 0 ? (
           <div style={{

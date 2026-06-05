@@ -30,6 +30,24 @@ function formatTime(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+// Kalan süre: min(etkin başlangıç + süre, sınav bitişi) - şu an (saniye).
+// Etkin başlangıç = max(öğrencinin başlama anı, sınavın başlangıç saati). Böylece
+// sınav tarihi sonradan değiştirilse veya eski/tutarsız bir başlama anı kalsa bile
+// kalan süre güncel sınav penceresine göre hesaplanır; geç girene yeni süre verilmez.
+function remainingSeconds(startedAtMs: number, durationMin: number, startTime?: string | null, endTime?: string | null): number {
+  let effectiveStart = startedAtMs;
+  if (startTime) {
+    const start = new Date(startTime).getTime();
+    if (!isNaN(start)) effectiveStart = Math.max(effectiveStart, start);
+  }
+  let deadline = effectiveStart + durationMin * 60_000;
+  if (endTime) {
+    const end = new Date(endTime).getTime();
+    if (!isNaN(end)) deadline = Math.min(deadline, end);
+  }
+  return Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+}
+
 export default function TakeExam() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -49,6 +67,34 @@ export default function TakeExam() {
   const storageKey = id ? `quiz-answers-${id}` : null;
 
   useEffect(() => { loadExam(); }, [id]);
+
+  // Sınav sırasında kazara çıkışı engelle: geri tuşu ve sekme kapatma/yenilemede onay sor.
+  useEffect(() => {
+    const beforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+
+    // Tarayıcı "geri" tuşu: fazladan bir history girdisi ekleyip popstate'i yakala.
+    window.history.pushState(null, '', window.location.href);
+    const onPop = () => {
+      const leave = window.confirm('Sınavdan çıkmak istediğinize emin misiniz? Çıkarsanız ilerlemeniz kaybolabilir.');
+      if (leave) {
+        window.removeEventListener('popstate', onPop);
+        navigate('/student');
+      } else {
+        // Kalsın: history girdisini geri koy
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+    window.addEventListener('popstate', onPop);
+
+    return () => {
+      window.removeEventListener('beforeunload', beforeUnload);
+      window.removeEventListener('popstate', onPop);
+    };
+  }, [navigate]);
 
   useEffect(() => {
     if (!storageKey || answers.length === 0) return;
@@ -87,7 +133,7 @@ export default function TakeExam() {
       setQuestions(questionsRes.data);
 
       // Mevcut bir kayıt var mı? (tamamlanmış / devam eden)
-      let existingData: { id?: number; status?: string } | null = null;
+      let existingData: { id?: number; status?: string; startedAt?: string } | null = null;
       try {
         const existing = await api.get(`/student-exams/check/${id}`);
         existingData = existing.data ?? null;
@@ -101,14 +147,18 @@ export default function TakeExam() {
 
       if (existingData && existingData.status === 'IN_PROGRESS' && existingData.id != null) {
         setStudentExamId(existingData.id);
-        setTimeRemaining(examRes.data.duration * 60);
+        const startedMs = existingData.startedAt ? Date.parse(existingData.startedAt) : Date.now();
+        const rem = remainingSeconds(startedMs, examRes.data.duration, examRes.data.startTime, examRes.data.endTime);
+        if (rem <= 0) { alert('Sınavın süresi doldu.'); navigate('/student'); return; }
+        setTimeRemaining(rem);
       } else {
         // Yeni başlatma: backend süre/erişim kontrollerini burada uygular
         // (örn. "Sınavın süresi doldu", "Sınav henüz başlamadı").
         try {
           const studentExamRes = await api.post('/student-exams', { exam: { id: parseInt(id!) }, status: 'IN_PROGRESS' });
           setStudentExamId(studentExamRes.data.id);
-          setTimeRemaining(examRes.data.duration * 60);
+          const startedMs = studentExamRes.data.startedAt ? Date.parse(studentExamRes.data.startedAt) : Date.now();
+          setTimeRemaining(remainingSeconds(startedMs, examRes.data.duration, examRes.data.startTime, examRes.data.endTime));
         } catch (startErr) {
           const data = (startErr as { response?: { data?: { error?: string; message?: string } } })?.response?.data;
           alert(data?.error || data?.message || 'Sınav başlatılamadı.');

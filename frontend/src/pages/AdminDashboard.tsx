@@ -112,7 +112,7 @@ export default function AdminDashboard() {
         {stats && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 24 }}>
             <AdminStat label="Toplam Sınav" value={String(stats.totalExams)} />
-            <AdminStat label="Toplam Soru" value={String(stats.totalQuestions)} />
+            <AdminStat label="Toplam Sınıf" value={String(stats.totalClassrooms ?? '—')} />
             <AdminStat label="Toplam Kullanıcı" value={String(stats.totalUsers ?? '—')}
               caption={roleCounts ? `${roleCounts.STUDENT} öğr · ${roleCounts.INSTRUCTOR} eğt · ${roleCounts.ADMIN} adm` : undefined} />
             <AdminStat label="Aktif (30g)" value={String(stats.activeUsers ?? '—')} caption="son 30 günde giriş yapan" />

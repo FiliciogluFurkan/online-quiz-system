@@ -36,6 +36,7 @@ public class ExamQuestionController {
                     qMap.put("type", q.getType());
                     qMap.put("questionText", q.getQuestionText());
                     qMap.put("options", q.getOptions());
+                    qMap.put("imageUrl", q.getImageUrl());
                     qMap.put("correctAnswer", q.getCorrectAnswer());
                     qMap.put("points", q.getPoints());
                     qMap.put("category", q.getCategory());
@@ -53,5 +54,13 @@ public class ExamQuestionController {
     @PreAuthorize("hasRole('INSTRUCTOR')")
     public ExamQuestion addQuestionToExam(@RequestBody ExamQuestion examQuestion) {
         return examQuestionRepository.save(examQuestion);
+    }
+
+    /** Bir soruyu sınavdan çıkarır (soru bankasından silinmez). */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('INSTRUCTOR') or hasRole('ADMIN')")
+    public void removeQuestionFromExam(@PathVariable Long id) {
+        // Kayıt yoksa sessizce geç (EmptyResultDataAccessException ile 500 dönmesin)
+        examQuestionRepository.findById(id).ifPresent(examQuestionRepository::delete);
     }
 }

@@ -5,6 +5,7 @@ import type { Exam, Question } from '../types';
 interface Stats {
   totalExams: number;
   totalQuestions: number;
+  totalClassrooms: number;
   totalStudentExams: number;
   completedExams: number;
   activeUsers?: number;

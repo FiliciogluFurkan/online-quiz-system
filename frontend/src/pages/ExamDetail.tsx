@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Eye, BarChart3, FileText, Send, Pencil, MoreVertical, CheckCircle2, SlidersHorizontal, Globe, Users } from 'lucide-react';
+import { Plus, Eye, BarChart3, FileText, Send, Pencil, CheckCircle2, SlidersHorizontal, Globe, Users, Trash2 } from 'lucide-react';
 import api from '../api/axios';
+import { resolveImageUrl } from '../api/images';
 import type { Exam, Question, ClassroomRow, ExamVisibility } from '../types';
 import { tokens, formatTrDate, Btn } from '../components/academic-ui';
 
@@ -191,6 +192,20 @@ export default function ExamDetail() {
     api.get(`/exam-questions/exam/${id}`).then(res => setExamQuestions(res.data)).catch(console.error);
   };
 
+  const handleRemoveFromExam = async (examQuestionId: number) => {
+    if (!window.confirm('Bu soruyu sınavdan çıkarmak istediğine emin misin? (Soru bankasından silinmez)')) return;
+    try {
+      await api.delete(`/exam-questions/${examQuestionId}`);
+      loadQuestions();
+    } catch (error) {
+      const err = error as { response?: { status?: number; data?: { error?: string; message?: string } } };
+      const status = err.response?.status;
+      const msg = err.response?.data?.error || err.response?.data?.message;
+      alert(`Soru sınavdan çıkarılamadı. (HTTP ${status ?? '?'}${msg ? ' - ' + msg : ''})`);
+      console.error('remove exam-question failed:', status, err.response?.data || error);
+    }
+  };
+
   const totalPoints = useMemo(
     () => examQuestions.reduce((sum, item) => sum + (item.question.points || 0), 0),
     [examQuestions]
@@ -345,10 +360,19 @@ export default function ExamDetail() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <span style={{ padding: '5px 12px', borderRadius: 999, border: `1px solid ${tokens.hairline}`, fontSize: 12, fontWeight: 600, color: tokens.text }}>{eq.question.points} Puan</span>
-                      <button style={{ border: 'none', background: 'transparent', color: tokens.subtle, cursor: 'pointer', display: 'grid', placeItems: 'center' }}><MoreVertical size={18} /></button>
+                      <button onClick={() => handleRemoveFromExam(eq.id)} title="Sınavdan Çıkar"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: `1px solid ${tokens.hairline}`, background: tokens.card, color: tokens.bad, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#fff1ef')}
+                        onMouseLeave={e => (e.currentTarget.style.background = tokens.card)}>
+                        <Trash2 size={15} />Sınavdan Çıkar
+                      </button>
                     </div>
                   </div>
                   <p style={{ margin: '0 0 16px 42px', fontSize: 17, lineHeight: 1.5, color: tokens.ink }}>{eq.question.questionText}</p>
+                  {eq.question.imageUrl && (
+                    <img src={resolveImageUrl(eq.question.imageUrl)} alt="Soru görseli"
+                      style={{ margin: '0 0 16px 42px', maxWidth: 360, maxHeight: 240, borderRadius: 10, border: `1px solid ${tokens.hairline}`, objectFit: 'contain', display: 'block', background: tokens.ivory }} />
+                  )}
                   {opts.length > 0 && (
                     <div style={{ marginLeft: 42, display: 'grid', gridTemplateColumns: eq.question.type === 'SHORT_ANSWER' ? '1fr' : 'repeat(2, 1fr)', gap: 12 }}>
                       {opts.map(opt => (

@@ -51,6 +51,12 @@ public class ExamSubmissionService {
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime startedAt = existing.getStartedAt();
             Integer durationMin = existing.getExam().getDuration();
+            // Etkin başlangıç = max(başlama anı, sınav başlangıcı). Tarih sonradan
+            // değiştirildiğinde eski başlama anı pencere dışına düşmesin.
+            LocalDateTime examStart = existing.getExam().getStartTime();
+            if (startedAt != null && examStart != null && startedAt.isBefore(examStart)) {
+                startedAt = examStart;
+            }
             if (startedAt != null && durationMin != null) {
                 LocalDateTime hardDeadline = startedAt.plusMinutes(durationMin).plusSeconds(30);
                 if (now.isAfter(hardDeadline)) {

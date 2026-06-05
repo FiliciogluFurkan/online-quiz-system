@@ -6,6 +6,7 @@ import cse.quiz.system.entity.Question;
 import cse.quiz.system.entity.StudentExam;
 import cse.quiz.system.entity.User;
 import cse.quiz.system.repository.AuditLogRepository;
+import cse.quiz.system.repository.ClassroomRepository;
 import cse.quiz.system.repository.ExamRepository;
 import cse.quiz.system.repository.QuestionRepository;
 import cse.quiz.system.repository.StudentExamRepository;
@@ -33,6 +34,7 @@ public class AdminController {
     private final UserRepository userRepository;
     private final AuditLogRepository auditLogRepository;
     private final AuditLogService auditLogService;
+    private final ClassroomRepository classroomRepository;
 
     @GetMapping("/stats")
     public Map<String, Object> getSystemStats() {
@@ -40,6 +42,7 @@ public class AdminController {
 
         stats.put("totalExams", examRepository.count());
         stats.put("totalQuestions", questionRepository.count());
+        stats.put("totalClassrooms", classroomRepository.count());
         stats.put("totalStudentExams", studentExamRepository.count());
         stats.put("completedExams", studentExamRepository.countByStatusIn(
                 List.of(StudentExam.ExamStatus.GRADED, StudentExam.ExamStatus.SUBMITTED)));
