@@ -1,0 +1,15 @@
+flowchart TB
+    subgraph Client
+      FE["Frontend (SPA)<br/>React 19 · Vite · TypeScript<br/>:5173"]
+    end
+    subgraph Server
+      BE["Backend REST API<br/>Spring Boot · Java 25 · Spring Data JPA<br/>:8080"]
+    end
+    KC["Keycloak (OIDC / SSO)<br/>realm: quiz-realm<br/>:8180"]
+    DB[("PostgreSQL 16<br/>Docker")]
+
+    FE -- "OIDC login (redirect)" --> KC
+    KC -- "JWT access token" --> FE
+    FE -- "REST/JSON + Bearer JWT" --> BE
+    BE -- "validate JWT (JWKS)" --> KC
+    BE -- "JPA / SQL" --> DB

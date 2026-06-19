@@ -1,0 +1,70 @@
+classDiagram
+    class User {
+      +Long id
+      +String keycloakUserId
+      +String email
+      +String fullName
+      +UserRole role
+      +Boolean active
+    }
+    class Category { +Long id +String name }
+    class Question {
+      +Long id
+      +QuestionType type
+      +String questionText
+      +String options
+      +String imageUrl
+      +String correctAnswer
+      +Integer points
+    }
+    class Exam {
+      +Long id
+      +String title
+      +Integer duration
+      +LocalDateTime startTime
+      +LocalDateTime endTime
+      +Boolean published
+      +Visibility visibility
+      +Boolean questionPoolEnabled
+      +Integer poolSize
+      +Integer questionsPerStudent
+    }
+    class ExamQuestion { +Integer orderIndex }
+    class ExamQuestionPool { +Integer displayOrder }
+    class Classroom { +Long id +String name +String joinCode +Boolean active }
+    class Enrollment { +Long id +LocalDateTime enrolledAt }
+    class ExamAssignment { +Long id +LocalDateTime assignedAt }
+    class StudentExam {
+      +Long id
+      +ExamStatus status
+      +Double score
+      +Double maxScore
+      +LocalDateTime startedAt
+      +LocalDateTime submittedAt
+    }
+    class StudentExamQuestion { +Integer displayOrder }
+    class Answer {
+      +Long id
+      +String answerText
+      +Boolean isCorrect
+      +Integer pointsEarned
+      +String feedback
+    }
+
+    User "1" --> "*" Exam : authors
+    User "1" --> "*" Classroom : owns
+    Category "1" --> "*" Question
+    Exam "1" --> "*" ExamQuestion
+    ExamQuestion "*" --> "1" Question
+    Exam "1" --> "*" ExamQuestionPool
+    ExamQuestionPool "*" --> "1" Question
+    Classroom "1" --> "*" Enrollment
+    Enrollment "*" --> "1" User : student
+    Exam "1" --> "*" ExamAssignment
+    ExamAssignment "*" --> "1" Classroom
+    Exam "1" --> "*" StudentExam
+    StudentExam "*" --> "1" User : student
+    StudentExam "1" --> "*" StudentExamQuestion
+    StudentExamQuestion "*" --> "1" Question
+    StudentExam "1" --> "*" Answer
+    Answer "*" --> "1" Question

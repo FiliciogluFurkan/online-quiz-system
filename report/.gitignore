@@ -1,0 +1,2 @@
+# npm deps for the docx build script (rebuild with: npm install)
+node_modules/
