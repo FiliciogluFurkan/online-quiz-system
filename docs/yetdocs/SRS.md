@@ -72,6 +72,10 @@ The target system provides the following high-level functions:
 - Allow students to take and submit exams.
 - Store student answers.
 - Automatically grade objective questions.
+- Allow instructors to attach images to questions for visual/diagram-based items.
+- Support partial-credit manual grading with feedback for open-ended answers.
+- Notify users of key events (new exam, graded result, etc.) and show an unread count.
+- Let users view their account/profile settings.
 - Show exam results to students and instructors.
 - Allow admins to manage users, roles, categories, and system-level reports.
 
@@ -142,6 +146,7 @@ Requirement status labels:
 - FR-003: The system shall display role-based navigation options. Status: Implemented. (Role-aware sidebar/shell per Student/Instructor/Admin.)
 - FR-004: The system shall support Student, Instructor, and Admin roles. Status: Implemented. (All three roles have dedicated panels.)
 - FR-005: The system shall allow admins to assign roles to users. Status: Planned. (Role assignment is currently performed in the Keycloak admin console, not in the app UI.)
+- FR-056: The system shall provide an account settings page where any authenticated user can view their profile/identity information and open the Keycloak account console to manage their account (e.g., change password). Status: Implemented (basic).
 
 ### 3.2 Question Bank Management
 
@@ -151,6 +156,7 @@ Requirement status labels:
 - FR-009: The system shall support short-answer questions. Status: Implemented. (Create, take, and manual grading supported.)
 - FR-010: The system shall allow questions to be associated with categories. Status: Implemented.
 - FR-011: The system shall allow instructors to view their own questions. Status: Implemented.
+- FR-055: The system shall allow instructors to attach an image to a question (uploaded via the `/api/uploads/image` endpoint, restricted to instructor/admin), and shall display that image to students during exam taking and in exam preview and result screens. Status: Implemented.
 
 ### 3.3 Exam Management
 
@@ -174,7 +180,7 @@ Requirement status labels:
 
 - FR-024: The system shall automatically grade multiple-choice answers. Status: Implemented.
 - FR-025: The system shall automatically grade true/false answers. Status: Implemented.
-- FR-026: The system shall support manual grading for short-answer questions. Status: Implemented. (Per-answer grading with feedback; total score updates automatically.)
+- FR-026: The system shall support manual grading for short-answer questions, including partial credit and written feedback. A short answer that exactly matches (case- and whitespace-insensitive) the correct answer is auto-graded; otherwise it is routed to the instructor for manual review. On manual grading the per-answer points (full / partial / zero) and the student's total score are recomputed automatically. Status: Implemented.
 - FR-027: The system shall calculate and store exam scores. Status: Implemented.
 - FR-028: The system shall allow students to view their exam result (with per-question detail and PDF export). Status: Implemented.
 - FR-029: The system shall allow instructors to view results for an exam. Status: Implemented.
@@ -203,7 +209,7 @@ Requirement status labels:
 
 ### 3.9 Notifications
 
-- FR-043: The system shall notify users of relevant events (e.g., an exam being graded). Status: Implemented.
+- FR-043: The system shall notify users of relevant events. Supported notification types include: a new exam being published/assigned, an exam being graded, an upcoming exam, and system announcements. Status: Implemented.
 - FR-044: The system shall show an unread notification count. Status: Implemented.
 - FR-045: The system shall allow users to mark notifications as read (individually and all at once). Status: Implemented.
 
@@ -233,9 +239,11 @@ The system shall provide browser-based interfaces for:
 - Home page and login entry.
 - Student dashboard.
 - Instructor dashboard.
-- Question bank.
+- Question bank (with per-question image upload).
+- All exams list (instructor).
 - Exam creation and editing.
 - Exam detail, question assignment, and exam visibility/class assignment.
+- Account settings (profile + Keycloak account console link).
 - Class management (instructor): class list, class detail with join code, members, and assigned exams.
 - Class enrollment (student): join a class by code and list enrolled classes.
 - Exam-taking screen.
@@ -613,7 +621,7 @@ Status: Implemented.
 
 ## 8. Current Prototype Gaps
 
-The current prototype covers the full assessment lifecycle: question bank (with bulk import), exam creation with optional question pools, exam taking with timer and auto-save, automatic and manual grading, student/instructor results, question- and exam-level analytics, notifications, an audit log, and a role-aware redesigned UI. The following items remain as future work:
+The current prototype covers the full assessment lifecycle: question bank (with bulk import and per-question images), exam creation with optional question pools, exam taking with timer and auto-save, automatic grading and partial-credit manual grading, student/instructor results, question- and exam-level analytics, notifications, an account settings page, an audit log, and a role-aware redesigned UI. The following items remain as future work:
 
 - In-app user management (activate/deactivate users, assign roles) — currently via the Keycloak admin console.
 - Server-side persistence of in-progress answers (current auto-save is client-side localStorage).
@@ -621,3 +629,45 @@ The current prototype covers the full assessment lifecycle: question bank (with 
 - An advanced admin reporting suite beyond current system totals and the audit log.
 - Server-clock synchronization for exam time windows (browser time is used in places).
 - Applying the new design to remaining secondary screens (Manual Grading, Bulk Import, My Results, Notifications, Admin Exam Detail) and the Keycloak login theme rollout.
+
+## 9. User Stories
+
+These user stories express the system requirements from each role's point of view. They were derived through AI-assisted question-and-answer sessions during requirements analysis, then reviewed and validated by the team, and finally reconciled against the implemented system. Each story references the functional requirement(s) it maps to.
+
+### 9.1 Student
+
+- US-001: As a student, I want to log in with my institutional account, so that I can access the system without managing a separate password. (→ FR-001, FR-002)
+- US-002: As a student, I want to join a class with a join code, so that exams assigned to that class become available to me. (→ FR-050)
+- US-003: As a student, I want to see only the exams available to me, so that I am not distracted by exams I cannot take. (→ FR-018, FR-053)
+- US-004: As a student, I want to take an exam under a countdown timer, so that I work within the allotted time. (→ FR-019, FR-022)
+- US-005: As a student, I want my in-progress answers preserved if I refresh or briefly disconnect, so that I do not lose work. (→ FR-020, FR-023, FR-041)
+- US-006: As a student, I want to be prevented from retaking an exam I already submitted, so that exam integrity is preserved. (→ FR-021)
+- US-007: As a student, I want to see my score and a per-question breakdown after grading, so that I understand my performance. (→ FR-028, FR-030)
+- US-008: As a student, I want to export my result as a PDF, so that I can keep a personal record. (→ FR-047)
+- US-009: As a student, I want to be notified when an exam is assigned to me or my exam is graded, so that I stay up to date. (→ FR-043, FR-054)
+
+### 9.2 Instructor
+
+- US-010: As an instructor, I want a reusable, categorized question bank, so that I can compose exams quickly. (→ FR-006, FR-010, FR-011)
+- US-011: As an instructor, I want to author multiple question types (multiple choice, true/false, short answer), so that I can assess different skills. (→ FR-007, FR-008, FR-009)
+- US-012: As an instructor, I want to attach an image to a question, so that I can ask visual or diagram-based questions. (→ FR-055)
+- US-013: As an instructor, I want to bulk-import questions from a CSV file, so that I can add many questions efficiently. (→ FR-046)
+- US-014: As an instructor, I want to create and schedule exams with a start/end time window, so that exams are available only when intended. (→ FR-012, FR-013)
+- US-015: As an instructor, I want to deliver a random subset from a question pool to each student, so that I reduce cheating. (→ FR-016, FR-039)
+- US-016: As an instructor, I want to publish and unpublish exams (publishing requiring at least one question), so that I control exam availability. (→ FR-015)
+- US-017: As an instructor, I want to organize students into classes and assign exams to specific classes, so that only the intended students can access an exam. (→ FR-048, FR-052)
+- US-018: As an instructor, I want to view enrolled students and remove a student from a class, so that I keep class membership accurate. (→ FR-051)
+- US-019: As an instructor, I want open-ended answers routed to manual grading with partial credit and feedback, so that I can grade fairly. (→ FR-026)
+- US-020: As an instructor, I want per-exam and per-question analytics (difficulty, discrimination, distribution), so that I can evaluate and improve my items. (→ FR-031, FR-032)
+- US-021: As an instructor, I want only the owner and authorized roles to modify an exam, so that my exams are protected from unauthorized changes. (→ FR-017)
+
+### 9.3 Admin
+
+- US-022: As an admin, I want a system-wide dashboard with totals and role distribution, so that I can monitor platform usage. (→ FR-033, FR-034)
+- US-023: As an admin, I want an append-only audit log of key actions, so that I can review who did what and when. (→ FR-038)
+- US-024: As an admin, I want to manage global question categories, so that the question bank stays organized across instructors. (→ FR-037)
+
+### 9.4 All Roles
+
+- US-025: As any user, I want a role-aware interface that surfaces only my permitted actions, so that the app stays simple and safe. (→ FR-003, FR-004)
+- US-026: As any user, I want to view my account and profile settings, so that I can check my identity information and manage my account. (→ FR-056)
